@@ -1,0 +1,106 @@
+Enum membership_role {
+  owner
+  member
+}
+
+Enum storage_location {
+  fridge
+  freezer
+  pantry
+}
+
+Enum item_status {
+  active
+  eaten
+  wasted
+}
+
+Enum product_type {
+  commercial  //store bought etc.
+  prepared
+}
+
+Table users as U {
+  id integer [pk, increment]
+  email varchar(255) [unique, not null]
+  username varchar(150) [unique, not null]
+  password_hash varchar(255) [not null]
+  notify_days integer [default: 3, note: 'Lead time for expiry reminders']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table households as H {
+  id integer [pk, increment]
+  name varchar(100) [not null]
+  invite_code varchar(32) [unique, not null]
+  created_at timestamp [default: `now()`]
+}
+
+Table memberships as M {
+  id integer [pk, increment]
+  user_id integer [not null, ref: > U.id]
+  household_id integer [not null, ref: > H.id]
+  role membership_role [not null, default: 'member']
+  joined_at timestamp [default: `now()`]
+
+  indexes {
+    (user_id, household_id) [unique]
+  }
+}
+
+Table categories as C {
+  id integer [pk, increment]
+  name varchar(100) [unique, not null]
+}
+
+Table products as P {
+  id integer [pk, increment]
+  household_id integer [null, ref: > H.id, note: 'NULL for global barcode-scanned products; household ID for custom/homemade dishes']
+  barcode varchar(64) [unique, null]
+  name varchar(255) [not null]
+  brand varchar(255) [null]
+  product_type product_type [not null, default: 'commercial']
+  image_url text [null]
+  category_id integer [ref: > C.id]
+  created_at timestamp [default: `now()`]
+}
+
+Table fridge_items as FI {
+  id integer [pk, increment]
+  household_id integer [not null, ref: > H.id]
+  product_id integer [null, ref: > P.id, note: 'Null when added purely manually without catalogue entry']
+  custom_name varchar(255) [null, note: 'Fallback if product_id is null']
+  category_id integer [null, ref: > C.id, note: 'Fallback category for custom items']
+  quantity decimal(10, 2) [not null, default: 1.0]
+  unit varchar(30) [default: 'pcs', note: 'pcs, kg, g, l, ml']
+  location storage_location [not null, default: 'fridge']
+  expiry_date date [not null]
+  status item_status [not null, default: 'active']
+  added_by integer [null, ref: > U.id]
+  created_at timestamp [default: `now()`]
+  closed_at timestamp [null, note: 'Timestamp when eaten or wasted for statistics']
+
+  indexes {
+    (household_id, status, expiry_date)
+  }
+}
+
+Table shopping_items as SI {
+  id integer [pk, increment]
+  household_id integer [not null, ref: > H.id]
+  product_id integer [null, ref: > P.id]
+  name varchar(255) [not null, note: 'Custom name or catalog product name']
+  quantity decimal(10, 2) [default: 1.0]
+  unit varchar(30) [default: 'pcs']
+  category_id integer [null, ref: > C.id]
+  is_bought boolean [not null, default: false]
+  added_by integer [null, ref: > U.id]
+  bought_by integer [null, ref: > U.id]
+  created_at timestamp [default: `now()`]
+  bought_at timestamp [null]
+
+  indexes {
+    (household_id, is_bought)
+  }
+}
