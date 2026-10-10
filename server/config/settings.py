@@ -27,19 +27,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third-party packages
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
 
-    # Local application
     'api',
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serves static files directly in cloud environments (e.g., Render)
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serves static files directly in cloud environments (Render)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
