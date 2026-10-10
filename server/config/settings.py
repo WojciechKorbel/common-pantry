@@ -3,23 +3,21 @@ from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
 
-# Build paths inside the project: BASE_DIR points to the project root
+# BASE_DIR points to the project root
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from the .env file (if it exists)
+# Load environment variables from the .env file
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-dev-key-change-in-prod')
 
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Allow all host headers (convenient for local dev, Render, and mobile client connections)
+# Allow all host headers (local dev, Render and mobile client connections)
 ALLOWED_HOSTS = ['*']
 
 # Application definition
-
 INSTALLED_APPS = [
-    # Default Django core apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -104,7 +102,7 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files configuration (CSS, JavaScript, Images) for Django Admin and WhiteNoise
+# Static files configuration for Django Admin and WhiteNoise
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -112,7 +110,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# CORS configuration (allows requests from the Flutter mobile app and dev environments)
+# CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True
 
 
