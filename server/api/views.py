@@ -9,7 +9,6 @@ class FridgeItemListAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # Filtrujemy tylko aktywne produkty w lodówce posortowane według daty ważności (US-06)
         queryset = FridgeItem.objects.filter(status=ItemStatus.ACTIVE).order_by('expiry_date')
 
         household_id = self.request.query_params.get('household_id')
