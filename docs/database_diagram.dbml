@@ -3,12 +3,6 @@ Enum membership_role {
   member
 }
 
-Enum storage_location {
-  fridge
-  freezer
-  pantry
-}
-
 Enum item_status {
   active
   eaten
@@ -16,7 +10,7 @@ Enum item_status {
 }
 
 Enum product_type {
-  commercial  //store bought etc.
+  commercial  // store bought etc.
   prepared
 }
 
@@ -74,7 +68,6 @@ Table fridge_items as FI {
   category_id integer [null, ref: > C.id, note: 'Fallback category for custom items']
   quantity decimal(10, 2) [not null, default: 1.0]
   unit varchar(30) [default: 'pcs', note: 'pcs, kg, g, l, ml']
-  location storage_location [not null, default: 'fridge']
   expiry_date date [not null]
   status item_status [not null, default: 'active']
   added_by integer [null, ref: > U.id]
