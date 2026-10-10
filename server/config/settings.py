@@ -3,25 +3,23 @@ from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Build paths inside the project: BASE_DIR points to the project root
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Wczytanie zmiennych z pliku .env (jeśli istnieje)
+# Load environment variables from the .env file (if it exists)
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-dev-key-change-in-prod')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-# Dopuszczamy localhost, Render i połączenia z aplikacji mobilnej
+# Allow all host headers (convenient for local dev, Render, and mobile client connections)
 ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
 INSTALLED_APPS = [
+    # Default Django core apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -29,19 +27,19 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Biblioteki zewnętrzne
+    # Third-party packages
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
 
-    # Twoja aplikacja
+    # Local application
     'api',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Musi być na samej górze przed CommonMiddleware
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Obsługa plików statycznych w chmurze
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serves static files directly in cloud environments (e.g., Render)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -71,7 +69,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 
 
-# Baza danych (PostgreSQL na Neon przez zmienną DATABASE_URL)
+# Database configuration
+# Uses PostgreSQL (Neon) via DATABASE_URL; falls back to SQLite for offline local dev
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
     DATABASES = {
@@ -82,7 +81,7 @@ if DATABASE_URL:
         )
     }
 else:
-    # Zapasowy SQLite na wypadek pracy offline bez skonfigurowanego .env
+    # Fallback SQLite configuration for local development without a configured .env
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -107,7 +106,7 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images) dla Django Admin
+# Static files configuration (CSS, JavaScript, Images) for Django Admin and WhiteNoise
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -115,11 +114,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# Konfiguracja CORS (dostęp dla aplikacji mobilnej Flutter)
+# CORS configuration (allows requests from the Flutter mobile app and dev environments)
 CORS_ALLOW_ALL_ORIGINS = True
 
 
-# Konfiguracja Django REST Framework i JWT
+# Django REST Framework & JWT authentication settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
