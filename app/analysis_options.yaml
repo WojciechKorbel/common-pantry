@@ -5,6 +5,7 @@ analyzer:
     - build/**
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+    - android/**
   language:
     strict-casts: true
     strict-inference: true
