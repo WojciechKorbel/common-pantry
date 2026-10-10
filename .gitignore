@@ -1,1 +1,9 @@
 /.idea
+.vscode/
+build/
+.dart_tool/
+.env
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
