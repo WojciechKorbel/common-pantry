@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -22,7 +23,17 @@ from rest_framework_simplejwt.views import (
 )
 from api.views import FridgeItemListAPIView
 
+
+def home_view(request):
+    return JsonResponse({
+        "status": "ok",
+        "app": "Common Pantry API",
+    })
+
+
 urlpatterns = [
+    path('', home_view, name='home'),
+
     path('admin/', admin.site.urls),
 
     path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
