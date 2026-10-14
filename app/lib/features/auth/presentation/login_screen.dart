@@ -72,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   text: 'Forgot password?',
                   alignment: Alignment.centerRight,
                   onPressed: () {
-                    context.push('/items'); // TODO change
+                    context.push('/forgot-password');
                   },
                 ),
 
@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   linkText: 'Sign up',
                   alignment: MainAxisAlignment.center,
                   onPressed: () {
-                    context.push('/items'); // TODO change
+                    context.push('/sign-up');
                   },
                 ),
               ],
