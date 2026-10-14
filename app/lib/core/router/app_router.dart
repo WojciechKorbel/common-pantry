@@ -1,3 +1,4 @@
+import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/auth/presentation/forgot_password_screen.dart';
 import 'package:common_pantry/features/auth/presentation/login_screen.dart';
 import 'package:common_pantry/features/auth/presentation/sign_up_screen.dart';
@@ -31,7 +32,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: '/login',
-        builder: (_, __) => const LoginScreen(),
+        builder: (context, state) => LoginScreen(
+          controller: Dependencies.loginController,
+        ),
       ),
 
       GoRoute(
