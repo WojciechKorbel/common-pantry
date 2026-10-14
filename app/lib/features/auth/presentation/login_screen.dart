@@ -102,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                                   // EMAIL FIELD
                                   AppInput(
-                                    hintText: 'e-mail',
+                                    hintText: 'username',
                                     icon: Icons.email_outlined,
                                     keyboardType: TextInputType.emailAddress,
                                     controller: _emailController,
