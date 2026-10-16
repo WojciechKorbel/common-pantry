@@ -88,20 +88,22 @@ class ItemStatus(models.TextChoices):
     WASTED = 'wasted', 'Wasted'
 
 
-class FridgeItem(models.Model):
+class PantryItem(models.Model):
     """One physical package of a product, with its own expiry date."""
 
-    household = models.ForeignKey(Household, on_delete=models.CASCADE, related_name='fridge_items')
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='fridge_items')
+    household = models.ForeignKey(Household, on_delete=models.CASCADE, related_name='pantry_items')
+    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='pantry_items')
     expiry_date = models.DateField()
     status = models.CharField(max_length=20, choices=ItemStatus.choices, default=ItemStatus.ACTIVE)
-    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='added_fridge_items')
+    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='added_pantry_items')
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        db_table = 'fridge_items'
-        indexes = [models.Index(fields=['household', 'status', 'expiry_date'])]
+        db_table = 'pantry_items'
+        indexes = [
+            models.Index(fields=['household', 'status', 'expiry_date'], name='pantry_item_hh_status_exp_idx'),
+        ]
 
     def __str__(self):
         return f"{self.product.name} (exp: {self.expiry_date})"

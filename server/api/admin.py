@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import Household, Membership, Category, Product, FridgeItem, ShoppingItem
-
+from .models import Household, Membership, Category, Product, PantryItem, ShoppingItem
 
 @admin.register(Household)
 class HouseholdAdmin(admin.ModelAdmin):
@@ -30,8 +29,8 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('name', 'brand', 'barcode')
 
 
-@admin.register(FridgeItem)
-class FridgeItemAdmin(admin.ModelAdmin):
+@admin.register(PantryItem)
+class PantryItemAdmin(admin.ModelAdmin):
     list_display = ('id', 'product', 'household', 'expiry_date', 'status', 'added_by')
     list_filter = ('status', 'expiry_date', 'household', 'product__category')
     search_fields = ('product__name', 'product__brand')
