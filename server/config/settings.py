@@ -119,4 +119,12 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
+
+# Open Food Facts identification
+OPEN_FOOD_FACTS_USER_AGENT = os.environ.get(
+    'OPEN_FOOD_FACTS_USER_AGENT', 'CommonPantry/0.1 (university project)'
+)
