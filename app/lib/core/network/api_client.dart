@@ -62,7 +62,7 @@ class ApiClient {
             request.headers['Authorization'] = 'Bearer $newAccess';
             request.extra['retried'] = true;
 
-            final response = await dio.fetch(request);
+            final response = await dio.fetch<dynamic>(request);
 
             debugPrint(
               '[DEBUG] Retried request: ${response.statusCode}',
@@ -119,7 +119,7 @@ class ApiClient {
     try {
       debugPrint('[DEBUG] Sending refresh'); // TODO: debug print is here!
 
-      final response = await refreshDio.post(
+      final response = await refreshDio.post<dynamic>(
         '/api/auth/token/refresh/',
         data: {'refresh': refresh},
       );

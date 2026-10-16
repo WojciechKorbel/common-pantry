@@ -18,7 +18,7 @@ class AuthRepository {
       password: password,
     );
 
-    final response = await api.dio.post(
+    final response = await api.dio.post<dynamic>(
       '/api/auth/token/',
       data: request.toJson(),
     );
