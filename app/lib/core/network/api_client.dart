@@ -126,8 +126,8 @@ class ApiClient {
 
       debugPrint('[DEBUG] Refresh status: ${response.statusCode}'); // TODO: debug print is here!
 
-      final newAccess = response.data['access'] as String?;
-      final newRefresh = response.data['refresh'] as String?;
+      final newAccess = response.data?['access'] as String?;
+      final newRefresh = response.data?['refresh'] as String?;
 
       if (newAccess == null) {
         await tokenStorage.clear();
