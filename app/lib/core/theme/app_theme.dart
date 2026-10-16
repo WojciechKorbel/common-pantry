@@ -20,6 +20,12 @@ class AppColors {
 
   // Additional semantic colors
   static const Color error = Color(0xFFBA1A1A);
+
+  // Expiry chips colors
+  static const expiredContainer = Color(0xFFF9EDEC);
+  static const soon = Color(0xFF8A5100);
+  static const soonContainer = Color(0xFFFBF2DF);
+  static const freshContainer = Color(0xFFEEF2F1);
 }
 
 class AppTheme {
@@ -223,6 +229,72 @@ class AppTheme {
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.surface,
       ),
+
+      extensions: const [ExpiryColors.light],
+    );
+  }
+}
+
+/// Colours of expiry chips
+@immutable
+class ExpiryColors extends ThemeExtension<ExpiryColors> {
+  const ExpiryColors({
+    required this.expired,
+    required this.onExpired,
+    required this.soon,
+    required this.onSoon,
+    required this.fresh,
+    required this.onFresh,
+  });
+
+  static const light = ExpiryColors(
+    expired: AppColors.expiredContainer,
+    onExpired: AppColors.error,
+    soon: AppColors.soonContainer,
+    onSoon: AppColors.soon,
+    fresh: AppColors.freshContainer,
+    onFresh: AppColors.textSecondary,
+  );
+
+  /// Backgrounds.
+  final Color expired;
+  final Color soon;
+  final Color fresh;
+
+  /// Text and icons on those backgrounds.
+  final Color onExpired;
+  final Color onSoon;
+  final Color onFresh;
+
+  @override
+  ExpiryColors copyWith({
+    Color? expired,
+    Color? onExpired,
+    Color? soon,
+    Color? onSoon,
+    Color? fresh,
+    Color? onFresh,
+  }) => ExpiryColors(
+    expired: expired ?? this.expired,
+    onExpired: onExpired ?? this.onExpired,
+    soon: soon ?? this.soon,
+    onSoon: onSoon ?? this.onSoon,
+    fresh: fresh ?? this.fresh,
+    onFresh: onFresh ?? this.onFresh,
+  );
+
+  @override
+  ExpiryColors lerp(ExpiryColors? other, double t) {
+    if (other == null) {
+      return this;
+    }
+    return ExpiryColors(
+      expired: Color.lerp(expired, other.expired, t)!,
+      onExpired: Color.lerp(onExpired, other.onExpired, t)!,
+      soon: Color.lerp(soon, other.soon, t)!,
+      onSoon: Color.lerp(onSoon, other.onSoon, t)!,
+      fresh: Color.lerp(fresh, other.fresh, t)!,
+      onFresh: Color.lerp(onFresh, other.onFresh, t)!,
     );
   }
 }
