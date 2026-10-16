@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:common_pantry/features/households/presentation/household_controller.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
@@ -6,10 +9,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 class PantryController extends ChangeNotifier {
-  PantryController(this._repository, {required this.householdId});
+  PantryController(this._repository, this._households) {
+    _households.addListener(_onHouseholdChanged);
+  }
 
   final PantryRepository _repository;
-  final int householdId;
+  final HouseholdController _households;
 
   List<PantryGroup> _groups = const [];
   bool _isLoading = false;
@@ -17,6 +22,7 @@ class PantryController extends ChangeNotifier {
   String? _errorMessage;
   String _query = '';
   int? _categoryId;
+  int _lastRequest = 0;
 
   bool get isLoading => _isLoading;
 
@@ -36,24 +42,32 @@ class PantryController extends ChangeNotifier {
   List<ProductCategory> get categories => categoriesIn(_groups);
 
   Future<void> load() async {
-    if (_isLoading) {
-      return;
-    }
+    final request = ++_lastRequest;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
+    List<PantryGroup>? groups;
+    String? error;
     try {
-      _groups = await _repository.getPantry(householdId);
-      _hasLoaded = true;
+      groups = await _repository.getPantry(_households.current.id);
     } on DioException catch (e) {
-      _errorMessage = _messageFor(e);
+      error = _messageFor(e);
     } on FormatException {
-      _errorMessage = 'Unexpected response from the server.';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      error = 'Unexpected response from the server.';
     }
+
+    // A newer load started meanwhile (e.g. after switching household) – its result wins.
+    if (request != _lastRequest) {
+      return;
+    }
+    if (groups != null) {
+      _groups = groups;
+      _hasLoaded = true;
+    }
+    _errorMessage = error;
+    _isLoading = false;
+    notifyListeners();
   }
 
   void setQuery(String query) {
@@ -65,6 +79,20 @@ class PantryController extends ChangeNotifier {
   void setCategory(int? categoryId) {
     _categoryId = categoryId;
     notifyListeners();
+  }
+
+  void _onHouseholdChanged() {
+    _groups = const [];
+    _hasLoaded = false;
+    _query = '';
+    _categoryId = null;
+    unawaited(load());
+  }
+
+  @override
+  void dispose() {
+    _households.removeListener(_onHouseholdChanged);
+    super.dispose();
   }
 
   String _messageFor(DioException e) => switch (e.type) {
