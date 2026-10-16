@@ -54,7 +54,7 @@ flutter test
 
 Configuring your IDE ensures formatting and import sorting happen automatically on every `Ctrl + S` / `Cmd + S`.
 
-### Android Studio / IntelliJ IDEA
+### Android Studio
 
 1. Open **Settings** (`Ctrl + Alt + S` on Windows/Linux or `Cmd + ,` on macOS).
 2. Navigate to: **Languages & Frameworks** → **Flutter**.
@@ -69,24 +69,6 @@ Configuring your IDE ensures formatting and import sorting happen automatically 
 * `Ctrl + Alt + L` (`Cmd + Option + L`) – Reformat current file.
 * `Ctrl + Alt + O` (`Cmd + Option + O`) – Optimize and sort imports.
 * `Alt + Enter` – Quick-fix menu on highlighted warnings/errors.
-
-### Visual Studio Code
-
-Add the following configuration to `.vscode/settings.json`:
-
-```json
-{
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit",
-    "source.organizeImports": "explicit"
-  },
-  "[dart]": {
-    "editor.formatOnSave": true,
-    "editor.formatOnType": true
-  }
-}
-```
 
 ---
 
