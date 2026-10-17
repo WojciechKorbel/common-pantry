@@ -1,5 +1,6 @@
 import 'package:common_pantry/features/households/data/models/household.dart';
-import 'package:common_pantry/features/households/presentation/household_controller.dart';
+import 'package:common_pantry/features/households/data/repositories/household_repository.dart';
+import 'package:common_pantry/features/households/presentation/controllers/household_controller.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
@@ -27,6 +28,14 @@ class _FakePantryRepository implements PantryRepository {
   }
 }
 
+class _FakeHouseholdsRepository implements HouseholdsRepository {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
+  @override
+  Future<List<Household>> getHouseholds() async => [];
+}
+
 const _home = Household(id: 1, name: 'Home');
 
 PantryGroup _group(int id, String name) => PantryGroup(
@@ -41,8 +50,13 @@ PantryGroup _group(int id, String name) => PantryGroup(
   items: const [],
 );
 
-PantryController _controller(_FakePantryRepository repository) =>
-    PantryController(repository, HouseholdController(initial: _home));
+PantryController _controller(_FakePantryRepository repository) => PantryController(
+  repository,
+  HouseholdController(
+    repository: _FakeHouseholdsRepository(),
+    initial: _home,
+  ),
+);
 
 void main() {
   test('load stores groups of the current household', () async {
@@ -90,7 +104,10 @@ void main() {
 
   test('switching household reloads the pantry of the new household', () async {
     final repository = _FakePantryRepository(groups: [_group(1, 'Serek')]);
-    final households = HouseholdController(initial: _home);
+    final households = HouseholdController(
+      repository: _FakeHouseholdsRepository(),
+      initial: _home,
+    );
     final controller = PantryController(repository, households);
     await controller.load();
 

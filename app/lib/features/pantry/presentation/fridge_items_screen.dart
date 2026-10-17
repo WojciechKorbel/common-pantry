@@ -10,7 +10,7 @@ class FridgeItemsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppAppBar(
         title: 'Fridge items',
-        onBack: () => context.pop(),
+        onBack: () => context.go('/households'),
         trailing: IconButton(
           icon: const Icon(Icons.person_outline),
           onPressed: () => context.push('/settings'),

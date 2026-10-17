@@ -2,7 +2,9 @@ import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/auth/presentation/forgot_password_screen.dart';
 import 'package:common_pantry/features/auth/presentation/login_screen.dart';
 import 'package:common_pantry/features/auth/presentation/sign_up_screen.dart';
+import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/presentation/create_household_screen.dart';
+import 'package:common_pantry/features/households/presentation/household_created_screen.dart';
 import 'package:common_pantry/features/households/presentation/households_screen.dart';
 import 'package:common_pantry/features/households/presentation/join_household_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/fridge_items_screen.dart';
@@ -35,6 +37,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // AUTH
       GoRoute(
         path: '/login',
         builder: (context, state) => LoginScreen(
@@ -51,11 +54,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ForgotPasswordScreen(),
       ),
 
-      //
+      // HOUSEHOLD
       GoRoute(
         path: '/households',
-        builder: (context, state) => const HouseholdsScreen(),
+        builder: (context, state) => HouseholdsScreen(
+          controller: Dependencies.householdController,
+        ),
       ),
+
       GoRoute(
         path: '/join-household',
         builder: (context, state) => const JoinHouseholdScreen(),
@@ -66,10 +72,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
+        path: '/household-created',
+        builder: (context, state) {
+          final household = state.extra! as Household;
+
+          return HouseholdCreatedScreen(
+            household: household,
+          );
+        },
+      ),
+
+      GoRoute(
         path: '/fridge-items',
         builder: (context, state) => const FridgeItemsScreen(),
       ),
 
+      // SETTINGS
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),

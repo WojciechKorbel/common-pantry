@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:common_pantry/features/households/presentation/household_controller.dart';
+import 'package:common_pantry/features/households/presentation/controllers/household_controller.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
