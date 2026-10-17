@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      context.go('/items');
+      context.go('/households');
       return;
     }
 
