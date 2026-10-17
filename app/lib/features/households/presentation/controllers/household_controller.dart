@@ -4,10 +4,9 @@ import 'package:flutter/foundation.dart';
 
 class HouseholdController extends ChangeNotifier {
   HouseholdController({
-    required HouseholdsRepository repository,
+    required this._repository,
     required Household initial,
-  }) : _repository = repository,
-       _current = initial;
+  }) : _current = initial;
 
   final HouseholdsRepository _repository;
 

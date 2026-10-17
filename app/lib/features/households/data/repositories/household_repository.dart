@@ -7,7 +7,7 @@ class HouseholdsRepository {
   final ApiClient api;
 
   Future<List<Household>> getHouseholds() async {
-    final response = await api.dio.get('/api/households/');
+    final response = await api.dio.get<dynamic>('/api/households/');
 
     final data = response.data as List<dynamic>;
 
@@ -21,7 +21,7 @@ class HouseholdsRepository {
   Future<Household> createHousehold({
     required String name,
   }) async {
-    final response = await api.dio.post(
+    final response = await api.dio.post<dynamic>(
       '/api/households/',
       data: {'name': name},
     );
