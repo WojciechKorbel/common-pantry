@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import Household, Membership, Category, Product, FridgeItem, ShoppingItem
-
+from .models import Household, Membership, Category, Product, PantryItem, ShoppingItem
 
 @admin.register(Household)
 class HouseholdAdmin(admin.ModelAdmin):
@@ -17,22 +16,25 @@ class MembershipAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name')
-    search_fields = ('name',)
+    list_display = ('id', 'name', 'off_tag', 'match_priority')
+    list_editable = ('match_priority',)
+    search_fields = ('name', 'off_tag')
+    ordering = ('match_priority',)
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'brand', 'product_type', 'category', 'barcode')
+    list_display = ('id', 'name', 'brand', 'package_size', 'product_type', 'household', 'category', 'barcode')
     list_filter = ('product_type', 'category')
     search_fields = ('name', 'brand', 'barcode')
 
 
-@admin.register(FridgeItem)
-class FridgeItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'display_name', 'household', 'quantity', 'unit', 'expiry_date', 'status', 'added_by')
-    list_filter = ('status', 'expiry_date', 'household', 'category')
-    search_fields = ('custom_name', 'product__name')
+@admin.register(PantryItem)
+class PantryItemAdmin(admin.ModelAdmin):
+    list_display = ('id', 'product', 'household', 'expiry_date', 'status', 'added_by')
+    list_filter = ('status', 'expiry_date', 'household', 'product__category')
+    search_fields = ('product__name', 'product__brand')
+    list_select_related = ('product', 'household', 'added_by')
 
 
 @admin.register(ShoppingItem)

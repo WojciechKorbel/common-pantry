@@ -1,0 +1,105 @@
+// Common Pantry – database schema (after the pantry / barcode changes)
+// Paste into https://dbdiagram.io
+
+Enum membership_role {
+  owner
+  member
+}
+
+Enum product_type {
+  global [note: 'From Open Food Facts, shared by all households']
+  custom [note: 'Added by hand, visible only in its household']
+}
+
+Enum item_status {
+  active
+  eaten
+  wasted
+}
+
+Table auth_user {
+  id integer [pk, increment]
+  username varchar(150) [unique, not null, note: 'Used to log in (JWT)']
+  email varchar(254)
+  password varchar(128) [not null, note: 'Hash, never plain text']
+  is_staff boolean [not null, default: false, note: 'Can open the admin panel']
+  date_joined timestamp [not null]
+
+  Note: 'Built-in Django user table (django.contrib.auth). Only the columns the app uses are listed.'
+}
+
+Table households {
+  id integer [pk, increment]
+  name varchar(100) [not null]
+  invite_code varchar(32) [unique, not null]
+  created_at timestamp [not null]
+}
+
+Table memberships {
+  id integer [pk, increment]
+  user_id integer [not null, ref: > auth_user.id]
+  household_id integer [not null, ref: > households.id]
+  role membership_role [not null, default: 'member']
+  joined_at timestamp [not null]
+
+  indexes {
+    (user_id, household_id) [unique]
+  }
+}
+
+Table categories {
+  id integer [pk, increment]
+  name varchar(100) [unique, not null]
+  off_tag varchar(100) [unique, note: 'Open Food Facts category tag, e.g. en:dairies']
+  match_priority smallint [not null, default: 100, note: 'Lower wins when a product fits several categories']
+}
+
+Table products {
+  id integer [pk, increment]
+  household_id integer [ref: > households.id, note: 'Set only for custom products']
+  barcode varchar(64)
+  name varchar(255) [not null]
+  brand varchar(255)
+  package_size varchar(50) [not null, default: '', note: 'e.g. "200 g"']
+  product_type product_type [not null, default: 'custom']
+  image_url text
+  category_id integer [ref: > categories.id]
+  created_at timestamp [not null]
+
+  indexes {
+    barcode
+    barcode [unique, name: 'unique_global_product_barcode', note: 'Partial: only WHERE product_type = global']
+  }
+}
+
+Table pantry_items {
+  id integer [pk, increment]
+  household_id integer [not null, ref: > households.id]
+  product_id integer [not null, ref: > products.id]
+  expiry_date date [not null]
+  status item_status [not null, default: 'active']
+  added_by integer [ref: > auth_user.id]
+  created_at timestamp [not null]
+  closed_at timestamp [note: 'When marked eaten / wasted']
+
+  indexes {
+    (household_id, status, expiry_date) [name: 'pantry_item_hh_status_exp_idx']
+  }
+
+  Note: 'One physical package of a product in a household pantry.'
+}
+
+Table shopping_items {
+  id integer [pk, increment]
+  household_id integer [not null, ref: > households.id]
+  product_id integer [ref: > products.id]
+  name varchar(255) [not null]
+  quantity decimal(10,2) [not null, default: 1]
+  unit varchar(30) [not null, default: 'pcs']
+  category_id integer [ref: > categories.id]
+  is_bought boolean [not null, default: false]
+  added_by integer [ref: > auth_user.id]
+  bought_by integer [ref: > auth_user.id]
+  created_at timestamp [not null]
+  bought_at timestamp
+}

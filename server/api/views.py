@@ -1,20 +1,125 @@
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from .models import FridgeItem, ItemStatus
-from .serializers import FridgeItemSerializer
+from django.db.models import Count, Min, Prefetch, Q
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .models import Category, Household, ItemStatus, PantryItem, Product, ProductType
+from .serializers import (
+    CategorySerializer,
+    CustomProductCreateSerializer,
+    PantryGroupSerializer,
+    PantryItemCreateSerializer,
+    PantryItemSerializer,
+    ProductSerializer,
+)
+from .services import open_food_facts
 
 
-class FridgeItemListAPIView(generics.ListCreateAPIView):
-    serializer_class = FridgeItemSerializer
-    permission_classes = [IsAuthenticated]
+class HouseholdMixin:
+    """Resolves <household_id> from the URL; 404 unless the user is a member."""
+
+    def get_household(self):
+        if not hasattr(self, '_household'):
+            self._household = get_object_or_404(
+                Household,
+                pk=self.kwargs['household_id'],
+                memberships__user=self.request.user,
+            )
+        return self._household
+
+
+class CategoryListView(generics.ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+
+class PantryListView(HouseholdMixin, generics.ListAPIView):
+    """Active items of a household, grouped by product, soonest expiry first."""
+
+    serializer_class = PantryGroupSerializer
 
     def get_queryset(self):
-        queryset = FridgeItem.objects.filter(status=ItemStatus.ACTIVE).order_by('expiry_date')
+        household = self.get_household()
+        active_items = (
+            PantryItem.objects
+            .filter(household=household, status=ItemStatus.ACTIVE)
+            .select_related('added_by')
+            .order_by('expiry_date', 'id')
+        )
+        return (
+            Product.objects
+            .filter(pantry_items__household=household, pantry_items__status=ItemStatus.ACTIVE)
+            .annotate(
+                earliest_expiry=Min('pantry_items__expiry_date'),
+                item_count=Count('pantry_items'),
+            )
+            .select_related('category')
+            .prefetch_related(Prefetch('pantry_items', queryset=active_items, to_attr='active_items'))
+            .order_by('earliest_expiry', 'name')
+        )
 
-        household_id = self.request.query_params.get('household_id')
-        if household_id:
-            queryset = queryset.filter(household_id=household_id)
-        return queryset
 
-    def perform_create(self, serializer):
-        serializer.save(added_by=self.request.user)
+class PantryItemCreateView(HouseholdMixin, APIView):
+    """Adds `count` packages of one product with the same expiry date."""
+
+    def post(self, request, household_id):
+        household = self.get_household()
+        serializer = PantryItemCreateSerializer(data=request.data, context={'household': household})
+        serializer.is_valid(raise_exception=True)
+        items = serializer.save(household=household, added_by=request.user)
+        return Response(PantryItemSerializer(items, many=True).data, status=status.HTTP_201_CREATED)
+
+
+class CustomProductCreateView(HouseholdMixin, APIView):
+    """Creates a household product without a barcode (or returns the existing one with that name)."""
+
+    def post(self, request, household_id):
+        household = self.get_household()
+        serializer = CustomProductCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        existing = Product.objects.filter(
+            product_type=ProductType.CUSTOM,
+            household=household,
+            name__iexact=serializer.validated_data['name'],
+        ).first()
+        if existing:
+            return Response(ProductSerializer(existing).data, status=status.HTTP_200_OK)
+        product = serializer.save(product_type=ProductType.CUSTOM, household=household)
+        return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
+
+
+class ProductByBarcodeView(HouseholdMixin, APIView):
+    """Finds a product by barcode: this household's own products, then the shared database,
+    then Open Food Facts (the result is saved for next time)."""
+
+    def get(self, request, household_id, barcode):
+        household = self.get_household()
+        if not barcode.isdigit() or not 8 <= len(barcode) <= 14:
+            return Response({'detail': 'Invalid barcode.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        product = (
+            Product.objects
+            .filter(barcode=barcode)
+            .filter(Q(product_type=ProductType.GLOBAL) | Q(product_type=ProductType.CUSTOM, household=household))
+            .select_related('category')
+            .order_by('product_type')  # 'custom' sorts before 'global': the household's own entry wins
+            .first()
+        )
+        if product is None:
+            try:
+                data = open_food_facts.fetch_product(barcode)
+            except open_food_facts.OpenFoodFactsError:
+                return Response(
+                    {'detail': 'Product database is unavailable. Add the product manually.'},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+            if data is None:
+                return Response({'detail': 'Product not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+            data['category'] = open_food_facts.match_category(data.pop('categories_tags'))
+            product, _ = Product.objects.get_or_create(
+                product_type=ProductType.GLOBAL, barcode=barcode, defaults=data
+            )
+
+        return Response(ProductSerializer(product).data)
