@@ -5,8 +5,8 @@ from . import views
 
 urlpatterns = [
     # Auth
-    path('api/auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     # Pantry
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
     path('households/<int:household_id>/pantry/', views.PantryListView.as_view(), name='pantry'),
