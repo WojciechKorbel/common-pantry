@@ -119,15 +119,15 @@ class ApiClient {
     try {
       debugPrint('[DEBUG] Sending refresh'); // TODO: debug print is here!
 
-      final response = await refreshDio.post<dynamic>(
+      final response = await refreshDio.post<Map<String, dynamic>>(
         '/api/auth/token/refresh/',
         data: {'refresh': refresh},
       );
 
       debugPrint('[DEBUG] Refresh status: ${response.statusCode}'); // TODO: debug print is here!
 
-      final newAccess = response.data['access'] as String?;
-      final newRefresh = response.data['refresh'] as String?;
+      final newAccess = response.data?['access'] as String?;
+      final newRefresh = response.data?['refresh'] as String?;
 
       if (newAccess == null) {
         await tokenStorage.clear();
