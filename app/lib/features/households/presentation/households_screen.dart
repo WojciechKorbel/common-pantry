@@ -43,7 +43,7 @@ class _HouseholdsScreenState extends State<HouseholdsScreen> {
         return Scaffold(
           appBar: AppAppBar(
             title: 'Households',
-            onBack: () => context.pop(),
+            showBackButton: false,
             trailing: IconButton(
               icon: const Icon(Icons.person_outline),
               onPressed: () => context.push('/settings'),

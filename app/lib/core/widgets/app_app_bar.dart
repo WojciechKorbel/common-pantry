@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class AppAppBar extends StatelessWidget
-    implements PreferredSizeWidget {
+class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback? onBack;
   final Widget? trailing;
   final bool centerTitle;
+  final bool showBackButton;
 
   const AppAppBar({
     super.key,
@@ -13,6 +13,7 @@ class AppAppBar extends StatelessWidget
     this.onBack,
     this.trailing,
     this.centerTitle = true,
+    this.showBackButton = true,
   });
 
   @override
@@ -26,12 +27,12 @@ class AppAppBar extends StatelessWidget
           fontSize: 20,
         ),
       ),
-      leading: onBack == null
+      leading: !showBackButton || onBack == null
           ? null
           : IconButton(
-        icon: const Icon(Icons.chevron_left),
-        onPressed: onBack,
-      ),
+              icon: const Icon(Icons.chevron_left),
+              onPressed: onBack,
+            ),
       actions: trailing == null ? null : [trailing!],
     );
   }
