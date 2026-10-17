@@ -1,17 +1,19 @@
+import secrets
 from django.db.models import Count, Min, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Category, Household, ItemStatus, PantryItem, Product, ProductType
+from .models import Category, Household, ItemStatus, PantryItem, Product, ProductType, Membership, MembershipRole
 from .serializers import (
     CategorySerializer,
     CustomProductCreateSerializer,
     PantryGroupSerializer,
     PantryItemCreateSerializer,
     PantryItemSerializer,
-    ProductSerializer,
+    ProductSerializer, HouseholdSerializer,
 )
 from .services import open_food_facts
 
@@ -123,3 +125,39 @@ class ProductByBarcodeView(HouseholdMixin, APIView):
             )
 
         return Response(ProductSerializer(product).data)
+
+class HouseholdListCreateAPIView(generics.ListCreateAPIView):
+    serializer_class = HouseholdSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Household.objects.filter(
+            memberships__user=self.request.user
+        ).distinct().order_by('name')
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        return context
+
+    def generate_invite_code(self):
+        length = secrets.randbelow(5) + 6
+
+        while True:
+            code = ''.join(
+                str(secrets.randbelow(10))
+                for _ in range(length)
+            )
+
+            if not Household.objects.filter(invite_code=code).exists():
+                return code
+
+    def perform_create(self, serializer):
+        household = serializer.save(
+            invite_code=self.generate_invite_code()
+        )
+
+        Membership.objects.create(
+            user=self.request.user,
+            household=household,
+            role=MembershipRole.OWNER,
+        )

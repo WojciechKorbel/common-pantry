@@ -17,4 +17,6 @@ urlpatterns = [
         views.ProductByBarcodeView.as_view(),
         name='product-by-barcode',
     ),
+    # Households
+    path('households/', views.HouseholdListCreateAPIView.as_view(), name='household_list_create'),
 ]
