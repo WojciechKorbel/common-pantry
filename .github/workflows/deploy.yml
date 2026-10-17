@@ -1,0 +1,23 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'server/**'
+
+jobs:
+  deploy:
+    name: Trigger Render Webhook
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send POST to Render Deploy Hook
+        run: |
+          response=$(curl -s -o response.txt -w "%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}")
+          echo "Render HTTP Response: $response"
+          cat response.txt
+          if [ "$response" -ne 200 ] && [ "$response" -ne 201 ]; then
+            echo "Failed to trigger deploy on Render"
+            exit 1
+          fi
