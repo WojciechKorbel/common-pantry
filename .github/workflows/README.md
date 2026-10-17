@@ -95,3 +95,27 @@ Configuring your IDE ensures formatting and import sorting happen automatically 
 
 5. **`*_test.dart` entrypoints:**
    * Every file matching `*_test.dart` inside the `test/` folder is treated as an executable test suite and **must** define a `void main()` function. Never commit empty or completely commented-out `*_test.dart` files.
+
+
+---
+
+## 5. Continuous Deployment & Production Hosting
+
+The project backend is deployed to the cloud with automated Continuous Deployment (CD).
+
+### A. Production Environment
+- **API Hosting:** [Render](https://render.com) (Web Service: `common-pantry-api`)
+- **Database:** Managed Cloud PostgreSQL ([Neon](https://neon.tech))
+- **Admin Panel (PC):** `https://common-pantry-api.onrender.com/admin/`
+- **Root Directory Setup:** Configured to run from the `server/` subdirectory (`Root Directory: server`) to accommodate the monorepo structure.
+
+### B. CD Pipeline Automation
+Automatic deployments to Render are orchestrated via a dedicated GitHub Actions workflow (`.github/workflows/deploy.yml`):
+1. **Trigger:** Push or Pull Request merge into the `develop` branch modifying files in `server/**`.
+2. **Trigger Mechanism:** The workflow sends an authenticated `POST` request to Render's **Deploy Hook** endpoint using the `RENDER_DEPLOY_HOOK` repository secret.
+3. **Deployment Lifecycle:**
+   - Render pulls the latest commit from `develop`.
+   - **Build Command:** Installs Python dependencies from `requirements.txt`, applies pending database migrations (`python manage.py migrate`), and collects static assets (`collectstatic`).
+   - **Start Command:** Spawns the WSGI application server with Gunicorn (`gunicorn config.wsgi:application`).
+
+---
