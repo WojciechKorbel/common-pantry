@@ -43,6 +43,18 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
+              TextField(
+                onChanged: widget.controller.setQuery,
+                decoration: InputDecoration(
+                  hintText: 'Search for a product or brand...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
               Expanded(
                 child: ListenableBuilder(
                   listenable: widget.controller,
