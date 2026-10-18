@@ -1,5 +1,7 @@
+import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/core/widgets/app_button.dart';
+import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/presentation/controllers/join_household_controller.dart';
 import 'package:common_pantry/features/households/presentation/widgets/invite_code_input.dart';
 import 'package:flutter/material.dart';
@@ -13,31 +15,40 @@ class JoinHouseholdScreen extends StatefulWidget {
 }
 
 class _JoinHouseholdScreenState extends State<JoinHouseholdScreen> {
-  late final JoinHouseholdController _controller;
+  late final JoinHouseholdController _controller = Dependencies.joinHouseholdController;
 
   @override
   void initState() {
     super.initState();
-    _controller = JoinHouseholdController();
+    _controller.clearCode();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _joinHousehold() {
+  Future<void> _joinHousehold() async {
     FocusScope.of(context).unfocus();
 
-    if (!_controller.validateCode()) {
+    final success = await _controller.joinHousehold();
+
+    if (!mounted || !success) return;
+
+    final Household? household = _controller.joinedHousehold;
+
+    if (household == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Household data was not returned by the server.'),
+        ),
+      );
       return;
     }
 
-    // TODO: use API.
-    debugPrint('Household invitation code: ${_controller.code}');
+    await Dependencies.householdController.loadHouseholds();
 
-    context.push('/join-household-success');
+    if (!mounted) return;
+
+    await context.push(
+      '/join-household-success',
+      extra: household,
+    );
   }
 
   @override
@@ -106,11 +117,11 @@ class _JoinHouseholdScreenState extends State<JoinHouseholdScreen> {
                             hasError: _controller.hasError,
                           ),
 
-                          // VALIDATION ERROR
-                          if (_controller.hasError) ...[
+                          // ERROR MESSAGE
+                          if (_controller.errorMessage != null) ...[
                             const SizedBox(height: 16),
                             Text(
-                              'Please enter all 6 digits of the code.',
+                              _controller.errorMessage!,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: theme.colorScheme.error,
@@ -127,7 +138,8 @@ class _JoinHouseholdScreenState extends State<JoinHouseholdScreen> {
                   // JOIN BUTTON
                   AppButton(
                     text: 'Join household',
-                    onPressed: _joinHousehold,
+                    onPressed: _controller.isLoading ? null : _joinHousehold,
+                    isLoading: _controller.isLoading,
                   ),
                 ],
               ),

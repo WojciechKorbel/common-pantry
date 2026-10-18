@@ -1,11 +1,17 @@
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/core/widgets/app_button.dart';
 import 'package:common_pantry/core/widgets/app_outlined_button.dart';
+import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class JoinHouseholdSuccessScreen extends StatelessWidget {
-  const JoinHouseholdSuccessScreen({super.key});
+  const JoinHouseholdSuccessScreen({
+    super.key,
+    required this.household,
+  });
+
+  final Household household;
 
   @override
   Widget build(BuildContext context) {
@@ -49,18 +55,30 @@ class JoinHouseholdSuccessScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               // INFO TEXT
-              Text(
-                'You are now a member of the household',
-                style: theme.textTheme.bodyLarge,
-                textAlign: TextAlign.center,
+              Column(
+                children: [
+                  Text(
+                    'You are now a member of the household',
+                    style: theme.textTheme.bodyLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    household.name,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
 
               const Spacer(),
 
               // BUTTONS
               AppButton(
-                text: 'Go to household',
-                onPressed: () => context.go('/households'), // TODO: change later
+                text: 'Go to ${household.name}',
+                onPressed: () => context.go('/households'), // TODO: handle it !!!
               ),
 
               const SizedBox(height: 16),

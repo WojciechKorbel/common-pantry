@@ -69,7 +69,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/join-household-success',
-        builder: (context, state) => const JoinHouseholdSuccessScreen(),
+        builder: (context, state) => JoinHouseholdSuccessScreen(
+          household: state.extra! as Household,
+        ),
       ),
       GoRoute(
         path: '/create-household',
