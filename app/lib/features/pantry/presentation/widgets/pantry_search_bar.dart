@@ -44,9 +44,13 @@ class PantrySearchBar extends StatelessWidget {
 
             return PopupMenuButton<ExpiryFilterOption>(
               tooltip: 'Filter by expiry date',
-              icon: Icon(
-                Icons.tune,
-                color: selectedFilter != null ? Theme.of(context).colorScheme.primary : null,
+              icon: Badge(
+                isLabelVisible: selectedFilter != null,
+                smallSize: 8,
+                child: Icon(
+                  Icons.tune,
+                  color: selectedFilter != null ? Theme.of(context).colorScheme.primary : null,
+                ),
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
