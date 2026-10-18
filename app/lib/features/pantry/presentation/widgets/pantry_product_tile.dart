@@ -31,18 +31,28 @@ class _PantryProductTileState extends State<PantryProductTile> {
         onExpansionChanged: (expanded) {
           setState(() => _isExpanded = expanded);
         },
-        leading: product.imageUrl != null && product.imageUrl!.isNotEmpty
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  product.imageUrl!,
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const Icon(Icons.fastfood),
+        leading: SizedBox(
+          width: 56,
+          height: 56,
+          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    product.imageUrl!,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => const Icon(
+                      Icons.fastfood,
+                      size: 32,
+                    ),
+                  ),
+                )
+              : const Icon(
+                  Icons.fastfood,
+                  size: 32,
                 ),
-              )
-            : const Icon(Icons.fastfood),
+        ),
         title: Row(
           children: [
             Expanded(
