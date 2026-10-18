@@ -1,6 +1,6 @@
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
+import 'package:common_pantry/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
-import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/empty_pantry_state.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/no_matching_products_state.dart';
@@ -141,6 +141,8 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
           ),
         ),
       ),
+
+      bottomNavigationBar: AppBottomNavigationBar(household: widget.household),
     );
   }
 }
