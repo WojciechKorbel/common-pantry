@@ -1,6 +1,7 @@
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/empty_pantry_state.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pantry_product_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -74,9 +75,7 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
                     }
 
                     if (controller.visibleGroups.isEmpty) {
-                      return const Center(
-                        child: Text('No products in the pantry yet.'),
-                      );
+                      return const EmptyPantryState();
                     }
 
                     return ListView.separated(
