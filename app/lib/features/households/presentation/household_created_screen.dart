@@ -107,7 +107,7 @@ class HouseholdCreatedScreen extends StatelessWidget {
               // BUTTONS
               AppButton(
                 text: 'Go to ${household.name}',
-                onPressed: () => context.go('/fridge-items'),
+                onPressed: () => context.go('/pantry-items'),
               ),
 
               const SizedBox(height: 16),

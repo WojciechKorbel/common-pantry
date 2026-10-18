@@ -7,7 +7,7 @@ import 'package:common_pantry/features/households/presentation/create_household_
 import 'package:common_pantry/features/households/presentation/household_created_screen.dart';
 import 'package:common_pantry/features/households/presentation/households_screen.dart';
 import 'package:common_pantry/features/households/presentation/join_household_screen.dart';
-import 'package:common_pantry/features/pantry/presentation/fridge_items_screen.dart';
+import 'package:common_pantry/features/pantry/presentation/pantry_items_screen.dart';
 import 'package:common_pantry/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,8 +83,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
-        path: '/fridge-items',
-        builder: (context, state) => const FridgeItemsScreen(),
+        path: '/pantry-items',
+        builder: (context, state) => const PantryItemsScreen(),
       ),
 
       // SETTINGS
