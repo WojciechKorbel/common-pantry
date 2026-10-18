@@ -1,10 +1,20 @@
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/empty_pantry_state.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/no_matching_products_state.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pantry_product_tile.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/pantry_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+enum ExpiryFilterOption {
+  all,
+  fresh,
+  soon,
+  expired,
+}
 
 class PantryItemsScreen extends StatefulWidget {
   const PantryItemsScreen({
@@ -27,6 +37,14 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
     widget.controller.load();
   }
 
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,16 +61,11 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
           padding: const EdgeInsets.all(24),
           child: Column(
             children: [
-              TextField(
-                onChanged: widget.controller.setQuery,
-                decoration: InputDecoration(
-                  hintText: 'Search for a product or brand...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+              PantrySearchBar(
+                controller: widget.controller,
+                searchController: _searchController,
               ),
+              const SizedBox(height: 16),
               const SizedBox(height: 16),
 
               Expanded(
@@ -87,7 +100,27 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
                     }
 
                     if (controller.visibleGroups.isEmpty) {
-                      return const EmptyPantryState();
+                      if (controller.groups.isEmpty) {
+                        return const EmptyPantryState();
+                      }
+
+                      final hasActiveFilters =
+                          controller.query.trim().isNotEmpty ||
+                          controller.categoryId != null ||
+                          controller.expiryFilter != null;
+
+                      if (!hasActiveFilters) {
+                        return const EmptyPantryState();
+                      }
+
+                      return NoMatchingProductsState(
+                        onClearFilters: () {
+                          _searchController.clear();
+                          controller.setQuery('');
+                          controller.setCategory(null);
+                          controller.setExpiryFilter(null);
+                        },
+                      );
                     }
 
                     return ListView.separated(
