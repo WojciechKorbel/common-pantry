@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import Category, PantryItem, Product, ProductType
+from .models import Category, PantryItem, Product, ProductType, Household, Membership
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -82,3 +82,22 @@ class PantryItemCreateSerializer(serializers.Serializer):
     def create(self, validated_data):
         count = validated_data.pop('count')
         return PantryItem.objects.bulk_create(PantryItem(**validated_data) for _ in range(count))
+
+
+class HouseholdSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Household
+        fields = ['id', 'name', 'invite_code', 'created_at', 'role']
+        read_only_fields = ['id', 'invite_code', 'created_at', 'role']
+
+    def get_role(self, obj):
+        user = self.context['request'].user
+
+        membership = Membership.objects.filter(
+            household=obj,
+            user=user,
+        ).first()
+
+        return membership.role if membership else None

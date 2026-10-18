@@ -3,7 +3,7 @@ import 'package:common_pantry/core/widgets/app_inline_link.dart';
 import 'package:common_pantry/core/widgets/app_input.dart';
 import 'package:common_pantry/core/widgets/app_page_title.dart';
 import 'package:common_pantry/core/widgets/app_text_link.dart';
-import 'package:common_pantry/features/auth/data/controllers/login_controller.dart';
+import 'package:common_pantry/features/auth/presentation/controllers/login_controller.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -33,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      context.go('/items');
+      context.go('/households');
       return;
     }
 
