@@ -89,6 +89,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           return PantryItemsScreen(
             household: household,
+            controller: Dependencies.pantryController,
           );
         },
       ),
