@@ -141,7 +141,7 @@ class HouseholdListCreateAPIView(generics.ListCreateAPIView):
         return context
 
     def generate_invite_code(self):
-        length = secrets.randbelow(5) + 6
+        length = 6
 
         while True:
             code = ''.join(
