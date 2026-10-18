@@ -11,7 +11,8 @@ urlpatterns = [
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
     path('households/<int:household_id>/pantry/', views.PantryListView.as_view(), name='pantry'),
     path('households/<int:household_id>/items/', views.PantryItemCreateView.as_view(), name='pantry-item-create'),
-    path('households/<int:household_id>/products/', views.CustomProductCreateView.as_view(), name='custom-product-create'),
+    path('households/<int:household_id>/products/', views.CustomProductCreateView.as_view(),
+         name='custom-product-create'),
     path(
         'households/<int:household_id>/products/barcode/<str:barcode>/',
         views.ProductByBarcodeView.as_view(),
@@ -19,4 +20,9 @@ urlpatterns = [
     ),
     # Households
     path('households/', views.HouseholdListCreateAPIView.as_view(), name='household_list_create'),
+    path(
+        'households/join/',
+        views.HouseholdJoinAPIView.as_view(),
+        name='household_join',
+    ),
 ]

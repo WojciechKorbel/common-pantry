@@ -126,6 +126,7 @@ class ProductByBarcodeView(HouseholdMixin, APIView):
 
         return Response(ProductSerializer(product).data)
 
+
 class HouseholdListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = HouseholdSerializer
     permission_classes = [IsAuthenticated]
@@ -160,4 +161,68 @@ class HouseholdListCreateAPIView(generics.ListCreateAPIView):
             user=self.request.user,
             household=household,
             role=MembershipRole.OWNER,
+        )
+
+
+class HouseholdJoinAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        invite_code = request.data.get('invite_code')
+
+        if not isinstance(invite_code, str) or not invite_code.strip():
+            return Response(
+                {
+                    'success': False,
+                    'detail': 'Invite code is required.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        invite_code = invite_code.strip()
+
+        household = Household.objects.filter(
+            invite_code=invite_code
+        ).first()
+
+        if household is None:
+            return Response(
+                {
+                    'success': False,
+                    'detail': 'Invalid invite code.'
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        membership, created = Membership.objects.get_or_create(
+            user=request.user,
+            household=household,
+            defaults={'role': MembershipRole.MEMBER},
+        )
+
+        if not created:
+            return Response(
+                {
+                    'success': False,
+                    'detail': 'You are already a member of this household.',
+                    'household': {
+                        'id': household.id,
+                        'name': household.name,
+                    },
+                    'role': membership.role,
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        return Response(
+            {
+                'success': True,
+                'detail': 'Successfully joined the household.',
+                'household': {
+                    'id': household.id,
+                    'name': household.name,
+                },
+                'role': membership.role,
+            },
+            status=status.HTTP_201_CREATED,
         )
