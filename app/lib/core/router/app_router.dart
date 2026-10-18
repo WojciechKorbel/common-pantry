@@ -84,7 +84,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: '/pantry-items',
-        builder: (context, state) => const PantryItemsScreen(),
+        builder: (context, state) {
+          final household = state.extra! as Household;
+
+          return PantryItemsScreen(
+            household: household,
+          );
+        },
       ),
 
       // SETTINGS
