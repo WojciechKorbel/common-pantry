@@ -145,11 +145,16 @@ class _PantryProductTileState extends State<PantryProductTile> {
     };
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.only(
+        left: 12,
+        right: 2,
+        top: 0,
+        bottom: 0,
+      ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
             decoration: BoxDecoration(
               color: background,
               borderRadius: BorderRadius.circular(20),
@@ -173,7 +178,7 @@ class _PantryProductTileState extends State<PantryProductTile> {
           const SizedBox(width: 8),
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
               decoration: BoxDecoration(
                 color: AppColors.freshContainer,
                 borderRadius: BorderRadius.circular(20),
