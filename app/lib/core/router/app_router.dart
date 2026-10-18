@@ -7,6 +7,7 @@ import 'package:common_pantry/features/households/presentation/create_household_
 import 'package:common_pantry/features/households/presentation/household_created_screen.dart';
 import 'package:common_pantry/features/households/presentation/households_screen.dart';
 import 'package:common_pantry/features/households/presentation/join_household_screen.dart';
+import 'package:common_pantry/features/households/presentation/join_household_success_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/fridge_items_screen.dart';
 import 'package:common_pantry/features/settings/presentation/settings_screen.dart';
 import 'package:flutter/material.dart';
@@ -65,6 +66,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/join-household',
         builder: (context, state) => const JoinHouseholdScreen(),
+      ),
+      GoRoute(
+        path: '/join-household-success',
+        builder: (context, state) => const JoinHouseholdSuccessScreen(),
       ),
       GoRoute(
         path: '/create-household',
