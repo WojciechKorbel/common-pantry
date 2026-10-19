@@ -30,4 +30,19 @@ class HouseholdsRepository {
       Map<String, dynamic>.from(response.data as Map),
     );
   }
+
+  Future<Household> joinHousehold({
+    required String inviteCode,
+  }) async {
+    final response = await api.dio.post<dynamic>(
+      '/api/households/join/',
+      data: {'invite_code': inviteCode},
+    );
+
+    final data = Map<String, dynamic>.from(response.data as Map);
+
+    return Household.fromJson(
+      Map<String, dynamic>.from(data['household'] as Map),
+    );
+  }
 }

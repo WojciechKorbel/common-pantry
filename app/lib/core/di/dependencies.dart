@@ -6,6 +6,7 @@ import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/data/repositories/household_repository.dart';
 import 'package:common_pantry/features/households/presentation/controllers/create_household_controller.dart';
 import 'package:common_pantry/features/households/presentation/controllers/household_controller.dart';
+import 'package:common_pantry/features/households/presentation/controllers/join_household_controller.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 
@@ -32,6 +33,11 @@ class Dependencies {
   static final createHouseholdController = CreateHouseholdController(
     householdsRepository,
   );
+
+  static final joinHouseholdController = JoinHouseholdController(
+    householdsRepository,
+  );
+
   static final householdController = HouseholdController(
     repository: householdsRepository,
     initial: const Household(id: 1, name: 'Test pantry'),
