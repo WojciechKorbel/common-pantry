@@ -8,8 +8,12 @@ import 'package:common_pantry/features/households/presentation/household_created
 import 'package:common_pantry/features/households/presentation/households_screen.dart';
 import 'package:common_pantry/features/households/presentation/join_household_screen.dart';
 import 'package:common_pantry/features/households/presentation/join_household_success_screen.dart';
-import 'package:common_pantry/features/pantry/presentation/fridge_items_screen.dart';
+import 'package:common_pantry/features/pantry/presentation/add_item_screen.dart';
+import 'package:common_pantry/features/pantry/presentation/household_settings_screen.dart';
+import 'package:common_pantry/features/pantry/presentation/pantry_items_screen.dart';
 import 'package:common_pantry/features/settings/presentation/settings_screen.dart';
+import 'package:common_pantry/features/shopping/presentation/shopping_list_screen.dart';
+import 'package:common_pantry/features/stats/presentation/stats_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,8 +94,44 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
-        path: '/fridge-items',
-        builder: (context, state) => const FridgeItemsScreen(),
+        path: '/pantry-items',
+        builder: (context, state) {
+          final household = state.extra! as Household;
+
+          return PantryItemsScreen(
+            household: household,
+            controller: Dependencies.pantryController,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/shopping-list',
+        builder: (context, state) {
+          final household = state.extra! as Household;
+          return ShoppingListScreen(household: household);
+        },
+      ),
+      GoRoute(
+        path: '/add-item',
+        builder: (context, state) {
+          final household = state.extra! as Household;
+          return AddItemScreen(household: household);
+        },
+      ),
+      GoRoute(
+        path: '/stats',
+        builder: (context, state) {
+          final household = state.extra! as Household;
+          return StatsScreen(household: household);
+        },
+      ),
+      GoRoute(
+        path: '/household-settings',
+        builder: (context, state) {
+          final household = state.extra! as Household;
+          return HouseholdSettingsScreen(household: household);
+        },
       ),
 
       // SETTINGS
