@@ -1,3 +1,4 @@
+import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/core/widgets/app_button.dart';
 import 'package:common_pantry/core/widgets/app_outlined_button.dart';
@@ -78,7 +79,14 @@ class JoinHouseholdSuccessScreen extends StatelessWidget {
               // BUTTONS
               AppButton(
                 text: 'Go to ${household.name}',
-                onPressed: () => context.go('/households'), // TODO: handle it !!!
+                onPressed: () {
+                  Dependencies.householdController.select(household);
+
+                  context.go(
+                    '/pantry-items',
+                    extra: household,
+                  );
+                },
               ),
 
               const SizedBox(height: 16),
