@@ -174,7 +174,7 @@ class HouseholdJoinAPIView(APIView):
             return Response(
                 {
                     'success': False,
-                    'detail': 'Invite code is required.'
+                    'detail': 'Invite code is required.',
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -189,7 +189,7 @@ class HouseholdJoinAPIView(APIView):
             return Response(
                 {
                     'success': False,
-                    'detail': 'Invalid invite code.'
+                    'detail': 'Invalid invite code.',
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
@@ -200,16 +200,28 @@ class HouseholdJoinAPIView(APIView):
             defaults={'role': MembershipRole.MEMBER},
         )
 
+        household_data = {
+            'id': household.id,
+            'name': household.name,
+            'invite_code': household.invite_code,
+            'role': membership.role,
+            'created_at': household.created_at,
+        }
+
+        # Already a member
         if not created:
             return Response(
                 {
                     'success': False,
                     'detail': 'You are already a member of this household.',
                     'household': {
-                        'id': household.id,
-                        'name': household.name,
+                        **household_data,
+                        'created_at': (
+                            household.created_at.isoformat()
+                            if household.created_at
+                            else None
+                        ),
                     },
-                    'role': membership.role,
                 },
                 status=status.HTTP_409_CONFLICT,
             )
@@ -219,10 +231,13 @@ class HouseholdJoinAPIView(APIView):
                 'success': True,
                 'detail': 'Successfully joined the household.',
                 'household': {
-                    'id': household.id,
-                    'name': household.name,
+                    **household_data,
+                    'created_at': (
+                        household.created_at.isoformat()
+                        if household.created_at
+                        else None
+                    ),
                 },
-                'role': membership.role,
             },
             status=status.HTTP_201_CREATED,
         )
