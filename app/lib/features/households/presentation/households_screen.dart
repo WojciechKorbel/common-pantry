@@ -146,7 +146,10 @@ class _HouseholdsScreenState extends State<HouseholdsScreen> {
             householdName: household.name,
             onPressed: () {
               controller.select(household);
-              context.push('/fridge-items');
+              context.push(
+                '/pantry-items',
+                extra: household,
+              );
             },
           );
         },

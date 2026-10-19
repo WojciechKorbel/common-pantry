@@ -4,6 +4,7 @@ import 'package:common_pantry/features/households/presentation/controllers/house
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
+import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:common_pantry/features/pantry/domain/pantry_filter.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -28,16 +29,39 @@ class PantryController extends ChangeNotifier {
 
   /// True after the first successful load ("empty pantry" != "not loaded yet").
   bool get hasLoaded => _hasLoaded;
+
   String? get errorMessage => _errorMessage;
+
   String get query => _query;
+
   int? get categoryId => _categoryId;
+
+  /// Expiry filter
+  ExpiryStatus? _expiryFilter;
+
+  ExpiryStatus? get expiryFilter => _expiryFilter;
 
   /// All groups in the pantry, ignoring search and filter.
   List<PantryGroup> get groups => _groups;
 
   /// Groups shown on the screen (after search and category filter).
-  List<PantryGroup> get visibleGroups =>
-      filterPantryGroups(_groups, query: _query, categoryId: _categoryId);
+  List<PantryGroup> get visibleGroups {
+    final filtered = filterPantryGroups(
+      _groups,
+      query: _query,
+      categoryId: _categoryId,
+    );
+
+    if (_expiryFilter == null) {
+      return filtered;
+    }
+
+    final today = DateTime.now();
+
+    return filtered.where((group) {
+      return expiryStatusOf(group.earliestExpiry, today) == _expiryFilter;
+    }).toList();
+  }
 
   List<ProductCategory> get categories => categoriesIn(_groups);
 
@@ -75,6 +99,11 @@ class PantryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setExpiryFilter(ExpiryStatus? status) {
+    _expiryFilter = status;
+    notifyListeners();
+  }
+
   /// null = all categories.
   void setCategory(int? categoryId) {
     _categoryId = categoryId;
@@ -86,6 +115,7 @@ class PantryController extends ChangeNotifier {
     _hasLoaded = false;
     _query = '';
     _categoryId = null;
+    _expiryFilter = null;
     unawaited(load());
   }
 
