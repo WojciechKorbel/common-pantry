@@ -1,6 +1,7 @@
 import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/homemade_item_form.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -59,7 +60,7 @@ class _AddManuallyItemScreenState extends State<AddManuallyItemScreen> {
               ),
               const SizedBox(height: 24),
               switch (_source) {
-                ItemSource.homemade => const _HomemadeForm(),
+                ItemSource.homemade => HomemadeItemForm(household: widget.household),
                 ItemSource.purchased => const _PurchasedForm(),
                 null => const SizedBox.shrink(),
               },
@@ -68,15 +69,6 @@ class _AddManuallyItemScreenState extends State<AddManuallyItemScreen> {
         ),
       ),
     );
-  }
-}
-
-class _HomemadeForm extends StatelessWidget {
-  const _HomemadeForm();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox.shrink();
   }
 }
 
