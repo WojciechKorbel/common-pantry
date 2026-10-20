@@ -3,6 +3,7 @@ import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/add_manually_controller.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -103,106 +104,107 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
       builder: (context, child) {
         final c = _controller;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: _nameText,
-              focusNode: _nameFocus,
-              onChanged: c.setName,
-              textCapitalization: TextCapitalization.sentences,
-              textInputAction: TextInputAction.done,
-              onTapOutside: (_) => _nameFocus.unfocus(),
-              decoration: InputDecoration(
-                labelText: 'Name',
-                suffixIcon: c.isLookingUp
-                    ? const Padding(
-                        padding: EdgeInsets.all(14),
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    : null,
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownMenu<ProductCategory>(
-              controller: _categoryText,
-              expandedInsets: EdgeInsets.zero,
-              label: const Text('Category'),
-              enabled: c.isCategoryEnabled,
-              requestFocusOnTap: false,
-              menuHeight: 300,
-              leadingIcon: c.isCategoryLocked ? const Icon(Icons.lock_outline) : null,
-              helperText: c.isCategoryLocked ? 'Taken from an existing product' : null,
-              errorText: c.categoriesError,
-              inputDecorationTheme: theme.inputDecorationTheme,
-              menuStyle: const MenuStyle(
-                backgroundColor: WidgetStatePropertyAll(AppColors.surface),
-                surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
-              ),
-              onSelected: c.setCategory,
-              dropdownMenuEntries: [
-                for (final category in c.categories)
-                  DropdownMenuEntry(value: category, label: category.name),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _dateText,
-              readOnly: true,
-              onTap: _pickDate,
-              decoration: const InputDecoration(
-                labelText: 'Expiry date',
-                suffixIcon: Icon(Icons.calendar_today_outlined),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Text('Ammount:', style: theme.textTheme.titleMedium),
-                const Spacer(),
-                IconButton.filledTonal(
-                  onPressed: c.count > AddManuallyController.minCount ? c.decrement : null,
-                  icon: const Icon(Icons.remove),
-                  tooltip: 'Decrease',
+        return PinnedActionLayout(
+          action: ElevatedButton(
+            onPressed: c.canSubmit ? _submit : null,
+            child: c.isSubmitting
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Add'),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _nameText,
+                focusNode: _nameFocus,
+                onChanged: c.setName,
+                textCapitalization: TextCapitalization.sentences,
+                textInputAction: TextInputAction.done,
+                onTapOutside: (_) => _nameFocus.unfocus(),
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  suffixIcon: c.isLookingUp
+                      ? const Padding(
+                          padding: EdgeInsets.all(14),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
                 ),
-                Container(
-                  width: 64,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    border: Border.all(color: theme.colorScheme.outline),
-                    borderRadius: BorderRadius.circular(12),
+              ),
+              const SizedBox(height: 16),
+              DropdownMenu<ProductCategory>(
+                controller: _categoryText,
+                expandedInsets: EdgeInsets.zero,
+                label: const Text('Category'),
+                enabled: c.isCategoryEnabled,
+                requestFocusOnTap: false,
+                menuHeight: 300,
+                leadingIcon: c.isCategoryLocked ? const Icon(Icons.lock_outline) : null,
+                helperText: c.isCategoryLocked ? 'Taken from an existing product' : null,
+                errorText: c.categoriesError,
+                inputDecorationTheme: theme.inputDecorationTheme,
+                menuStyle: const MenuStyle(
+                  backgroundColor: WidgetStatePropertyAll(AppColors.surface),
+                  surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+                ),
+                onSelected: c.setCategory,
+                dropdownMenuEntries: [
+                  for (final category in c.categories)
+                    DropdownMenuEntry(value: category, label: category.name),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _dateText,
+                readOnly: true,
+                onTap: _pickDate,
+                decoration: const InputDecoration(
+                  labelText: 'Expiry date',
+                  suffixIcon: Icon(Icons.calendar_today_outlined),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Text('Ammount:', style: theme.textTheme.titleMedium),
+                  const Spacer(),
+                  IconButton.filledTonal(
+                    onPressed: c.count > AddManuallyController.minCount ? c.decrement : null,
+                    icon: const Icon(Icons.remove),
+                    tooltip: 'Decrease',
                   ),
-                  child: Text(
-                    '${c.count}',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.titleLarge,
+                  Container(
+                    width: 64,
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      border: Border.all(color: theme.colorScheme.outline),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${c.count}',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge,
+                    ),
                   ),
-                ),
-                IconButton.filledTonal(
-                  onPressed: c.count < AddManuallyController.maxCount ? c.increment : null,
-                  icon: const Icon(Icons.add),
-                  tooltip: 'Increase',
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: c.canSubmit ? _submit : null,
-              child: c.isSubmitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Add'),
-            ),
-          ],
+                  IconButton.filledTonal(
+                    onPressed: c.count < AddManuallyController.maxCount ? c.increment : null,
+                    icon: const Icon(Icons.add),
+                    tooltip: 'Increase',
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );

@@ -2,6 +2,7 @@ import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/homemade_item_form.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/purchased_item_form.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,12 +31,13 @@ class _AddManuallyItemScreenState extends State<AddManuallyItemScreen> {
         onBack: () => context.pop(),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              DropdownMenu<ItemSource>(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              child: DropdownMenu<ItemSource>(
                 expandedInsets: EdgeInsets.zero,
                 label: const Text('Source'),
                 requestFocusOnTap: false,
@@ -58,25 +60,18 @@ class _AddManuallyItemScreenState extends State<AddManuallyItemScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              switch (_source) {
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: switch (_source) {
                 ItemSource.homemade => HomemadeItemForm(household: widget.household),
-                ItemSource.purchased => const _PurchasedForm(),
+                ItemSource.purchased => PurchasedItemForm(household: widget.household),
                 null => const SizedBox.shrink(),
               },
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
-  }
-}
-
-class _PurchasedForm extends StatelessWidget {
-  const _PurchasedForm();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox.shrink();
   }
 }

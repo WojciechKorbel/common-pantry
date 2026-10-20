@@ -61,15 +61,20 @@ class PantryRepository {
         .toList();
   }
 
-  /// Returns the existing product when the household already has one with this name (200).
+  /// Returns the existing product when the household already has one with this name and brand (200).
   Future<Product> createCustomProduct(
     int householdId, {
     required String name,
+    String? brand,
     int? categoryId,
   }) async {
     final response = await api.dio.post<Map<String, dynamic>>(
       '/api/households/$householdId/products/',
-      data: {'name': name, if (categoryId != null) 'category': categoryId},
+      data: {
+        'name': name,
+        if (brand != null && brand.isNotEmpty) 'brand': brand,
+        if (categoryId != null) 'category': categoryId,
+      },
     );
     final data = response.data;
     if (data == null) {
