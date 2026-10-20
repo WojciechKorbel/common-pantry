@@ -9,9 +9,9 @@ import 'package:common_pantry/features/households/presentation/households_screen
 import 'package:common_pantry/features/households/presentation/join_household_screen.dart';
 import 'package:common_pantry/features/households/presentation/join_household_success_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/add_item_screen.dart';
+import 'package:common_pantry/features/pantry/presentation/add_manually_item_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/household_settings_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/pantry_items_screen.dart';
-import 'package:common_pantry/features/pantry/presentation/add_manually_item_screen.dart';
 import 'package:common_pantry/features/settings/presentation/settings_screen.dart';
 import 'package:common_pantry/features/shopping/presentation/shopping_list_screen.dart';
 import 'package:common_pantry/features/stats/presentation/stats_screen.dart';
