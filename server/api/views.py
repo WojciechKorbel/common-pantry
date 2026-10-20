@@ -80,7 +80,10 @@ class CustomProductCreateView(HouseholdMixin, APIView):
         household = self.get_household()
         serializer = CustomProductCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        brand = (serializer.validated_data.get('brand') or '').strip()
+        brand_filter = Q(brand__iexact=brand) if brand else (Q(brand__isnull=True) | Q(brand=''))
         existing = Product.objects.filter(
+            brand_filter,
             product_type=ProductType.CUSTOM,
             household=household,
             name__iexact=serializer.validated_data['name'],
