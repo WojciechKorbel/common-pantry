@@ -16,7 +16,9 @@ class AddItemScreen extends StatelessWidget {
     // TODO: barcode scanning
   }
 
-  void _onAddManually() {}
+  void _onAddManually(BuildContext context) {
+    context.push('/add-item/manual', extra: household);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,7 @@ class AddItemScreen extends StatelessWidget {
                     _AddOption(
                       icon: Icons.edit_outlined,
                       label: 'Add manually',
-                      onTap: _onAddManually,
+                      onTap: () => _onAddManually(context),
                     ),
                   ],
                 ),

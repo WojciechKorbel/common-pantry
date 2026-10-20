@@ -11,6 +11,7 @@ import 'package:common_pantry/features/households/presentation/join_household_su
 import 'package:common_pantry/features/pantry/presentation/add_item_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/household_settings_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/pantry_items_screen.dart';
+import 'package:common_pantry/features/pantry/presentation/add_manually_item_screen.dart';
 import 'package:common_pantry/features/settings/presentation/settings_screen.dart';
 import 'package:common_pantry/features/shopping/presentation/shopping_list_screen.dart';
 import 'package:common_pantry/features/stats/presentation/stats_screen.dart';
@@ -117,6 +118,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final household = state.extra! as Household;
           return AddItemScreen(household: household);
+        },
+      ),
+      GoRoute(
+        path: '/add-item/manual',
+        builder: (context, state) {
+          final household = state.extra! as Household;
+          return AddManuallyItemScreen(household: household);
         },
       ),
       GoRoute(
