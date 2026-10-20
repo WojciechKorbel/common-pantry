@@ -90,6 +90,23 @@ class CustomProductCreateView(HouseholdMixin, APIView):
         product = serializer.save(product_type=ProductType.CUSTOM, household=household)
         return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
 
+    def get(self, request, household_id):
+        household = self.get_household()
+        products = (
+            Product.objects
+            .filter(
+                Q(product_type=ProductType.CUSTOM, household=household)
+                | Q(pantry_items__household=household)
+            )
+            .select_related('category')
+            .distinct()
+            .order_by('name')
+        )
+        search = request.query_params.get('search', '').strip()
+        if search:
+            products = products.filter(Q(name__icontains=search) | Q(brand__icontains=search))
+        return Response(ProductSerializer(products, many=True).data)
+
 
 class ProductByBarcodeView(HouseholdMixin, APIView):
     """Finds a product by barcode: this household's own products, then the shared database,
