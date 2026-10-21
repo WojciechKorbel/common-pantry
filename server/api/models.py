@@ -1,6 +1,71 @@
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.conf import settings
+from django.utils import timezone
+
+
+class EmailVerification(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="email_verification",
+    )
+
+    code_hash = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0) # number of failed verification attempts
+    last_sent_at = models.DateTimeField(default=timezone.now)
+
+    resend_count = models.PositiveSmallIntegerField(default=0) # number of resend requests in the current window
+    resend_window_started_at = models.DateTimeField(
+        default=timezone.now
+    ) # start time of the resend limit window.
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_in_resend_cooldown(self) -> bool:
+        cooldown = timedelta(
+            seconds=settings.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS
+        )
+        return timezone.now() - self.last_sent_at < cooldown
+
+    def is_resend_window_expired(self) -> bool:
+        window = timedelta(
+            minutes=settings.EMAIL_VERIFICATION_RESEND_WINDOW_MINUTES
+        )
+        return timezone.now() - self.resend_window_started_at >= window
+
+    def has_reached_resend_limit(self) -> bool:
+        return (
+            self.resend_count
+            >= settings.EMAIL_VERIFICATION_RESEND_MAX_ATTEMPTS
+        )
+
+    def is_expired(self) -> bool:
+        return timezone.now() >= self.expires_at
+
+    def set_code(self, code: str) -> None:
+        import hashlib
+
+        self.code_hash = hashlib.sha256(
+            code.encode("utf-8")
+        ).hexdigest()
+
+    def check_code(self, code: str) -> bool:
+        import hashlib
+        import hmac
+
+        supplied_hash = hashlib.sha256(
+            code.encode("utf-8")
+        ).hexdigest()
+
+        return hmac.compare_digest(self.code_hash, supplied_hash)
+
+    def __str__(self) -> str:
+        return f"Email verification for user {self.user_id}"
 
 
 class Household(models.Model):
@@ -38,8 +103,9 @@ class Category(models.Model):
     """A pantry category linked to one Open Food Facts category tag."""
 
     name = models.CharField(max_length=100, unique=True)
-    off_tag = models.CharField(max_length=100, unique=True, null=True, blank=True) # Open Food Facts tag
-    match_priority = models.PositiveSmallIntegerField(default=100) # When a product fits several categories, the lowest number wins
+    off_tag = models.CharField(max_length=100, unique=True, null=True, blank=True)  # Open Food Facts tag
+    match_priority = models.PositiveSmallIntegerField(
+        default=100)  # When a product fits several categories, the lowest number wins
 
     class Meta:
         db_table = 'categories'
@@ -95,7 +161,8 @@ class PantryItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='pantry_items')
     expiry_date = models.DateField()
     status = models.CharField(max_length=20, choices=ItemStatus.choices, default=ItemStatus.ACTIVE)
-    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='added_pantry_items')
+    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='added_pantry_items')
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
@@ -108,16 +175,21 @@ class PantryItem(models.Model):
     def __str__(self):
         return f"{self.product.name} (exp: {self.expiry_date})"
 
+
 class ShoppingItem(models.Model):
     household = models.ForeignKey(Household, on_delete=models.CASCADE, related_name='shopping_items')
-    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='shopping_items')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True,
+                                related_name='shopping_items')
     name = models.CharField(max_length=255)
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1.00)
     unit = models.CharField(max_length=30, default='pcs')
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='shopping_items')
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='shopping_items')
     is_bought = models.BooleanField(default=False)
-    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='added_shopping_items')
-    bought_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='bought_shopping_items')
+    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name='added_shopping_items')
+    bought_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='bought_shopping_items')
     created_at = models.DateTimeField(auto_now_add=True)
     bought_at = models.DateTimeField(null=True, blank=True)
 

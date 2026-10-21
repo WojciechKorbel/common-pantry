@@ -1,21 +1,269 @@
 import secrets
+from datetime import timedelta
+
+from django.contrib.auth.models import User
+from django.core.mail import send_mail
+from django.db import transaction
 from django.db.models import Count, Min, Prefetch, Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Category, Household, ItemStatus, PantryItem, Product, ProductType, Membership, MembershipRole
+from .models import Category, Household, ItemStatus, PantryItem, Product, ProductType, Membership, MembershipRole, \
+    EmailVerification
 from .serializers import (
     CategorySerializer,
     CustomProductCreateSerializer,
     PantryGroupSerializer,
     PantryItemCreateSerializer,
     PantryItemSerializer,
-    ProductSerializer, HouseholdSerializer,
+    ProductSerializer, HouseholdSerializer, ResendCodeSerializer, VerifyEmailSerializer,
+    RegisterSerializer,
 )
 from .services import open_food_facts
+from django.conf import settings
+
+
+def generate_verification_code():
+    length = settings.EMAIL_VERIFICATION_CODE_LENGTH
+    return f"{secrets.randbelow(10 ** length):0{length}d}"
+
+
+def send_verification_email(email, code):
+    send_mail(
+        subject="Confirm your e-mail address - Shared Pantry",
+        message=(
+            f"Your verification code is: {code}\n\n"
+            f"The code is valid fo "
+            f"{settings.EMAIL_VERIFICATION_CODE_EXPIRY_MINUTES} minutes."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+        fail_silently=False,
+    )
+
+
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            with transaction.atomic():
+                user = serializer.save()
+
+                code = generate_verification_code()
+                now = timezone.now()
+
+                verification = EmailVerification(
+                    user=user,
+                    expires_at=now + timedelta(
+                        minutes=settings.EMAIL_VERIFICATION_CODE_EXPIRY_MINUTES
+                    ),
+                    last_sent_at=now,
+                )
+                verification.set_code(code)
+                verification.save()
+
+                send_verification_email(user.email, code)
+
+        except Exception:
+            return Response(
+                {
+                    "detail": (
+                        "Failed to send an e-mail. "
+                        "Try again later."
+                    )
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response(
+            {
+                "detail": (
+                    "If registration is possible, "
+                    "verification code was sent to the given address."
+                ),
+                "email": user.email,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = VerifyEmailSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"].strip().lower()
+        code = serializer.validated_data["code"]
+
+        with transaction.atomic():
+            try:
+                user = User.objects.select_for_update().get(
+                    email__iexact=email
+                )
+                verification = EmailVerification.objects.select_for_update().get(
+                    user=user
+                )
+            except (User.DoesNotExist, EmailVerification.DoesNotExist):
+                return Response(
+                    {"detail": "Invalid code or request."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if user.is_active:
+                return Response(
+                    {"detail": "This e-mail address has already been verified."},
+                    status=status.HTTP_200_OK,
+                )
+
+            if verification.attempts >= settings.EMAIL_VERIFICATION_MAX_ATTEMPTS:
+                return Response(
+                    {
+                        "detail": (
+                            "Attempt limit exceeded. "
+                            "Request a new code."
+                        )
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
+            if verification.is_expired():
+                return Response(
+                    {
+                        "detail": (
+                            "The code has expired. Request a new code to be sent."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if not verification.check_code(code):
+                verification.attempts += 1
+                verification.save(update_fields=["attempts"])
+
+                return Response(
+                    {"detail": "Invalid code."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+
+            verification.delete()
+
+        return Response(
+            {"detail": "E-mail address has been verified successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ResendCodeView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = ResendCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"].strip().lower()
+
+        try:
+            user = User.objects.get(
+                email__iexact=email,
+                is_active=False,
+            )
+        except User.DoesNotExist:
+            return Response(
+                {
+                    "detail": (
+                        "If your account requires verification, " 
+                        "instructions will be sent."
+                    )
+                },
+                status=status.HTTP_200_OK,
+            )
+
+
+        with transaction.atomic():
+            verification = EmailVerification.objects.select_for_update().get(
+                user=user
+            )
+
+            now = timezone.now()
+
+            # cooldown - 60 secs (settings)
+            if verification.is_in_resend_cooldown():
+                return Response(
+                    {
+                        "detail": (
+                            "Wait "
+                            f"{settings.EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS} "
+                            "seconds before re-sending the code."
+                        )
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
+            # resend window counter reset
+            if verification.is_resend_window_expired():
+                verification.resend_count = 0
+                verification.resend_window_started_at = now
+
+            # resend limit
+            if verification.has_reached_resend_limit():
+                return Response(
+                    {
+                        "detail": (
+                            "Code sending limit exceeded. " 
+                            "Try again later."
+                        )
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
+            # generate new code
+            code = generate_verification_code()
+
+            verification.set_code(code)
+            verification.expires_at = now + timedelta(
+                minutes=settings.EMAIL_VERIFICATION_CODE_EXPIRY_MINUTES
+            )
+            verification.attempts = 0
+            verification.last_sent_at = now
+            verification.resend_count += 1
+            verification.save()
+
+        try:
+            send_verification_email(user.email, code)
+        except Exception:
+            return Response(
+                {"detail":
+                        "Failed to send an e-mail. "
+                        "Try again later."
+                 },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return Response(
+            {
+                "detail": (
+                    "If your account requires verification, " 
+                    "code has been sent."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class HouseholdMixin:
