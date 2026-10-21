@@ -2,6 +2,8 @@ import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/auth/presentation/forgot_password_screen.dart';
 import 'package:common_pantry/features/auth/presentation/login_screen.dart';
 import 'package:common_pantry/features/auth/presentation/sign_up_screen.dart';
+import 'package:common_pantry/features/auth/presentation/verify_email_screen.dart';
+import 'package:common_pantry/features/auth/presentation/verify_email_success_screen.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/presentation/create_household_screen.dart';
 import 'package:common_pantry/features/households/presentation/household_created_screen.dart';
@@ -54,6 +56,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/sign-up',
         builder: (context, state) => const SignUpScreen(),
       ),
+
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) => const VerifyEmailScreen(),
+      ),
+
+      GoRoute(
+        path: '/verify-email-success',
+        builder: (context, state) => const VerifyEmailSuccessScreen(),
+      ),
+
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),
