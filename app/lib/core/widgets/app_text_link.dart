@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AppTextLink extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final AlignmentGeometry alignment;
   final TextStyle? style;
 

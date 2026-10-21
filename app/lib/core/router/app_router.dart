@@ -54,12 +54,27 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: '/sign-up',
-        builder: (context, state) => const SignUpScreen(),
+        builder: (context, state) => SignUpScreen(
+          controller: Dependencies.signUpController,
+        ),
       ),
 
       GoRoute(
         path: '/verify-email',
-        builder: (context, state) => const VerifyEmailScreen(),
+        builder: (context, state) {
+          final email = state.extra as String?;
+
+          if (email == null || email.trim().isEmpty) {
+            return SignUpScreen(
+              controller: Dependencies.signUpController,
+            );
+          }
+
+          return VerifyEmailScreen(
+            email: email,
+            controller: Dependencies.verifyEmailController,
+          );
+        },
       ),
 
       GoRoute(
