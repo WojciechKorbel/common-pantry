@@ -37,6 +37,8 @@ class AddManuallyController extends ChangeNotifier {
 
   bool get isSubmitting => _isSubmitting;
 
+  bool get hasData => _name.trim().isNotEmpty || _expiryDate != null || _count != minCount;
+
   List<ProductCategory> get categories => _categories;
 
   String? get categoriesError => _categoriesError;

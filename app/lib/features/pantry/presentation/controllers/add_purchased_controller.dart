@@ -51,6 +51,12 @@ class AddPurchasedController extends ChangeNotifier {
 
   bool get isSubmitting => _isSubmitting;
 
+  bool get hasData =>
+      _name.trim().isNotEmpty ||
+      _brand.trim().isNotEmpty ||
+      _rows.length > 1 ||
+      _rows.any((row) => row.date != null || row.count != minCount);
+
   String get brand => _brand;
 
   bool get isBrandLocked => _brandLocked;
@@ -159,8 +165,8 @@ class AddPurchasedController extends ChangeNotifier {
     if (_product != null) {
       _product = null;
       _category = null;
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   /// Called when the brand field loses focus.

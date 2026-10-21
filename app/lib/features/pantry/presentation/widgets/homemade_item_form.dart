@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
@@ -5,15 +7,17 @@ import 'package:common_pantry/features/pantry/data/models/product_category.dart'
 import 'package:common_pantry/features/pantry/presentation/controllers/add_manually_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class HomemadeItemForm extends StatefulWidget {
   const HomemadeItemForm({
     super.key,
     required this.household,
+    required this.onHasDataChanged,
   });
 
   final Household household;
+
+  final ValueChanged<bool> onHasDataChanged;
 
   @override
   State<HomemadeItemForm> createState() => _HomemadeItemFormState();
@@ -65,6 +69,7 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
     if (_dateText.text != dateText) {
       _dateText.text = dateText;
     }
+    widget.onHasDataChanged(_controller.hasData);
   }
 
   Future<void> _pickDate() async {
@@ -88,8 +93,10 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
     }
     final messenger = ScaffoldMessenger.of(context);
     if (success) {
+      final navigator = Navigator.of(context);
+      unawaited(Dependencies.pantryController.load());
+      navigator.pop();
       messenger.showSnackBar(const SnackBar(content: Text('Item added to the pantry')));
-      context.go('/pantry-items', extra: widget.household);
     } else if (_controller.errorMessage != null) {
       messenger.showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
     }
@@ -174,7 +181,7 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Text('Ammount:', style: theme.textTheme.titleMedium),
+                  Text('Amount:', style: theme.textTheme.titleMedium),
                   const Spacer(),
                   IconButton.filledTonal(
                     onPressed: c.count > AddManuallyController.minCount ? c.decrement : null,
