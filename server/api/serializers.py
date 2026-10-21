@@ -2,6 +2,81 @@ from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from .models import Category, PantryItem, Product, ProductType, Household, Membership
+from django.contrib.auth.password_validation import validate_password
+
+
+class RegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    username = serializers.CharField(
+        min_length=3,
+        max_length=150,
+        trim_whitespace=True,
+    )
+    password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+        min_length=8,
+    )
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError(
+                "This email address could not be registered."
+            )
+
+        return value
+
+    def validate_username(self, value):
+        value = value.strip()
+
+        if User.objects.filter(username__iexact=value).exists():
+            raise serializers.ValidationError(
+                "This username is already taken."
+            )
+
+        return value
+
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
+    def create(self, validated_data):
+        email = validated_data["email"]
+        password = validated_data["password"]
+        username = validated_data["username"]
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            is_active=False,
+        )
+
+        return user
+
+
+class VerifyEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.RegexField(
+        regex=r"^[0-9]{6}$",
+        error_messages={
+            "invalid": "The code must consist of 6 digits."
+        },
+    )
+
+
+class ResendCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
 
 
 class CategorySerializer(serializers.ModelSerializer):

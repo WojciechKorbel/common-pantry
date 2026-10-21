@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import Household, Membership, Category, Product, PantryItem, ShoppingItem
+from .models import Household, Membership, Category, Product, PantryItem, ShoppingItem, EmailVerification
+
+
+@admin.register(EmailVerification)
+class EmailVerificationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'expires_at', 'attempts', 'last_sent_at','resend_count','resend_window_started_at',)
+    search_fields = ('user__username', 'user__email')
+    list_filter = ('expires_at','last_sent_at',)
+    readonly_fields = ('created_at',)
+
 
 @admin.register(Household)
 class HouseholdAdmin(admin.ModelAdmin):

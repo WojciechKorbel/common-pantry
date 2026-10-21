@@ -2,11 +2,16 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from . import views
+from .views import RegisterView, VerifyEmailView, ResendCodeView
 
 urlpatterns = [
     # Auth
     path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Auth - Register
+    path("auth/register/", RegisterView.as_view(), name="register"),
+    path("auth/verify-email/", VerifyEmailView.as_view(), name="verify-email"),
+    path("auth/resend-code/", ResendCodeView.as_view(), name="resend-code"),
     # Pantry
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
     path('households/<int:household_id>/pantry/', views.PantryListView.as_view(), name='pantry'),
