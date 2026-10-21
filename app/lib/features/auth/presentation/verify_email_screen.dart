@@ -1,8 +1,8 @@
 import 'package:common_pantry/core/widgets/app_button.dart';
 import 'package:common_pantry/core/widgets/app_inline_link.dart';
-import 'package:common_pantry/core/widgets/app_input.dart';
 import 'package:common_pantry/core/widgets/app_page_title.dart';
 import 'package:common_pantry/core/widgets/app_text_link.dart';
+import 'package:common_pantry/core/widgets/code_input.dart';
 import 'package:common_pantry/features/auth/presentation/controllers/verify_email_controller.dart';
 
 import 'package:flutter/material.dart';
@@ -23,12 +23,21 @@ class VerifyEmailScreen extends StatefulWidget {
 }
 
 class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
-  final _codeController = TextEditingController();
+  String _code = '';
+  bool _hasCodeError = false;
 
   Future<void> _verifyCode() async {
+    if (_code.length != 6) {
+      setState(() => _hasCodeError = true);
+      _showMessage('Please enter the complete 6-digit code.');
+      return;
+    }
+
+    setState(() => _hasCodeError = false);
+
     final success = await widget.controller.verifyCode(
       email: widget.email,
-      code: _codeController.text.trim(),
+      code: _code,
     );
 
     if (!mounted) return;
@@ -37,6 +46,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
       context.go('/verify-email-success');
       return;
     }
+
+    setState(() => _hasCodeError = true);
 
     final message = widget.controller.errorMessage;
     if (message != null) {
@@ -68,7 +79,6 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   @override
   void dispose() {
-    _codeController.dispose();
     super.dispose();
   }
 
@@ -119,11 +129,16 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                                   const SizedBox(height: 24),
 
                                   // VERIFICATION CODE
-                                  AppInput(
-                                    hintText: '6-digit code',
-                                    icon: Icons.mark_email_read_outlined,
-                                    keyboardType: TextInputType.number,
-                                    controller: _codeController,
+                                  CodeInput(
+                                    key: const ValueKey('verification-code'),
+                                    length: 6,
+                                    hasError: _hasCodeError,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _code = value;
+                                        _hasCodeError = false;
+                                      });
+                                    },
                                   ),
                                   const SizedBox(height: 24),
 
