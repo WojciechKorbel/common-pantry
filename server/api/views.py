@@ -328,7 +328,10 @@ class CustomProductCreateView(HouseholdMixin, APIView):
         household = self.get_household()
         serializer = CustomProductCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        brand = (serializer.validated_data.get('brand') or '').strip()
+        brand_filter = Q(brand__iexact=brand) if brand else (Q(brand__isnull=True) | Q(brand=''))
         existing = Product.objects.filter(
+            brand_filter,
             product_type=ProductType.CUSTOM,
             household=household,
             name__iexact=serializer.validated_data['name'],
@@ -337,6 +340,23 @@ class CustomProductCreateView(HouseholdMixin, APIView):
             return Response(ProductSerializer(existing).data, status=status.HTTP_200_OK)
         product = serializer.save(product_type=ProductType.CUSTOM, household=household)
         return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
+
+    def get(self, request, household_id):
+        household = self.get_household()
+        products = (
+            Product.objects
+            .filter(
+                Q(product_type=ProductType.CUSTOM, household=household)
+                | Q(pantry_items__household=household)
+            )
+            .select_related('category')
+            .distinct()
+            .order_by('name')
+        )
+        search = request.query_params.get('search', '').strip()
+        if search:
+            products = products.filter(Q(name__icontains=search) | Q(brand__icontains=search))
+        return Response(ProductSerializer(products, many=True).data)
 
 
 class ProductByBarcodeView(HouseholdMixin, APIView):

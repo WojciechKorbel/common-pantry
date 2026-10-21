@@ -8,7 +8,6 @@ import 'package:common_pantry/features/households/presentation/household_created
 import 'package:common_pantry/features/households/presentation/households_screen.dart';
 import 'package:common_pantry/features/households/presentation/join_household_screen.dart';
 import 'package:common_pantry/features/households/presentation/join_household_success_screen.dart';
-import 'package:common_pantry/features/pantry/presentation/add_item_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/household_settings_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/pantry_items_screen.dart';
 import 'package:common_pantry/features/settings/presentation/settings_screen.dart';
@@ -110,13 +109,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final household = state.extra! as Household;
           return ShoppingListScreen(household: household);
-        },
-      ),
-      GoRoute(
-        path: '/add-item',
-        builder: (context, state) {
-          final household = state.extra! as Household;
-          return AddItemScreen(household: household);
         },
       ),
       GoRoute(

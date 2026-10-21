@@ -1,4 +1,5 @@
 import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/add_item_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,13 +11,14 @@ class AppBottomNavigationBar extends StatelessWidget {
 
   final Household household;
 
-  static const _routes = [
-    '/pantry-items',
-    '/shopping-list',
-    '/add-item',
-    '/stats',
-    '/household-settings',
-  ];
+  static const _addIndex = 2;
+
+  static const _routes = {
+    0: '/pantry-items',
+    1: '/shopping-list',
+    3: '/stats',
+    4: '/household-settings',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,6 @@ class AppBottomNavigationBar extends StatelessWidget {
 
     final selectedIndex = switch (location) {
       '/shopping-list' => 1,
-      '/add-item' => 2,
       '/stats' => 3,
       '/household-settings' => 4,
       _ => 0,
@@ -32,12 +33,12 @@ class AppBottomNavigationBar extends StatelessWidget {
 
     return NavigationBar(
       selectedIndex: selectedIndex,
-      indicatorColor: selectedIndex == 2 ? Colors.transparent : null,
       onDestinationSelected: (index) {
-        context.go(
-          _routes[index],
-          extra: household,
-        );
+        if (index == _addIndex) {
+          showAddItemDialog(context, household);
+          return;
+        }
+        context.go(_routes[index]!, extra: household);
       },
       destinations: [
         const NavigationDestination(
