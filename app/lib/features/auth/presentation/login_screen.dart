@@ -146,6 +146,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                 context.push('/sign-up');
                               },
                             ),
+
+                            const SizedBox(height: 16),
+
+                            // VERIFY ACCOUNT LINK
+                            AppInlineLink(
+                              text: "Didn't verify your email?",
+                              linkText: 'Verify account',
+                              alignment: MainAxisAlignment.center,
+                              onPressed: () {
+                                context.push('/verify-account');
+                              },
+                            ),
                           ],
                         ),
                       ),
