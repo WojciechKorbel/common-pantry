@@ -2,6 +2,9 @@ import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/auth/presentation/forgot_password_screen.dart';
 import 'package:common_pantry/features/auth/presentation/login_screen.dart';
 import 'package:common_pantry/features/auth/presentation/sign_up_screen.dart';
+import 'package:common_pantry/features/auth/presentation/verify_account_screen.dart';
+import 'package:common_pantry/features/auth/presentation/verify_email_screen.dart';
+import 'package:common_pantry/features/auth/presentation/verify_email_success_screen.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/presentation/create_household_screen.dart';
 import 'package:common_pantry/features/households/presentation/household_created_screen.dart';
@@ -51,8 +54,41 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       GoRoute(
         path: '/sign-up',
-        builder: (context, state) => const SignUpScreen(),
+        builder: (context, state) => SignUpScreen(
+          controller: Dependencies.signUpController,
+        ),
       ),
+
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) {
+          final email = state.extra as String?;
+
+          if (email == null || email.trim().isEmpty) {
+            return SignUpScreen(
+              controller: Dependencies.signUpController,
+            );
+          }
+
+          return VerifyEmailScreen(
+            email: email,
+            controller: Dependencies.verifyEmailController,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/verify-email-success',
+        builder: (context, state) => const VerifyEmailSuccessScreen(),
+      ),
+
+      GoRoute(
+        path: '/verify-account',
+        builder: (context, state) => VerifyAccountScreen(
+          controller: Dependencies.verifyEmailController,
+        ),
+      ),
+
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordScreen(),

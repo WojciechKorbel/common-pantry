@@ -41,4 +41,49 @@ class AuthRepository {
     return await tokenStorage.getAccessToken() != null ||
         await tokenStorage.getRefreshToken() != null;
   }
+
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String username,
+    required String password,
+  }) async {
+    final response = await api.dio.post<Map<String, dynamic>>(
+      '/api/auth/register/',
+      data: {
+        'email': email.trim(),
+        'username': username.trim(),
+        'password': password,
+      },
+    );
+
+    return Map<String, dynamic>.from(response.data ?? {});
+  }
+
+  Future<Map<String, dynamic>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    final response = await api.dio.post<Map<String, dynamic>>(
+      '/api/auth/verify-email/',
+      data: {
+        'email': email.trim().toLowerCase(),
+        'code': code.trim(),
+      },
+    );
+
+    return Map<String, dynamic>.from(response.data ?? {});
+  }
+
+  Future<Map<String, dynamic>> resendVerificationCode({
+    required String email,
+  }) async {
+    final response = await api.dio.post<Map<String, dynamic>>(
+      '/api/auth/resend-code/',
+      data: {
+        'email': email.trim().toLowerCase(),
+      },
+    );
+
+    return Map<String, dynamic>.from(response.data ?? {});
+  }
 }
