@@ -1,7 +1,6 @@
 import 'package:common_pantry/features/pantry/data/models/household_details.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/household_member_tile.dart';
 import 'package:flutter/material.dart';
-
-import 'household_member_tile.dart';
 
 class HouseholdMembersSection extends StatelessWidget {
   const HouseholdMembersSection({
