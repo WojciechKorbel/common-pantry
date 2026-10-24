@@ -86,4 +86,56 @@ class AuthRepository {
 
     return Map<String, dynamic>.from(response.data ?? {});
   }
+
+  Future<Map<String, dynamic>> requestPasswordReset({
+    required String email,
+  }) async {
+    final response = await api.dio.post<Map<String, dynamic>>(
+      '/api/auth/password-reset/',
+      data: {'email': email.trim()},
+    );
+
+    return Map<String, dynamic>.from(response.data ?? {});
+  }
+
+  Future<Map<String, dynamic>> verifyPasswordResetCode({
+    required String email,
+    required String code,
+  }) async {
+    final response = await api.dio.post<Map<String, dynamic>>(
+      '/api/auth/password-reset/verify/',
+      data: {
+        'email': email.trim(),
+        'code': code.trim(),
+      },
+    );
+
+    return Map<String, dynamic>.from(response.data ?? {});
+  }
+
+  Future<Map<String, dynamic>> resendPasswordResetCode({
+    required String email,
+  }) async {
+    final response = await api.dio.post<Map<String, dynamic>>(
+      '/api/auth/password-reset/resend/',
+      data: {'email': email.trim()},
+    );
+
+    return Map<String, dynamic>.from(response.data ?? {});
+  }
+
+  Future<Map<String, dynamic>> confirmPasswordReset({
+    required String resetToken,
+    required String newPassword,
+  }) async {
+    final response = await api.dio.post<Map<String, dynamic>>(
+      '/api/auth/password-reset/confirm/',
+      data: {
+        'reset_token': resetToken,
+        'new_password': newPassword,
+      },
+    );
+
+    return Map<String, dynamic>.from(response.data ?? {});
+  }
 }
