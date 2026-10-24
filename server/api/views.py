@@ -187,13 +187,12 @@ class ResendCodeView(APIView):
             return Response(
                 {
                     "detail": (
-                        "If your account requires verification, " 
+                        "If your account requires verification, "
                         "instructions will be sent."
                     )
                 },
                 status=status.HTTP_200_OK,
             )
-
 
         with transaction.atomic():
             verification = EmailVerification.objects.select_for_update().get(
@@ -225,7 +224,7 @@ class ResendCodeView(APIView):
                 return Response(
                     {
                         "detail": (
-                            "Code sending limit exceeded. " 
+                            "Code sending limit exceeded. "
                             "Try again later."
                         )
                     },
@@ -249,8 +248,8 @@ class ResendCodeView(APIView):
         except Exception:
             return Response(
                 {"detail":
-                        "Failed to send an e-mail. "
-                        "Try again later."
+                     "Failed to send an e-mail. "
+                     "Try again later."
                  },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
@@ -258,7 +257,7 @@ class ResendCodeView(APIView):
         return Response(
             {
                 "detail": (
-                    "If your account requires verification, " 
+                    "If your account requires verification, "
                     "code has been sent."
                 )
             },
@@ -508,4 +507,293 @@ class HouseholdJoinAPIView(APIView):
                 },
             },
             status=status.HTTP_201_CREATED,
+        )
+
+
+class HouseholdManagementMixin:
+
+    def get_membership(self, household_id):
+        return get_object_or_404(
+            Membership.objects.select_related("household", "user"),
+            household_id=household_id,
+            user=self.request.user,
+        )
+
+    def get_owner_membership(self, household_id):
+        membership = self.get_membership(household_id)
+
+        if membership.role != MembershipRole.OWNER:
+            return None
+
+        return membership
+
+    def permission_denied_response(self):
+        return Response(
+            {"detail": "You do not have permission to perform this action."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+
+class HouseholdLeaveAPIView(
+    HouseholdManagementMixin,
+    APIView,
+):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, household_id):
+        with transaction.atomic():
+            household = get_object_or_404(
+                Household.objects.select_for_update(),
+                pk=household_id,
+                memberships__user=request.user,
+            )
+
+            membership = get_object_or_404(
+                Membership.objects.select_for_update(),
+                household=household,
+                user=request.user,
+            )
+
+            # Check whether anyone else belongs to this household.
+            other_members = Membership.objects.filter(
+                household=household,
+            ).exclude(
+                pk=membership.pk,
+            )
+
+            # If this is the last member, delete the entire household.
+            if not other_members.exists():
+                household.delete()
+
+                return Response(
+                    {
+                        "detail": (
+                            "You were the last member. "
+                            "The household has been permanently deleted."
+                        ),
+                        "household_deleted": True,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            # The last owner cannot leave while other members remain.
+            if membership.role == MembershipRole.OWNER:
+                other_owners = other_members.filter(
+                    role=MembershipRole.OWNER,
+                )
+
+                if not other_owners.exists():
+                    return Response(
+                        {
+                            "detail": (
+                                "The last owner cannot leave the household. "
+                                "Promote another member first."
+                            ),
+                            "household_deleted": False,
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            membership.delete()
+
+            return Response(
+                {
+                    "detail": "You have left the household.",
+                    "household_deleted": False,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+
+class HouseholdMemberPromoteAPIView(
+    HouseholdManagementMixin,
+    APIView,
+):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, household_id, user_id):
+        if self.get_owner_membership(household_id) is None:
+            return self.permission_denied_response()
+
+        target = get_object_or_404(
+            Membership,
+            household_id=household_id,
+            user_id=user_id,
+        )
+
+        if target.role == MembershipRole.OWNER:
+            return Response(
+                {"detail": "This member is already an owner."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target.role = MembershipRole.OWNER
+        target.save(update_fields=["role"])
+
+        return Response(
+            {
+                "detail": "Member promoted to owner.",
+                "user_id": target.user_id,
+                "role": target.role,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class HouseholdMemberDemoteAPIView(
+    HouseholdManagementMixin,
+    APIView,
+):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, household_id, user_id):
+        if self.get_owner_membership(household_id) is None:
+            return self.permission_denied_response()
+
+        target = get_object_or_404(
+            Membership,
+            household_id=household_id,
+            user_id=user_id,
+        )
+
+        if target.role != MembershipRole.OWNER:
+            return Response(
+                {"detail": "This member is not an owner."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if target.user_id == request.user.id:
+            return Response(
+                {
+                    "detail": (
+                        "You cannot demote yourself. "
+                        "Another owner must perform this action."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target.role = MembershipRole.MEMBER
+        target.save(update_fields=["role"])
+
+        return Response(
+            {
+                "detail": "Owner demoted to member.",
+                "user_id": target.user_id,
+                "role": target.role,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class HouseholdMemberDeleteAPIView(
+    HouseholdManagementMixin,
+    APIView,
+):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, household_id, user_id):
+        if self.get_owner_membership(household_id) is None:
+            return self.permission_denied_response()
+
+        target = get_object_or_404(
+            Membership,
+            household_id=household_id,
+            user_id=user_id,
+        )
+
+        if target.role == MembershipRole.OWNER:
+            other_owners = Membership.objects.filter(
+                household_id=household_id,
+                role=MembershipRole.OWNER,
+            ).exclude(user_id=user_id)
+
+            if not other_owners.exists():
+                return Response(
+                    {
+                        "detail": (
+                            "The last owner cannot be removed "
+                            "from the household."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        target.delete()
+
+        return Response(
+            {"detail": "Member removed from the household."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class HouseholdSettingsAPIView(
+    HouseholdManagementMixin,
+    APIView,
+):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, household_id):
+        if self.get_owner_membership(household_id) is None:
+            return self.permission_denied_response()
+
+        household = get_object_or_404(
+            Household,
+            pk=household_id,
+        )
+
+        name = request.data.get("name")
+
+        if not isinstance(name, str) or not name.strip():
+            return Response(
+                {"name": ["A non-empty name is required."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        household.name = name.strip()[:100]
+        household.save(update_fields=["name"])
+
+        return Response(
+            {
+                "id": household.id,
+                "name": household.name,
+                "detail": "Household settings updated.",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class HouseholdDetailsAPIView(
+    HouseholdManagementMixin,
+    APIView,
+):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, household_id):
+        membership = self.get_membership(household_id)
+        household = membership.household
+
+        members = Membership.objects.filter(
+            household=household,
+        ).select_related("user").order_by("joined_at")
+
+        return Response(
+            {
+                "id": household.id,
+                "name": household.name,
+                "invite_code": household.invite_code,
+                "created_at": household.created_at,
+                "role": membership.role,
+                "members": [
+                    {
+                        "user_id": member.user_id,
+                        "username": member.user.username,
+                        "role": member.role,
+                        "joined_at": member.joined_at,
+                        "is_me": member.user_id == request.user.id,
+                    }
+                    for member in members
+                ],
+            },
+            status=status.HTTP_200_OK,
         )
