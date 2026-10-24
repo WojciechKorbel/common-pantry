@@ -1,5 +1,4 @@
 import 'package:common_pantry/core/network/api_client.dart';
-import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/household_details.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
