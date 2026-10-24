@@ -520,20 +520,19 @@ def generate_password_reset_code():
 
 
 def send_password_reset_email(email, code):
-    print(f"Sending password reset email to {email} with code {code}") # TODO: only for local tests!
-    # TODO: change
-    # send_mail(
-    #     subject="Password reset - Shared Pantry",
-    #     message=(
-    #         f"Your password reset code is: {code}\n\n"
-    #         f"The code is valid for "
-    #         f"{settings.PASSWORD_RESET_CODE_EXPIRY_MINUTES} minutes.\n\n"
-    #         "If you did not request this, ignore this email."
-    #     ),
-    #     from_email=settings.DEFAULT_FROM_EMAIL,
-    #     recipient_list=[email],
-    #     fail_silently=False,
-    # )
+    # print(f"Sending password reset email to {email} with code {code}") # TODO: only for local tests!
+    send_mail(
+        subject="Password reset - Shared Pantry",
+        message=(
+            f"Your password reset code is: {code}\n\n"
+            f"The code is valid for "
+            f"{settings.PASSWORD_RESET_CODE_EXPIRY_MINUTES} minutes.\n\n"
+            "If you did not request this, ignore this email."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+        fail_silently=False,
+    )
 
 
 class PasswordResetRequestView(APIView):
