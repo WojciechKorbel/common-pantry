@@ -132,8 +132,8 @@ class PantryRepository {
       '/api/households/$householdId/products/$productId/',
       data: {
         'name': name,
-        if (brand != null && brand.isNotEmpty) 'brand': brand,
-        if (categoryId != null) 'category': categoryId,
+        'brand': ?brand,
+        'category': ?categoryId,
       },
     );
   }
