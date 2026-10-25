@@ -73,7 +73,7 @@ class PantryRepository {
       data: {
         'name': name,
         if (brand != null && brand.isNotEmpty) 'brand': brand,
-        if (categoryId != null) 'category': categoryId,
+        'category': ?categoryId,
       },
     );
     final data = response.data;
