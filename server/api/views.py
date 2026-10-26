@@ -1,7 +1,10 @@
 import secrets
+import hashlib
 from datetime import timedelta
 
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Count, Min, Prefetch, Q
@@ -13,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Category, Household, ItemStatus, PantryItem, Product, ProductType, Membership, MembershipRole, \
-    EmailVerification
+    EmailVerification, PasswordReset
 from .serializers import (
     CategorySerializer,
     CustomProductCreateSerializer,
@@ -21,7 +24,7 @@ from .serializers import (
     PantryItemCreateSerializer,
     PantryItemSerializer,
     ProductSerializer, HouseholdSerializer, ResendCodeSerializer, VerifyEmailSerializer,
-    RegisterSerializer,
+    RegisterSerializer, PasswordResetRequestSerializer, PasswordResetVerifySerializer, PasswordResetConfirmSerializer,
 )
 from .services import open_food_facts
 from django.conf import settings
@@ -509,7 +512,7 @@ class HouseholdJoinAPIView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-
+# HOUSEHOLD MEMBERS MANAGEMENT
 class HouseholdManagementMixin:
 
     def get_membership(self, household_id):
@@ -797,3 +800,381 @@ class HouseholdDetailsAPIView(
             },
             status=status.HTTP_200_OK,
         )
+
+# PASSWORD FORGOT
+def generate_password_reset_code():
+    length = settings.PASSWORD_RESET_CODE_LENGTH
+    return f"{secrets.randbelow(10 ** length):0{length}d}"
+
+
+def send_password_reset_email(email, code):
+    # print(f"Sending password reset email to {email} with code {code}") # TODO: only for local tests!
+    send_mail(
+        subject="Password reset - Shared Pantry",
+        message=(
+            f"Your password reset code is: {code}\n\n"
+            f"The code is valid for "
+            f"{settings.PASSWORD_RESET_CODE_EXPIRY_MINUTES} minutes.\n\n"
+            "If you did not request this, ignore this email."
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[email],
+        fail_silently=False,
+    )
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        generic_response = Response(
+            {
+                "detail": (
+                    "If an active account exists for this address, "
+                    "a reset code will be sent."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
+
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"].strip()
+
+        user = User.objects.filter(
+            email__iexact=email,
+            is_active=True,
+        ).first()
+
+        # don't disclose whether an account exists
+        if user is None:
+            return generic_response
+
+        now = timezone.now()
+
+        with transaction.atomic():
+            reset, created = PasswordReset.objects.get_or_create(
+                user=user,
+                defaults={
+                    "code_hash": "",
+                    "expires_at": now,
+                    "last_sent_at": now,
+                    "resend_window_started_at": now,
+                },
+            )
+
+            reset = PasswordReset.objects.select_for_update().get(
+                pk=reset.pk
+            )
+
+            if not created:
+                if reset.is_in_resend_cooldown():
+                    return Response(
+                        {
+                            "detail": (
+                                "Please wait before requesting "
+                                "another reset code."
+                            )
+                        },
+                        status=status.HTTP_429_TOO_MANY_REQUESTS,
+                    )
+
+                if reset.is_resend_window_expired():
+                    reset.resend_count = 0
+                    reset.resend_window_started_at = now
+
+                if reset.has_reached_resend_limit():
+                    return Response(
+                        {
+                            "detail": (
+                                "Reset code sending limit exceeded. "
+                                "Try again later."
+                            )
+                        },
+                        status=status.HTTP_429_TOO_MANY_REQUESTS,
+                    )
+
+                reset.resend_count += 1
+
+            code = generate_password_reset_code()
+
+            reset.set_code(code)
+            reset.expires_at = now + timedelta(
+                minutes=settings.PASSWORD_RESET_CODE_EXPIRY_MINUTES
+            )
+            reset.attempts = 0
+            reset.last_sent_at = now
+
+            # new code invalidates the previous reset token
+            reset.reset_token_hash = ""
+            reset.reset_token_expires_at = None
+
+            reset.save()
+
+        try:
+            send_password_reset_email(user.email, code)
+        except Exception:
+            PasswordReset.objects.filter(
+                pk=reset.pk,
+                code_hash=reset.code_hash,
+            ).update(
+                expires_at=timezone.now(),
+                reset_token_hash="",
+                reset_token_expires_at=None,
+            )
+
+            return Response(
+                {"detail": "Unable to send the email. Try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return generic_response
+
+
+class PasswordResetVerifyView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = PasswordResetVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"].strip()
+        code = serializer.validated_data["code"]
+
+        with transaction.atomic():
+            try:
+                user = User.objects.get(
+                    email__iexact=email,
+                    is_active=True,
+                )
+
+                reset = PasswordReset.objects.select_for_update().get(
+                    user=user
+                )
+            except (
+                    User.DoesNotExist,
+                    PasswordReset.DoesNotExist,
+            ):
+                return Response(
+                    {"detail": "Invalid code or request."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if reset.attempts >= settings.PASSWORD_RESET_MAX_ATTEMPTS:
+                return Response(
+                    {
+                        "detail": (
+                            "Attempt limit exceeded. "
+                            "Request a new code."
+                        )
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
+            if reset.is_expired():
+                return Response(
+                    {
+                        "detail": "Code expired. Request a new code."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if not reset.check_code(code):
+                reset.attempts += 1
+                reset.save(update_fields=["attempts"])
+
+                return Response(
+                    {"detail": "Invalid code."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            reset_token = secrets.token_urlsafe(32)
+
+            reset.set_reset_token(reset_token)
+            reset.reset_token_expires_at = timezone.now() + timedelta(
+                minutes=settings.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES
+            )
+
+            reset.expires_at = timezone.now()
+            reset.save(
+                update_fields=[
+                    "code_hash",
+                    "expires_at",
+                    "reset_token_hash",
+                    "reset_token_expires_at",
+                ]
+            )
+
+        return Response(
+            {
+                "detail": "Code verified successfully.",
+                "reset_token": reset_token,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        reset_token = serializer.validated_data["reset_token"]
+        new_password = serializer.validated_data["new_password"]
+
+        token_hash = hashlib.sha256(
+            reset_token.encode("utf-8")
+        ).hexdigest()
+
+        with transaction.atomic():
+            try:
+                reset = PasswordReset.objects.select_for_update().get(
+                    reset_token_hash=token_hash,
+                )
+            except PasswordReset.DoesNotExist:
+                return Response(
+                    {"detail": "Invalid or expired reset token."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if (
+                    reset.reset_token_expires_at is None
+                    or timezone.now() >= reset.reset_token_expires_at
+            ):
+                return Response(
+                    {"detail": "Invalid or expired reset token."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user = User.objects.select_for_update().get(
+                pk=reset.user_id
+            )
+
+            try:
+                validate_password(new_password, user=user)
+            except DjangoValidationError as exc:
+                return Response(
+                    {"new_password": list(exc.messages)},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            user.set_password(new_password)
+            user.save(update_fields=["password"])
+
+            reset.delete()
+
+        return Response(
+            {"detail": "Password has been reset successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class PasswordResetResendView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = ResendCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"].strip()
+
+        user = User.objects.filter(
+            email__iexact=email,
+            is_active=True,
+        ).first()
+
+        generic_response = Response(
+            {
+                "detail": (
+                    "If an active account exists for this address, "
+                    "a reset code will be sent."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
+
+        if user is None:
+            return generic_response
+
+        now = timezone.now()
+
+        with transaction.atomic():
+            try:
+                reset = PasswordReset.objects.select_for_update().get(
+                    user=user,
+                )
+            except PasswordReset.DoesNotExist:
+                return generic_response
+
+            if reset.is_in_resend_cooldown():
+                return Response(
+                    {
+                        "detail": (
+                            "Please wait before requesting another code."
+                        ),
+                        "retry_after_seconds": (
+                                settings.PASSWORD_RESET_RESEND_COOLDOWN_SECONDS
+                                - int((now - reset.last_sent_at).total_seconds())
+                        ),
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
+            if reset.is_resend_window_expired():
+                reset.resend_count = 0
+                reset.resend_window_started_at = now
+
+            if reset.has_reached_resend_limit():
+                return Response(
+                    {
+                        "detail": (
+                            "Code sending limit exceeded. Try again later."
+                        )
+                    },
+                    status=status.HTTP_429_TOO_MANY_REQUESTS,
+                )
+
+            code = generate_password_reset_code()
+
+            reset.set_code(code)
+            reset.expires_at = now + timedelta(
+                minutes=settings.PASSWORD_RESET_CODE_EXPIRY_MINUTES
+            )
+            reset.attempts = 0
+            reset.last_sent_at = now
+            reset.resend_count += 1
+
+            reset.reset_token_hash = ""
+            reset.reset_token_expires_at = None
+
+            reset.save()
+
+        try:
+            send_password_reset_email(user.email, code)
+        except Exception:
+            PasswordReset.objects.filter(
+                pk=reset.pk,
+                code_hash=reset.code_hash,
+            ).update(
+                expires_at=timezone.now(),
+                reset_token_hash="",
+                reset_token_expires_at=None,
+            )
+
+            return Response(
+                {
+                    "detail": (
+                        "Unable to send the email. Try again later."
+                    )
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        return generic_response

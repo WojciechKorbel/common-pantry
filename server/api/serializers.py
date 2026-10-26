@@ -176,3 +176,37 @@ class HouseholdSerializer(serializers.ModelSerializer):
         ).first()
 
         return membership.role if membership else None
+
+
+# PASSWORD FORGOT
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.RegexField(
+        regex=r"^[0-9]{6}$",
+        error_messages={
+            "invalid": "The code must consist of 6 digits."
+        },
+    )
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    reset_token = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+        min_length=32,
+        max_length=256,
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+        min_length=8,
+    )
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value

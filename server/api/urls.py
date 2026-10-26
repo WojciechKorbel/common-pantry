@@ -2,7 +2,9 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from . import views
-from .views import RegisterView, VerifyEmailView, ResendCodeView
+
+from .views import RegisterView, VerifyEmailView, ResendCodeView, PasswordResetRequestView, PasswordResetVerifyView, \
+    PasswordResetConfirmView, PasswordResetResendView
 from .views import (
     HouseholdLeaveAPIView,
     HouseholdMemberPromoteAPIView,
@@ -20,6 +22,27 @@ urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/verify-email/", VerifyEmailView.as_view(), name="verify-email"),
     path("auth/resend-code/", ResendCodeView.as_view(), name="resend-code"),
+    # Auth - Password forgot
+    path(
+        "auth/password-reset/",
+        PasswordResetRequestView.as_view(),
+        name="password-reset",
+    ),
+    path(
+        "auth/password-reset/verify/",
+        PasswordResetVerifyView.as_view(),
+        name="password-reset-verify",
+    ),
+    path(
+        "auth/password-reset/confirm/",
+        PasswordResetConfirmView.as_view(),
+        name="password-reset-confirm",
+    ),
+    path(
+        "auth/password-reset/resend/",
+        PasswordResetResendView.as_view(),
+        name="password-reset-resend",
+    ),
     # Pantry
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
     path('households/<int:household_id>/pantry/', views.PantryListView.as_view(), name='pantry'),
