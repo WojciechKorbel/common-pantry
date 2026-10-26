@@ -158,7 +158,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/household-settings',
         builder: (context, state) {
           final household = state.extra! as Household;
-          return HouseholdSettingsScreen(household: household);
+
+          return HouseholdSettingsScreen(
+            household: household,
+            controller: Dependencies.householdDetailsController(
+              household.id,
+            ),
+          );
         },
       ),
 

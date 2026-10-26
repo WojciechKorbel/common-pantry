@@ -3,6 +3,14 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from . import views
 from .views import RegisterView, VerifyEmailView, ResendCodeView
+from .views import (
+    HouseholdLeaveAPIView,
+    HouseholdMemberPromoteAPIView,
+    HouseholdMemberDemoteAPIView,
+    HouseholdMemberDeleteAPIView,
+    HouseholdSettingsAPIView,
+    HouseholdDetailsAPIView,
+)
 
 urlpatterns = [
     # Auth
@@ -29,5 +37,36 @@ urlpatterns = [
         'households/join/',
         views.HouseholdJoinAPIView.as_view(),
         name='household_join',
+    ),
+    # Household management
+    path(
+        "households/<int:household_id>/leave/",
+        HouseholdLeaveAPIView.as_view(),
+        name="household-leave",
+    ),
+    path(
+        "households/<int:household_id>/members/<int:user_id>/promote/",
+        HouseholdMemberPromoteAPIView.as_view(),
+        name="household-member-promote",
+    ),
+    path(
+        "households/<int:household_id>/members/<int:user_id>/demote/",
+        HouseholdMemberDemoteAPIView.as_view(),
+        name="household-member-demote",
+    ),
+    path(
+        "households/<int:household_id>/members/<int:user_id>/",
+        HouseholdMemberDeleteAPIView.as_view(),
+        name="household-member-delete",
+    ),
+    path(
+        "households/<int:household_id>/settings/",
+        HouseholdSettingsAPIView.as_view(),
+        name="household-settings",
+    ),
+    path(
+        "households/<int:household_id>/details/",
+        HouseholdDetailsAPIView.as_view(),
+        name="household-details",
     ),
 ]

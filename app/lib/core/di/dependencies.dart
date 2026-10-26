@@ -10,6 +10,7 @@ import 'package:common_pantry/features/households/presentation/controllers/creat
 import 'package:common_pantry/features/households/presentation/controllers/household_controller.dart';
 import 'package:common_pantry/features/households/presentation/controllers/join_household_controller.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
+import 'package:common_pantry/features/pantry/presentation/controllers/household_details_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 
 class Dependencies {
@@ -56,4 +57,13 @@ class Dependencies {
   // pantry feature
   static final pantryRepository = PantryRepository(apiClient);
   static final pantryController = PantryController(pantryRepository, householdController);
+
+  static HouseholdDetailsController householdDetailsController(
+    int householdId,
+  ) {
+    return HouseholdDetailsController(
+      repository: pantryRepository,
+      householdId: householdId,
+    );
+  }
 }
