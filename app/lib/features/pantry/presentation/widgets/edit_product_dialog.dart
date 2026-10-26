@@ -1,5 +1,4 @@
 import 'package:common_pantry/core/di/dependencies.dart';
-import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
@@ -124,7 +123,7 @@ class _EditProductDialogState extends State<EditProductDialog> {
         }
       }
     } catch (_) {
-      // Ignorujemy błędy cichego lookupu
+      // Ignore
     } finally {
       if (mounted) {
         setState(() => _isLookingUp = false);
@@ -290,9 +289,9 @@ class _EditProductDialogState extends State<EditProductDialog> {
                     requestFocusOnTap: false,
                     menuHeight: 300,
                     inputDecorationTheme: theme.inputDecorationTheme,
-                    menuStyle: const MenuStyle(
-                      backgroundColor: WidgetStatePropertyAll(AppColors.surface),
-                      surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+                    menuStyle: MenuStyle(
+                      backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+                      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
                     ),
                     initialSelection: _selectedCategory,
                     onSelected: (value) => setState(() {

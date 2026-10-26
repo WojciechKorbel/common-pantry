@@ -1,5 +1,6 @@
 import 'package:common_pantry/core/network/api_client.dart';
 import 'package:common_pantry/core/storage/token_storage.dart';
+import 'package:common_pantry/core/theme/theme_controller.dart';
 import 'package:common_pantry/features/auth/data/repositories/auth_repository.dart';
 import 'package:common_pantry/features/auth/presentation/controllers/forgot_password_controller.dart';
 import 'package:common_pantry/features/auth/presentation/controllers/login_controller.dart';
@@ -22,6 +23,14 @@ class Dependencies {
   static final TokenStorage tokenStorage = TokenStorage();
 
   static final ApiClient apiClient = ApiClient(tokenStorage);
+
+  // theme
+  static late final ThemeController themeController;
+
+  static Future<void> initAsync() async {
+    themeController = ThemeController();
+    await themeController.load();
+  }
 
   // auth
   static final AuthRepository authRepository = AuthRepository(

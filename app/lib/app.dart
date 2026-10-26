@@ -1,3 +1,4 @@
+import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/core/router/app_router.dart';
 import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -8,10 +9,17 @@ class App extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp.router(
-      title: 'Shared Pantry',
-      theme: AppTheme.light,
-      routerConfig: ref.watch(routerProvider),
+    return ListenableBuilder(
+      listenable: Dependencies.themeController,
+      builder: (context, _) {
+        return MaterialApp.router(
+          title: 'Shared Pantry',
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: Dependencies.themeController.themeMode,
+          routerConfig: ref.watch(routerProvider),
+        );
+      },
     );
   }
 }
