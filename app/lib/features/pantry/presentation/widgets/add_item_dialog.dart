@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
@@ -27,10 +29,12 @@ Future<void> showAddItemDialog(BuildContext context, Household household) async 
 
     if (barcode == null || barcode.trim().isEmpty || !context.mounted) return;
 
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      ),
     );
 
     Product? product;
