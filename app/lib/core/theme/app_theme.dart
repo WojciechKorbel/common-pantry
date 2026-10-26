@@ -3,29 +3,52 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Brand
+  // Brand - Light
   static const Color primary = Color(0xFF2E7D5B);
   static const Color primaryLight = Color(0xFFD7F0E3);
 
-  // Backgrounds
+  // Backgrounds - Light
   static const Color background = Color(0xFFF7FAF8);
   static const Color surface = Color(0xFFFFFFFF);
 
-  // Text
+  // Text - Light
   static const Color text = Color(0xFF1B2420);
   static const Color textSecondary = Color(0xFF5F6B66);
 
-  // Borders and separators
+  // Borders - Light
   static const Color border = Color(0xFFDDE5E0);
 
-  // Additional semantic colors
+  // Semantic
   static const Color error = Color(0xFFBA1A1A);
 
-  // Expiry chips colors
-  static const expiredContainer = Color(0xFFF9EDEC);
-  static const soon = Color(0xFF8A5100);
-  static const soonContainer = Color(0xFFFBF2DF);
-  static const freshContainer = Color(0xFFEEF2F1);
+  // Expiry chips - Light
+  static const Color expiredContainer = Color(0xFFF9EDEC);
+  static const Color soon = Color(0xFF8A5100);
+  static const Color soonContainer = Color(0xFFFBF2DF);
+  static const Color freshContainer = Color(0xFFEEF2F1);
+
+  // Dark Mode Palette
+  static const Color primaryDark = Color(0xFF2E7D5B);
+  static const Color primaryDarkContainer = Color(0xFF1B4E38);
+
+  static const Color backgroundDark = Color(0xFF121413);
+  static const Color surfaceDark = Color(0xFF1A1D1C);
+  static const Color surfaceContainerDark = Color(0xFF232725);
+
+  static const Color textDark = Color(0xFFE1E3DF);
+  static const Color textSecondaryDark = Color(0xFF909A94);
+
+  static const Color borderDark = Color(0xFF2E3531);
+
+  static const Color errorDark = Color(0xFFE53935);
+
+  // Expiry chips - Dark
+  static const Color expiredContainerDark = Color(0xFF381515);
+  static const Color onExpiredDark = Color(0xFFFF5252);
+  static const Color soonDark = Color(0xFFFFB74D);
+  static const Color soonContainerDark = Color(0xFF3B2700);
+  static const Color freshContainerDark = Color(0xFF202724);
+  static const Color onFreshDark = Color(0xFFA2ADA7);
 }
 
 class AppTheme {
@@ -233,6 +256,143 @@ class AppTheme {
       extensions: const [ExpiryColors.light],
     );
   }
+
+  static ThemeData get dark {
+    const colorScheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: AppColors.primaryDark,
+      onPrimary: Colors.white,
+      primaryContainer: AppColors.primaryDarkContainer,
+      onPrimaryContainer: Colors.white,
+      secondary: AppColors.textSecondaryDark,
+      onSecondary: Colors.white,
+      secondaryContainer: AppColors.surfaceContainerDark,
+      onSecondaryContainer: AppColors.textDark,
+      tertiary: AppColors.primaryDark,
+      onTertiary: Colors.white,
+      error: AppColors.errorDark,
+      onError: Colors.white,
+      surface: AppColors.surfaceDark,
+      onSurface: AppColors.textDark,
+      surfaceContainerHighest: AppColors.backgroundDark,
+      onSurfaceVariant: AppColors.textSecondaryDark,
+      outline: AppColors.borderDark,
+      outlineVariant: AppColors.borderDark,
+      shadow: Colors.black,
+      scrim: Colors.black,
+      inverseSurface: AppColors.textDark,
+      onInverseSurface: AppColors.surfaceDark,
+      inversePrimary: AppColors.primaryLight,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: AppColors.backgroundDark,
+      canvasColor: AppColors.backgroundDark,
+      dividerColor: AppColors.borderDark,
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: AppColors.textDark),
+        bodyMedium: TextStyle(color: AppColors.textDark),
+        bodySmall: TextStyle(color: AppColors.textSecondaryDark),
+        titleLarge: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold),
+        titleMedium: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600),
+        titleSmall: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w600),
+        headlineMedium: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold),
+        headlineSmall: TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold),
+        labelLarge: TextStyle(fontWeight: FontWeight.w600),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: AppColors.backgroundDark,
+        foregroundColor: AppColors.textDark,
+        elevation: 0,
+        centerTitle: false,
+        surfaceTintColor: Colors.transparent,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primaryDark,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: AppColors.borderDark,
+          disabledForegroundColor: AppColors.textSecondaryDark,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primaryDark,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.surfaceDark,
+        hintStyle: const TextStyle(color: AppColors.textSecondaryDark),
+        labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
+        prefixIconColor: AppColors.textSecondaryDark,
+        suffixIconColor: AppColors.textSecondaryDark,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderDark),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderDark),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primaryDark, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.errorDark),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.errorDark, width: 2),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: AppColors.surfaceDark,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.borderDark),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.borderDark,
+        thickness: 1,
+        space: 1,
+      ),
+      iconTheme: const IconThemeData(color: AppColors.textSecondaryDark),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.surfaceDark,
+        selectedColor: AppColors.primaryDarkContainer,
+        disabledColor: AppColors.backgroundDark,
+        labelStyle: const TextStyle(color: AppColors.textDark),
+        secondaryLabelStyle: const TextStyle(color: AppColors.primaryDark),
+        side: const BorderSide(color: AppColors.borderDark),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+      navigationBarTheme: const NavigationBarThemeData(
+        backgroundColor: AppColors.surfaceDark,
+        indicatorColor: AppColors.primaryDarkContainer,
+        elevation: 0,
+        labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12)),
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primaryDark,
+        foregroundColor: Colors.white,
+      ),
+      extensions: const [ExpiryColors.dark],
+    );
+  }
 }
 
 /// Colours of expiry chips
@@ -256,7 +416,15 @@ class ExpiryColors extends ThemeExtension<ExpiryColors> {
     onFresh: AppColors.textSecondary,
   );
 
-  /// Backgrounds.
+  static const dark = ExpiryColors(
+    expired: AppColors.expiredContainerDark,
+    onExpired: AppColors.onExpiredDark,
+    soon: AppColors.soonContainerDark,
+    onSoon: AppColors.soonDark,
+    fresh: AppColors.freshContainerDark,
+    onFresh: AppColors.onFreshDark,
+  );
+
   final Color expired;
   final Color soon;
   final Color fresh;

@@ -1,4 +1,3 @@
-import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/homemade_item_form.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/purchased_item_form.dart';
@@ -61,6 +60,8 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -93,10 +94,10 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
                     expandedInsets: EdgeInsets.zero,
                     label: const Text('Source'),
                     requestFocusOnTap: false,
-                    inputDecorationTheme: Theme.of(context).inputDecorationTheme,
-                    menuStyle: const MenuStyle(
-                      backgroundColor: WidgetStatePropertyAll(AppColors.surface),
-                      surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+                    inputDecorationTheme: theme.inputDecorationTheme,
+                    menuStyle: MenuStyle(
+                      backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+                      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
                     ),
                     onSelected: (value) => setState(() {
                       _source = value;

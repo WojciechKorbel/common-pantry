@@ -1,5 +1,4 @@
 import 'package:common_pantry/core/di/dependencies.dart';
-import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
@@ -115,7 +114,6 @@ class _EditItemDialogState extends State<EditItemDialog> {
       );
 
       if (results.isNotEmpty && mounted) {
-        // Szukamy dopasowania nazwy
         final match = results.firstWhere(
           (p) => p.name.trim().toLowerCase() == query.toLowerCase(),
           orElse: () => results.first,
@@ -131,7 +129,6 @@ class _EditItemDialogState extends State<EditItemDialog> {
           }
         }
 
-        // Jeśli produkt jest kupny i nie ma wpisanej marki, a dopasowany produkt ją ma
         if (_isPurchased && _brandText.text.trim().isEmpty && match.brand != null) {
           setState(() {
             _brandText.text = match.brand!;
@@ -139,7 +136,7 @@ class _EditItemDialogState extends State<EditItemDialog> {
         }
       }
     } catch (_) {
-      // Cichy fallback - nie przerywamy pracy użytkownikowi
+      // Fallback
     } finally {
       if (mounted) {
         setState(() => _isLookingUp = false);
@@ -406,9 +403,9 @@ class _EditItemDialogState extends State<EditItemDialog> {
                     requestFocusOnTap: false,
                     menuHeight: 300,
                     inputDecorationTheme: theme.inputDecorationTheme,
-                    menuStyle: const MenuStyle(
-                      backgroundColor: WidgetStatePropertyAll(AppColors.surface),
-                      surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+                    menuStyle: MenuStyle(
+                      backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+                      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
                     ),
                     initialSelection: _selectedCategory,
                     onSelected: (value) => setState(() {
