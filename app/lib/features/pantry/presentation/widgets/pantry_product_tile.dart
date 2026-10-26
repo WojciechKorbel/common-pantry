@@ -1,5 +1,6 @@
 import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
+import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:flutter/material.dart';
 
@@ -8,10 +9,12 @@ class PantryProductTile extends StatefulWidget {
     super.key,
     required this.product,
     this.onItemAction,
+    this.onDeleteItem,
   });
 
   final PantryGroup product;
-  final VoidCallback? onItemAction;
+  final ValueChanged<PantryGroupItem>? onItemAction;
+  final Future<bool> Function(PantryGroupItem item)? onDeleteItem;
 
   @override
   State<PantryProductTile> createState() => _PantryProductTileState();
@@ -90,15 +93,36 @@ class _PantryProductTileState extends State<PantryProductTile> {
         children: [
           const Divider(),
           ...items.map(
-            (item) => _buildItemRow(
-              context,
-              item.expiryDate,
-              item.addedBy?.username,
-              widget.onItemAction,
-            ),
+            (item) => _buildDismissibleItemRow(context, item),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDismissibleItemRow(BuildContext context, PantryGroupItem item) {
+    final row = _buildItemRow(
+      context,
+      item.expiryDate,
+      item.addedBy?.username,
+      widget.onItemAction != null ? () => widget.onItemAction!(item) : null,
+    );
+
+    if (widget.onDeleteItem == null) {
+      return row;
+    }
+
+    return Dismissible(
+      key: ValueKey('pantry_item_${item.id}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        color: Colors.red,
+        child: const Icon(Icons.delete_outline, color: Colors.white),
+      ),
+      confirmDismiss: (_) => widget.onDeleteItem!(item),
+      child: row,
     );
   }
 
@@ -148,8 +172,6 @@ class _PantryProductTileState extends State<PantryProductTile> {
       padding: const EdgeInsets.only(
         left: 12,
         right: 2,
-        top: 0,
-        bottom: 0,
       ),
       child: Row(
         children: [
@@ -210,11 +232,11 @@ class _PantryProductTileState extends State<PantryProductTile> {
           const Spacer(),
           IconButton(
             onPressed: onItemAction,
-            icon: const Icon(Icons.drag_handle),
+            icon: const Icon(Icons.edit_outlined),
             color: AppColors.textSecondary,
-            iconSize: 22,
+            iconSize: 20,
             visualDensity: VisualDensity.compact,
-            tooltip: 'Item actions',
+            tooltip: 'Edit item',
           ),
         ],
       ),

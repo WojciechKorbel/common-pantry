@@ -54,6 +54,11 @@ urlpatterns = [
         views.ProductByBarcodeView.as_view(),
         name='product-by-barcode',
     ),
+    path(
+        'households/<int:household_id>/items/<int:pk>/',
+        views.PantryItemDetailView.as_view(),
+        name='pantry-item-detail'
+    ),
     # Households
     path('households/', views.HouseholdListCreateAPIView.as_view(), name='household_list_create'),
     path(

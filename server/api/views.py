@@ -512,6 +512,16 @@ class HouseholdJoinAPIView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
+
+class PantryItemDetailView(HouseholdMixin, generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = PantryItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        household = self.get_household()
+        return PantryItem.objects.filter(household=household)
+
+      
 # HOUSEHOLD MEMBERS MANAGEMENT
 class HouseholdManagementMixin:
 

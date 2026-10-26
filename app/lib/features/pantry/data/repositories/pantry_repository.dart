@@ -74,7 +74,7 @@ class PantryRepository {
       data: {
         'name': name,
         if (brand != null && brand.isNotEmpty) 'brand': brand,
-        ?(categoryId != null ? 'category' : null): categoryId,
+        'category': ?categoryId,
       },
     );
     final data = response.data;
@@ -96,6 +96,45 @@ class PantryRepository {
         'product': productId,
         'expiry_date': _isoDate(expiryDate),
         'count': count,
+      },
+    );
+  }
+
+  Future<void> updateItem(
+    int householdId, {
+    required int itemId,
+    required DateTime expiryDate,
+  }) async {
+    await api.dio.patch<Map<String, dynamic>>(
+      '/api/households/$householdId/items/$itemId/',
+      data: {
+        'expiry_date': _isoDate(expiryDate),
+      },
+    );
+  }
+
+  Future<void> deleteItem(
+    int householdId, {
+    required int itemId,
+  }) async {
+    await api.dio.delete<void>(
+      '/api/households/$householdId/items/$itemId/',
+    );
+  }
+
+  Future<void> updateProduct(
+    int householdId, {
+    required int productId,
+    required String name,
+    String? brand,
+    int? categoryId,
+  }) async {
+    await api.dio.patch<void>(
+      '/api/households/$householdId/products/$productId/',
+      data: {
+        'name': name,
+        'brand': ?brand,
+        'category': ?categoryId,
       },
     );
   }

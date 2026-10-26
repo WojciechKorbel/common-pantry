@@ -94,6 +94,66 @@ class PantryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> updateItem({
+    required int itemId,
+    required DateTime expiryDate,
+  }) async {
+    _errorMessage = null;
+    try {
+      await _repository.updateItem(
+        _households.current.id,
+        itemId: itemId,
+        expiryDate: expiryDate,
+      );
+      await load();
+      return true;
+    } on DioException catch (e) {
+      _errorMessage = _messageFor(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteItem(int itemId) async {
+    _errorMessage = null;
+    try {
+      await _repository.deleteItem(
+        _households.current.id,
+        itemId: itemId,
+      );
+      await load();
+      return true;
+    } on DioException catch (e) {
+      _errorMessage = _messageFor(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateProduct({
+    required int productId,
+    required String name,
+    String? brand,
+    int? categoryId,
+  }) async {
+    _errorMessage = null;
+    try {
+      await _repository.updateProduct(
+        _households.current.id,
+        productId: productId,
+        name: name,
+        brand: brand,
+        categoryId: categoryId,
+      );
+      await load();
+      return true;
+    } on DioException catch (e) {
+      _errorMessage = _messageFor(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
   void setQuery(String query) {
     _query = query;
     notifyListeners();
@@ -132,7 +192,7 @@ class PantryController extends ChangeNotifier {
     DioExceptionType.sendTimeout => 'Cannot reach the server. Check your connection and try again.',
     _ => switch (e.response?.statusCode) {
       401 => 'Your session has expired. Log in again.',
-      404 => 'Household not found.',
+      404 => 'Item or household not found.',
       _ => 'Something went wrong. Try again.',
     },
   };
