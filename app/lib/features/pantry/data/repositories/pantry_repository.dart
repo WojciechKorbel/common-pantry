@@ -3,6 +3,7 @@ import 'package:common_pantry/features/pantry/data/models/household_details.dart
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:dio/dio.dart';
 
 class PantryRepository {
   PantryRepository(this.api);
@@ -60,6 +61,24 @@ class PantryRepository {
           },
         )
         .toList();
+  }
+
+  /// Finds a product by barcode in the household or via Open Food Facts.
+  /// Returns null when product is not found (404).
+  Future<Product?> getProductByBarcode(int householdId, String barcode) async {
+    try {
+      final response = await api.dio.get<Map<String, dynamic>>(
+        '/api/households/$householdId/products/barcode/$barcode/',
+      );
+      final data = response.data;
+      if (data == null) return null;
+      return Product.fromJson(data);
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    }
   }
 
   /// Returns the existing product when the household already has one with this name and brand (200).

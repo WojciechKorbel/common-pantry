@@ -85,6 +85,19 @@ class AddPurchasedController extends ChangeNotifier {
       _rows.isNotEmpty &&
       _rows.every((row) => row.date != null);
 
+  /// Inilializes the controller with the scanned product.
+  void initializeWithScannedProduct(Product product) {
+    _product = product;
+    _name = product.name;
+    _brand = product.brand ?? '';
+    _category = product.category;
+    _brandLocked = true;
+    _lookupDone = true;
+    _isLookingUp = false;
+    _candidates = [product];
+    notifyListeners();
+  }
+
   void setName(String value) {
     if (value == _name) {
       return;
@@ -272,10 +285,12 @@ class AddPurchasedController extends ChangeNotifier {
     if (_isSubmitting) {
       return false;
     }
-    await lookup();
-    if (_lookupDone) {
-      _resolve();
-      notifyListeners();
+    if (_product == null) {
+      await lookup();
+      if (_lookupDone) {
+        _resolve();
+        notifyListeners();
+      }
     }
     if (!canSubmit) {
       return false;
