@@ -1,7 +1,8 @@
-import secrets
 import hashlib
+import secrets
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -11,23 +12,39 @@ from django.db.models import Count, Min, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Category, Household, ItemStatus, PantryItem, Product, ProductType, Membership, MembershipRole, \
-    EmailVerification, PasswordReset
+from .models import (
+    Category,
+    EmailVerification,
+    Household,
+    ItemStatus,
+    Membership,
+    MembershipRole,
+    PantryItem,
+    PasswordReset,
+    Product,
+    ProductType,
+)
 from .serializers import (
     CategorySerializer,
     CustomProductCreateSerializer,
+    HouseholdSerializer,
     PantryGroupSerializer,
     PantryItemCreateSerializer,
     PantryItemSerializer,
-    ProductSerializer, HouseholdSerializer, ResendCodeSerializer, VerifyEmailSerializer,
-    RegisterSerializer, PasswordResetRequestSerializer, PasswordResetVerifySerializer, PasswordResetConfirmSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetVerifySerializer,
+    ProductSerializer,
+    ProductUpdateSerializer,
+    RegisterSerializer,
+    ResendCodeSerializer,
+    VerifyEmailSerializer,
 )
 from .services import open_food_facts
-from django.conf import settings
 
 
 def generate_verification_code():
@@ -40,7 +57,7 @@ def send_verification_email(email, code):
         subject="Confirm your e-mail address - Shared Pantry",
         message=(
             f"Your verification code is: {code}\n\n"
-            f"The code is valid fo "
+            f"The code is valid for "
             f"{settings.EMAIL_VERIFICATION_CODE_EXPIRY_MINUTES} minutes."
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
@@ -284,12 +301,14 @@ class HouseholdMixin:
 class CategoryListView(generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
 
 
 class PantryListView(HouseholdMixin, generics.ListAPIView):
     """Active items of a household, grouped by product, soonest expiry first."""
 
     serializer_class = PantryGroupSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         household = self.get_household()
@@ -315,6 +334,8 @@ class PantryListView(HouseholdMixin, generics.ListAPIView):
 class PantryItemCreateView(HouseholdMixin, APIView):
     """Adds `count` packages of one product with the same expiry date."""
 
+    permission_classes = [IsAuthenticated]
+
     def post(self, request, household_id):
         household = self.get_household()
         serializer = PantryItemCreateSerializer(data=request.data, context={'household': household})
@@ -325,6 +346,8 @@ class PantryItemCreateView(HouseholdMixin, APIView):
 
 class CustomProductCreateView(HouseholdMixin, APIView):
     """Creates a household product without a barcode (or returns the existing one with that name)."""
+
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, household_id):
         household = self.get_household()
@@ -361,9 +384,32 @@ class CustomProductCreateView(HouseholdMixin, APIView):
         return Response(ProductSerializer(products, many=True).data)
 
 
+class ProductDetailView(HouseholdMixin, APIView):
+    """Retrieves or updates a product."""
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, household_id, pk):
+        household = self.get_household()
+        product = get_object_or_404(
+            Product.objects.filter(
+                Q(product_type=ProductType.CUSTOM, household=household)
+                | Q(pantry_items__household=household)
+            ).distinct(),
+            pk=pk,
+        )
+
+        serializer = ProductUpdateSerializer(product, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        updated_product = serializer.save()
+        return Response(ProductSerializer(updated_product).data, status=status.HTTP_200_OK)
+
+
 class ProductByBarcodeView(HouseholdMixin, APIView):
     """Finds a product by barcode: this household's own products, then the shared database,
     then Open Food Facts (the result is saved for next time)."""
+
+    permission_classes = [IsAuthenticated]
 
     def get(self, request, household_id, barcode):
         household = self.get_household()
@@ -405,10 +451,6 @@ class HouseholdListCreateAPIView(generics.ListCreateAPIView):
         return Household.objects.filter(
             memberships__user=self.request.user
         ).distinct().order_by('name')
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        return context
 
     def generate_invite_code(self):
         length = 6

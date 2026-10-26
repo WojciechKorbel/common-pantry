@@ -1,16 +1,28 @@
 import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/homemade_item_form.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/purchased_item_form.dart';
 import 'package:flutter/material.dart';
 
 enum ItemSource { homemade, purchased }
 
-Future<void> showAddManuallyDialog(BuildContext context, Household household) {
+Future<void> showAddManuallyDialog(
+  BuildContext context,
+  Household household, {
+  ItemSource? initialSource,
+  Product? initialProduct,
+  String? initialBarcode,
+}) {
   return showDialog<void>(
     context: context,
     useSafeArea: false,
     barrierDismissible: false,
-    builder: (_) => AddManuallyDialog(household: household),
+    builder: (_) => AddManuallyDialog(
+      household: household,
+      initialSource: initialSource,
+      initialProduct: initialProduct,
+      initialBarcode: initialBarcode,
+    ),
   );
 }
 
@@ -18,18 +30,35 @@ class AddManuallyDialog extends StatefulWidget {
   const AddManuallyDialog({
     super.key,
     required this.household,
+    this.initialSource,
+    this.initialProduct,
+    this.initialBarcode,
   });
 
   final Household household;
+  final ItemSource? initialSource;
+  final Product? initialProduct;
+  final String? initialBarcode;
 
   @override
   State<AddManuallyDialog> createState() => _AddManuallyDialogState();
 }
 
 class _AddManuallyDialogState extends State<AddManuallyDialog> {
-  ItemSource? _source;
-
+  late ItemSource? _source;
   bool _hasData = false;
+
+  bool get _isScanned => widget.initialProduct != null || widget.initialBarcode != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _source = widget.initialSource;
+    if (_isScanned) {
+      _source = ItemSource.purchased;
+      _hasData = true;
+    }
+  }
 
   Future<void> _attemptClose() async {
     if (!_hasData) {
@@ -78,9 +107,9 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
               tooltip: 'Close',
               onPressed: _attemptClose,
             ),
-            title: const Text(
-              'Add manually',
-              style: TextStyle(fontWeight: FontWeight.w400, fontSize: 20),
+            title: Text(
+              _isScanned ? 'Add scanned item' : 'Add manually',
+              style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 20),
             ),
           ),
           body: SafeArea(
@@ -91,9 +120,13 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: DropdownMenu<ItemSource>(
+                    enabled: !_isScanned,
+                    initialSelection: _source,
                     expandedInsets: EdgeInsets.zero,
                     label: const Text('Source'),
                     requestFocusOnTap: false,
+                    leadingIcon: _isScanned ? const Icon(Icons.lock_outline) : null,
+                    helperText: _isScanned ? 'Fixed to purchased for scanned items' : null,
                     inputDecorationTheme: theme.inputDecorationTheme,
                     menuStyle: MenuStyle(
                       backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
@@ -128,6 +161,8 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
                     ItemSource.purchased => PurchasedItemForm(
                       key: const ValueKey(ItemSource.purchased),
                       household: widget.household,
+                      initialProduct: widget.initialProduct,
+                      initialBarcode: widget.initialBarcode,
                       onHasDataChanged: (value) => _hasData = value,
                     ),
                     null => const SizedBox.shrink(),

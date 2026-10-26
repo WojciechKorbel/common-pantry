@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/add_purchased_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
@@ -13,11 +14,14 @@ class PurchasedItemForm extends StatefulWidget {
     super.key,
     required this.household,
     required this.onHasDataChanged,
+    this.initialProduct,
+    this.initialBarcode,
   });
 
   final Household household;
-
   final ValueChanged<bool> onHasDataChanged;
+  final Product? initialProduct;
+  final String? initialBarcode;
 
   @override
   State<PurchasedItemForm> createState() => _PurchasedItemFormState();
@@ -38,8 +42,19 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
       Dependencies.pantryRepository,
       householdId: widget.household.id,
     )..addListener(_syncTexts);
+
     _nameFocus.addListener(_onNameFocusChanged);
     _brandFocus.addListener(_onBrandFocusChanged);
+
+    if (widget.initialProduct != null) {
+      final p = widget.initialProduct!;
+      _controller.initializeWithScannedProduct(p);
+      _nameText.text = p.name;
+      _brandText.text = p.brand ?? '';
+      _categoryText.text = p.category?.name ?? '';
+    } else if (widget.initialBarcode != null) {
+      _controller.loadCategories();
+    }
   }
 
   @override
@@ -58,18 +73,21 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
   }
 
   void _onNameFocusChanged() {
-    if (!_nameFocus.hasFocus) {
+    if (!_nameFocus.hasFocus && widget.initialProduct == null) {
       _controller.lookup();
     }
   }
 
   void _onBrandFocusChanged() {
-    if (!_brandFocus.hasFocus) {
+    if (!_brandFocus.hasFocus && widget.initialProduct == null) {
       _controller.resolveBrand();
     }
   }
 
   void _syncTexts() {
+    if (_nameText.text != _controller.name) {
+      _nameText.text = _controller.name;
+    }
     if (_brandText.text != _controller.brand) {
       _brandText.text = _controller.brand;
     }
@@ -137,22 +155,26 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
               TextField(
                 controller: _nameText,
                 focusNode: _nameFocus,
+                enabled: !c.isNameLocked && !c.isSubmitting,
                 onChanged: c.setName,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.next,
                 onTapOutside: (_) => _nameFocus.unfocus(),
                 decoration: InputDecoration(
                   labelText: 'Name',
-                  suffixIcon: c.isLookingUp
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : null,
+                  helperText: c.isNameLocked ? 'Taken from scanned product' : null,
+                  suffixIcon: c.isNameLocked
+                      ? const Icon(Icons.lock_outline)
+                      : (c.isLookingUp
+                            ? const Padding(
+                                padding: EdgeInsets.all(14),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : null),
                 ),
               ),
               const SizedBox(height: 16),
@@ -166,7 +188,11 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
                 onTapOutside: (_) => _brandFocus.unfocus(),
                 decoration: InputDecoration(
                   labelText: 'Brand',
-                  helperText: c.isBrandLocked ? 'Taken from an existing product' : null,
+                  helperText: c.isBrandLocked
+                      ? (c.isNameLocked
+                            ? 'Taken from scanned product'
+                            : 'Taken from an existing product')
+                      : null,
                   suffixIcon: c.isBrandLocked ? const Icon(Icons.lock_outline) : null,
                 ),
               ),

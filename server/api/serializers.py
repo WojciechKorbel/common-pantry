@@ -1,8 +1,8 @@
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
-from .models import Category, PantryItem, Product, ProductType, Household, Membership
-from django.contrib.auth.password_validation import validate_password
+from .models import Category, Household, Membership, PantryItem, Product, ProductType
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -107,6 +107,16 @@ class CustomProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['name', 'brand', 'package_size', 'category', 'barcode']
+
+
+class ProductUpdateSerializer(serializers.ModelSerializer):
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), required=False, allow_null=True
+    )
+
+    class Meta:
+        model = Product
+        fields = ['name', 'brand', 'package_size', 'category']
 
 
 class PantryGroupItemSerializer(serializers.ModelSerializer):

@@ -2,16 +2,22 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from . import views
-
-from .views import RegisterView, VerifyEmailView, ResendCodeView, PasswordResetRequestView, PasswordResetVerifyView, \
-    PasswordResetConfirmView, PasswordResetResendView
 from .views import (
-    HouseholdLeaveAPIView,
-    HouseholdMemberPromoteAPIView,
-    HouseholdMemberDemoteAPIView,
-    HouseholdMemberDeleteAPIView,
-    HouseholdSettingsAPIView,
     HouseholdDetailsAPIView,
+    HouseholdJoinAPIView,
+    HouseholdLeaveAPIView,
+    HouseholdListCreateAPIView,
+    HouseholdMemberDeleteAPIView,
+    HouseholdMemberDemoteAPIView,
+    HouseholdMemberPromoteAPIView,
+    HouseholdSettingsAPIView,
+    PasswordResetConfirmView,
+    PasswordResetRequestView,
+    PasswordResetResendView,
+    PasswordResetVerifyView,
+    RegisterView,
+    ResendCodeView,
+    VerifyEmailView,
 )
 
 urlpatterns = [
@@ -47,8 +53,16 @@ urlpatterns = [
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
     path('households/<int:household_id>/pantry/', views.PantryListView.as_view(), name='pantry'),
     path('households/<int:household_id>/items/', views.PantryItemCreateView.as_view(), name='pantry-item-create'),
-    path('households/<int:household_id>/products/', views.CustomProductCreateView.as_view(),
-         name='custom-product-create'),
+    path(
+        'households/<int:household_id>/products/',
+        views.CustomProductCreateView.as_view(),
+        name='custom-product-create',
+    ),
+    path(
+        'households/<int:household_id>/products/<int:pk>/',
+        views.ProductDetailView.as_view(),
+        name='product-detail',
+    ),
     path(
         'households/<int:household_id>/products/barcode/<str:barcode>/',
         views.ProductByBarcodeView.as_view(),
@@ -57,7 +71,7 @@ urlpatterns = [
     path(
         'households/<int:household_id>/items/<int:pk>/',
         views.PantryItemDetailView.as_view(),
-        name='pantry-item-detail'
+        name='pantry-item-detail',
     ),
     # Households
     path('households/', views.HouseholdListCreateAPIView.as_view(), name='household_list_create'),
