@@ -1,4 +1,3 @@
-import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
@@ -173,64 +172,6 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
     context.go('/households');
   }
 
-  Widget _buildThemeSelector(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Appearance',
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Choose app theme mode',
-              style: theme.textTheme.bodySmall,
-            ),
-            const SizedBox(height: 16),
-            ListenableBuilder(
-              listenable: Dependencies.themeController,
-              builder: (context, _) {
-                final currentMode = Dependencies.themeController.themeMode;
-
-                return SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<ThemeMode>(
-                    segments: const [
-                      ButtonSegment(
-                        value: ThemeMode.system,
-                        icon: Icon(Icons.brightness_auto_outlined),
-                        label: Text('System'),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.light,
-                        icon: Icon(Icons.light_mode_outlined),
-                        label: Text('Light'),
-                      ),
-                      ButtonSegment(
-                        value: ThemeMode.dark,
-                        icon: Icon(Icons.dark_mode_outlined),
-                        label: Text('Dark'),
-                      ),
-                    ],
-                    selected: {currentMode},
-                    onSelectionChanged: (selected) {
-                      Dependencies.themeController.setThemeMode(selected.first);
-                    },
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -316,8 +257,6 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
                         isUpdating: controller.isUpdating,
                         onMemberAction: _handleMemberAction,
                       ),
-                      const SizedBox(height: 24),
-                      _buildThemeSelector(context),
                       const SizedBox(height: 24),
                       LeaveHouseholdButton(
                         isUpdating: controller.isUpdating,
