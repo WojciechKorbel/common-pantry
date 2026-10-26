@@ -1,4 +1,5 @@
 import 'package:common_pantry/core/network/api_client.dart';
+import 'package:common_pantry/features/pantry/data/models/household_details.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
@@ -142,4 +143,54 @@ class PantryRepository {
       '${date.year.toString().padLeft(4, '0')}-'
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
+
+  /// Household details
+  Future<HouseholdDetails> getHouseholdDetails(int householdId) async {
+    final response = await api.dio.get<dynamic>(
+      '/api/households/$householdId/details/',
+    );
+
+    return HouseholdDetails.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+  }
+
+  /// Member -> Owner
+  Future<void> promoteMember(int householdId, int userId) async {
+    await api.dio.post<void>(
+      '/api/households/$householdId/members/$userId/promote/',
+    );
+  }
+
+  /// Owner -> Member
+  Future<void> demoteMember(int householdId, int userId) async {
+    await api.dio.post<void>(
+      '/api/households/$householdId/members/$userId/demote/',
+    );
+  }
+
+  /// Remove member from household.
+  Future<void> removeMember(int householdId, int userId) async {
+    await api.dio.delete<void>(
+      '/api/households/$householdId/members/$userId/',
+    );
+  }
+
+  /// Leave a household.
+  Future<void> leaveHousehold(int householdId) async {
+    await api.dio.post<void>(
+      '/api/households/$householdId/leave/',
+    );
+  }
+
+  /// Update household name (owner only).
+  Future<void> updateHouseholdName(
+    int householdId, {
+    required String name,
+  }) async {
+    await api.dio.patch<void>(
+      '/api/households/$householdId/settings/',
+      data: {'name': name},
+    );
+  }
 }

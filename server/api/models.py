@@ -6,6 +6,95 @@ from django.db.models import Q
 from django.conf import settings
 from django.utils import timezone
 
+import hashlib
+import hmac
+
+
+class PasswordReset(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="password_reset",
+    )
+
+    code_hash = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+
+    attempts = models.PositiveSmallIntegerField(default=0)
+    last_sent_at = models.DateTimeField(default=timezone.now)
+
+    resend_count = models.PositiveSmallIntegerField(default=0)
+    resend_window_started_at = models.DateTimeField(
+        default=timezone.now,
+    )
+
+    # Hash of the token issued after successful code verification
+    reset_token_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        default="",
+    )
+    reset_token_expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def set_code(self, code: str) -> None:
+        self.code_hash = hashlib.sha256(
+            code.encode("utf-8")
+        ).hexdigest()
+
+    def check_code(self, code: str) -> bool:
+        supplied_hash = hashlib.sha256(
+            code.encode("utf-8")
+        ).hexdigest()
+
+        return hmac.compare_digest(
+            self.code_hash,
+            supplied_hash,
+        )
+
+    def set_reset_token(self, token: str) -> None:
+        self.reset_token_hash = hashlib.sha256(
+            token.encode("utf-8")
+        ).hexdigest()
+
+    def check_reset_token(self, token: str) -> bool:
+        supplied_hash = hashlib.sha256(
+            token.encode("utf-8")
+        ).hexdigest()
+
+        return bool(self.reset_token_hash) and hmac.compare_digest(
+            self.reset_token_hash,
+            supplied_hash,
+        )
+
+    def is_expired(self) -> bool:
+        return timezone.now() >= self.expires_at
+
+    def is_in_resend_cooldown(self) -> bool:
+        cooldown = timedelta(
+            seconds=settings.PASSWORD_RESET_RESEND_COOLDOWN_SECONDS
+        )
+        return timezone.now() - self.last_sent_at < cooldown
+
+    def is_resend_window_expired(self) -> bool:
+        window = timedelta(
+            minutes=settings.PASSWORD_RESET_RESEND_WINDOW_MINUTES
+        )
+        return timezone.now() - self.resend_window_started_at >= window
+
+    def has_reached_resend_limit(self) -> bool:
+        return (
+                self.resend_count
+                >= settings.PASSWORD_RESET_RESEND_MAX_ATTEMPTS
+        )
+
+    def __str__(self):
+        return f"Password reset for user {self.user_id}"
+
 
 class EmailVerification(models.Model):
     user = models.OneToOneField(
@@ -16,13 +105,13 @@ class EmailVerification(models.Model):
 
     code_hash = models.CharField(max_length=64)
     expires_at = models.DateTimeField()
-    attempts = models.PositiveSmallIntegerField(default=0) # number of failed verification attempts
+    attempts = models.PositiveSmallIntegerField(default=0)  # number of failed verification attempts
     last_sent_at = models.DateTimeField(default=timezone.now)
 
-    resend_count = models.PositiveSmallIntegerField(default=0) # number of resend requests in the current window
+    resend_count = models.PositiveSmallIntegerField(default=0)  # number of resend requests in the current window
     resend_window_started_at = models.DateTimeField(
         default=timezone.now
-    ) # start time of the resend limit window.
+    )  # start time of the resend limit window.
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -40,24 +129,19 @@ class EmailVerification(models.Model):
 
     def has_reached_resend_limit(self) -> bool:
         return (
-            self.resend_count
-            >= settings.EMAIL_VERIFICATION_RESEND_MAX_ATTEMPTS
+                self.resend_count
+                >= settings.EMAIL_VERIFICATION_RESEND_MAX_ATTEMPTS
         )
 
     def is_expired(self) -> bool:
         return timezone.now() >= self.expires_at
 
     def set_code(self, code: str) -> None:
-        import hashlib
-
         self.code_hash = hashlib.sha256(
             code.encode("utf-8")
         ).hexdigest()
 
     def check_code(self, code: str) -> bool:
-        import hashlib
-        import hmac
-
         supplied_hash = hashlib.sha256(
             code.encode("utf-8")
         ).hexdigest()

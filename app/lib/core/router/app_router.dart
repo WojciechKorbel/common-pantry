@@ -1,10 +1,12 @@
 import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/auth/presentation/forgot_password_screen.dart';
 import 'package:common_pantry/features/auth/presentation/login_screen.dart';
+import 'package:common_pantry/features/auth/presentation/reset_password_screen.dart';
 import 'package:common_pantry/features/auth/presentation/sign_up_screen.dart';
 import 'package:common_pantry/features/auth/presentation/verify_account_screen.dart';
 import 'package:common_pantry/features/auth/presentation/verify_email_screen.dart';
 import 'package:common_pantry/features/auth/presentation/verify_email_success_screen.dart';
+import 'package:common_pantry/features/auth/presentation/verify_reset_code_screen.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/presentation/create_household_screen.dart';
 import 'package:common_pantry/features/households/presentation/household_created_screen.dart';
@@ -89,9 +91,48 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
 
+      // FORGOT PASSWORD
       GoRoute(
         path: '/forgot-password',
-        builder: (context, state) => const ForgotPasswordScreen(),
+        builder: (context, state) => ForgotPasswordScreen(
+          controller: Dependencies.forgotPasswordController,
+        ),
+      ),
+
+      GoRoute(
+        path: '/verify-reset-code',
+        builder: (context, state) {
+          final email = state.extra as String?;
+
+          if (email == null || email.trim().isEmpty) {
+            return ForgotPasswordScreen(
+              controller: Dependencies.forgotPasswordController,
+            );
+          }
+
+          return VerifyResetCodeScreen(
+            email: email,
+            controller: Dependencies.verifyResetCodeController,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) {
+          final resetToken = state.extra as String?;
+
+          if (resetToken == null || resetToken.isEmpty) {
+            return ForgotPasswordScreen(
+              controller: Dependencies.forgotPasswordController,
+            );
+          }
+
+          return ResetPasswordScreen(
+            resetToken: resetToken,
+            controller: Dependencies.resetPasswordController,
+          );
+        },
       ),
 
       // HOUSEHOLD
@@ -158,7 +199,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/household-settings',
         builder: (context, state) {
           final household = state.extra! as Household;
-          return HouseholdSettingsScreen(household: household);
+
+          return HouseholdSettingsScreen(
+            household: household,
+            controller: Dependencies.householdDetailsController(
+              household.id,
+            ),
+          );
         },
       ),
 
