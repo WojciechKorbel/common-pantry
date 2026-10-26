@@ -48,11 +48,13 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
   late ItemSource? _source;
   bool _hasData = false;
 
+  bool get _isScanned => widget.initialProduct != null || widget.initialBarcode != null;
+
   @override
   void initState() {
     super.initState();
     _source = widget.initialSource;
-    if (widget.initialProduct != null || widget.initialBarcode != null) {
+    if (_isScanned) {
       _source = ItemSource.purchased;
       _hasData = true;
     }
@@ -106,9 +108,7 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
               onPressed: _attemptClose,
             ),
             title: Text(
-              widget.initialProduct != null || widget.initialBarcode != null
-                  ? 'Add scanned item'
-                  : 'Add manually',
+              _isScanned ? 'Add scanned item' : 'Add manually',
               style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 20),
             ),
           ),
@@ -120,10 +120,13 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
                   child: DropdownMenu<ItemSource>(
+                    enabled: !_isScanned,
                     initialSelection: _source,
                     expandedInsets: EdgeInsets.zero,
                     label: const Text('Source'),
                     requestFocusOnTap: false,
+                    leadingIcon: _isScanned ? const Icon(Icons.lock_outline) : null,
+                    helperText: _isScanned ? 'Fixed to purchased for scanned items' : null,
                     inputDecorationTheme: theme.inputDecorationTheme,
                     menuStyle: MenuStyle(
                       backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),

@@ -85,6 +85,9 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
   }
 
   void _syncTexts() {
+    if (_nameText.text != _controller.name) {
+      _nameText.text = _controller.name;
+    }
     if (_brandText.text != _controller.brand) {
       _brandText.text = _controller.brand;
     }
@@ -152,22 +155,26 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
               TextField(
                 controller: _nameText,
                 focusNode: _nameFocus,
+                enabled: !c.isNameLocked && !c.isSubmitting,
                 onChanged: c.setName,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.next,
                 onTapOutside: (_) => _nameFocus.unfocus(),
                 decoration: InputDecoration(
                   labelText: 'Name',
-                  suffixIcon: c.isLookingUp
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : null,
+                  helperText: c.isNameLocked ? 'Taken from scanned product' : null,
+                  suffixIcon: c.isNameLocked
+                      ? const Icon(Icons.lock_outline)
+                      : (c.isLookingUp
+                            ? const Padding(
+                                padding: EdgeInsets.all(14),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              )
+                            : null),
                 ),
               ),
               const SizedBox(height: 16),
@@ -181,7 +188,11 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
                 onTapOutside: (_) => _brandFocus.unfocus(),
                 decoration: InputDecoration(
                   labelText: 'Brand',
-                  helperText: c.isBrandLocked ? 'Taken from an existing product' : null,
+                  helperText: c.isBrandLocked
+                      ? (c.isNameLocked
+                            ? 'Taken from scanned product'
+                            : 'Taken from an existing product')
+                      : null,
                   suffixIcon: c.isBrandLocked ? const Icon(Icons.lock_outline) : null,
                 ),
               ),

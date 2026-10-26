@@ -26,6 +26,7 @@ class AddPurchasedController extends ChangeNotifier {
   final int householdId;
 
   String _name = '';
+  bool _nameLocked = false;
   String _brand = '';
   bool _brandLocked = false;
 
@@ -57,7 +58,11 @@ class AddPurchasedController extends ChangeNotifier {
       _rows.length > 1 ||
       _rows.any((row) => row.date != null || row.count != minCount);
 
+  String get name => _name;
+
   String get brand => _brand;
+
+  bool get isNameLocked => _nameLocked;
 
   bool get isBrandLocked => _brandLocked;
 
@@ -85,12 +90,13 @@ class AddPurchasedController extends ChangeNotifier {
       _rows.isNotEmpty &&
       _rows.every((row) => row.date != null);
 
-  /// Inilializes the controller with the scanned product.
+  /// Initializes the controller with the scanned product and locks its fields.
   void initializeWithScannedProduct(Product product) {
     _product = product;
     _name = product.name;
     _brand = product.brand ?? '';
     _category = product.category;
+    _nameLocked = true;
     _brandLocked = true;
     _lookupDone = true;
     _isLookingUp = false;
@@ -99,7 +105,7 @@ class AddPurchasedController extends ChangeNotifier {
   }
 
   void setName(String value) {
-    if (value == _name) {
+    if (value == _name || _nameLocked) {
       return;
     }
     _name = value;
@@ -121,7 +127,7 @@ class AddPurchasedController extends ChangeNotifier {
 
   /// Called when the name field loses focus.
   Future<void> lookup() {
-    if (_lookupDone || _name.trim().isEmpty) {
+    if (_lookupDone || _nameLocked || _name.trim().isEmpty) {
       return Future.value();
     }
     final pending = _pendingLookup;
@@ -171,7 +177,7 @@ class AddPurchasedController extends ChangeNotifier {
   }
 
   void setBrand(String value) {
-    if (value == _brand) {
+    if (value == _brand || _brandLocked) {
       return;
     }
     _brand = value;
@@ -184,7 +190,7 @@ class AddPurchasedController extends ChangeNotifier {
 
   /// Called when the brand field loses focus.
   Future<void> resolveBrand() async {
-    if (!_lookupDone || _isSubmitting) {
+    if (!_lookupDone || _isSubmitting || _brandLocked) {
       return;
     }
     _resolve();
