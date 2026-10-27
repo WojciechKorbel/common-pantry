@@ -111,4 +111,25 @@ urlpatterns = [
         HouseholdDetailsAPIView.as_view(),
         name="household-details",
     ),
+    # Shopping list
+    path(
+        'households/<int:household_id>/shopping/',
+        views.ShoppingItemListCreateView.as_view(),
+        name='shopping-list',
+    ),
+    path(
+        'households/<int:household_id>/shopping/bought/',
+        views.ShoppingItemClearBoughtView.as_view(),
+        name='shopping-clear-bought',
+    ),
+    path(
+        'households/<int:household_id>/shopping/<int:pk>/',
+        views.ShoppingItemDetailView.as_view(),
+        name='shopping-detail',
+    ),
+    path(
+        'households/<int:household_id>/shopping/move-to-pantry/',
+        views.ShoppingMoveToPantryView.as_view(),
+        name='shopping-move-to-pantry',
+    ),
 ]

@@ -1,8 +1,11 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
 from rest_framework import serializers
+from decimal import Decimal
 
-from .models import Category, Household, Membership, PantryItem, Product, ProductType
+
+from .models import Category, Household, Membership, PantryItem, Product, ProductType, ShoppingItem
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -220,3 +223,65 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         validate_password(value)
         return value
+
+
+class ShoppingItemSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=255, required=False)
+    product = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(), required=False, allow_null=True
+    )
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), required=False, allow_null=True
+    )
+    added_by = UserSummarySerializer(read_only=True)
+    bought_by = UserSummarySerializer(read_only=True)
+
+    class Meta:
+        model = ShoppingItem
+        fields = [
+            'id', 'product', 'name', 'quantity', 'unit', 'category',
+            'is_bought', 'added_by', 'bought_by', 'created_at', 'bought_at',
+        ]
+        read_only_fields = ['id', 'added_by', 'bought_by', 'created_at', 'bought_at']
+        extra_kwargs = {'quantity': {'min_value': Decimal('0.01')}}
+
+    def validate_product(self, product):
+        if product is None:
+            return product
+        household = self.context['household']
+        if product.product_type == ProductType.CUSTOM and product.household_id != household.id:
+            raise serializers.ValidationError('This product does not belong to the household.')
+        return product
+
+    def validate(self, attrs):
+        if self.instance is None:
+            product = attrs.get('product')
+            if not attrs.get('name'):
+                if product is None:
+                    raise serializers.ValidationError({'name': 'Name is required when no product is given.'})
+                attrs['name'] = product.name
+            if product is not None and 'category' not in attrs:
+                attrs['category'] = product.category
+        elif 'name' in attrs and not attrs['name'].strip():
+            raise serializers.ValidationError({'name': 'Name cannot be blank.'})
+        return attrs
+
+    def update(self, instance, validated_data):
+        is_bought = validated_data.get('is_bought')
+        if is_bought is not None and is_bought != instance.is_bought:
+            if is_bought:
+                instance.bought_by = self.context['request'].user
+                instance.bought_at = timezone.now()
+            else:
+                instance.bought_by = None
+                instance.bought_at = None
+        return super().update(instance, validated_data)
+
+
+class ShoppingMoveItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    expiry_date = serializers.DateField()
+
+
+class ShoppingMoveToPantrySerializer(serializers.Serializer):
+    items = ShoppingMoveItemSerializer(many=True, allow_empty=False)

@@ -27,6 +27,7 @@ from .models import (
     PasswordReset,
     Product,
     ProductType,
+    ShoppingItem,
 )
 from .serializers import (
     CategorySerializer,
@@ -43,6 +44,8 @@ from .serializers import (
     RegisterSerializer,
     ResendCodeSerializer,
     VerifyEmailSerializer,
+    ShoppingItemSerializer,
+    ShoppingMoveToPantrySerializer,
 )
 from .services import open_food_facts
 
@@ -1230,3 +1233,133 @@ class PasswordResetResendView(APIView):
             )
 
         return generic_response
+
+
+class ShoppingItemListCreateView(HouseholdMixin, generics.ListCreateAPIView):
+    """Shopping list of a household. Filter with ?is_bought=true|false."""
+
+    serializer_class = ShoppingItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['household'] = self.get_household()
+        return context
+
+    def get_queryset(self):
+        queryset = (
+            ShoppingItem.objects
+            .filter(household=self.get_household())
+            .select_related('added_by', 'bought_by')
+            .order_by('is_bought', '-created_at', '-id')
+        )
+        is_bought = self.request.query_params.get('is_bought')
+        if is_bought is not None:
+            queryset = queryset.filter(is_bought=is_bought.lower() in ('1', 'true'))
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(household=self.get_household(), added_by=self.request.user)
+
+
+class ShoppingItemDetailView(HouseholdMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, edit, mark bought/unbought (PATCH is_bought) or delete an item."""
+
+    serializer_class = ShoppingItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['household'] = self.get_household()
+        return context
+
+    def get_queryset(self):
+        return (
+            ShoppingItem.objects
+            .filter(household=self.get_household())
+            .select_related('added_by', 'bought_by')
+        )
+
+
+class ShoppingItemClearBoughtView(HouseholdMixin, APIView):
+    """Deletes all bought items of the household."""
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, household_id):
+        deleted, _ = ShoppingItem.objects.filter(
+            household=self.get_household(), is_bought=True
+        ).delete()
+        return Response({'deleted': deleted}, status=status.HTTP_200_OK)
+
+
+class ShoppingMoveToPantryView(HouseholdMixin, APIView):
+    """Moves bought shopping items to the pantry and removes them from the list."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, household_id):
+        household = self.get_household()
+        serializer = ShoppingMoveToPantrySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        expiry_by_id = {
+            row['id']: row['expiry_date'] for row in serializer.validated_data['items']
+        }
+
+        with transaction.atomic():
+            shopping_items = list(
+                ShoppingItem.objects
+                .select_for_update(of=('self',))
+                .select_related('product')
+                .filter(household=household, is_bought=True, pk__in=expiry_by_id)
+            )
+            if len(shopping_items) != len(expiry_by_id):
+                return Response(
+                    {'detail': 'Some items were not found or are not marked as bought.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            pantry_items = []
+            for item in shopping_items:
+                product = item.product or self._get_or_create_custom_product(household, item)
+                count = self._package_count(item)
+                pantry_items.extend(
+                    PantryItem(
+                        household=household,
+                        product=product,
+                        expiry_date=expiry_by_id[item.pk],
+                        added_by=request.user,
+                    )
+                    for _ in range(count)
+                )
+
+            created = PantryItem.objects.bulk_create(pantry_items)
+            ShoppingItem.objects.filter(pk__in=expiry_by_id).delete()
+
+        return Response(
+            {'moved': len(shopping_items), 'items': PantryItemSerializer(created, many=True).data},
+            status=status.HTTP_201_CREATED,
+        )
+
+    @staticmethod
+    def _package_count(item):
+        if item.unit == 'pcs' and item.quantity == item.quantity.to_integral_value():
+            return max(1, min(int(item.quantity), 20))
+        return 1
+
+    @staticmethod
+    def _get_or_create_custom_product(household, item):
+        product = Product.objects.filter(
+            product_type=ProductType.CUSTOM,
+            household=household,
+            name__iexact=item.name,
+        ).filter(Q(brand__isnull=True) | Q(brand='')).first()
+        if product is None:
+            product = Product.objects.create(
+                product_type=ProductType.CUSTOM,
+                household=household,
+                name=item.name,
+                category=item.category,
+            )
+        return product
