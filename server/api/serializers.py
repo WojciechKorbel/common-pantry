@@ -280,8 +280,17 @@ class ShoppingItemSerializer(serializers.ModelSerializer):
 
 class ShoppingMoveItemSerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    expiry_date = serializers.DateField()
+    expiry_dates = serializers.ListField(
+        child=serializers.DateField(), min_length=1, max_length=20
+    )
+    brand = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
 class ShoppingMoveToPantrySerializer(serializers.Serializer):
     items = ShoppingMoveItemSerializer(many=True, allow_empty=False)
+
+    def validate_items(self, items):
+        ids = [row['id'] for row in items]
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError('Duplicate item ids.')
+        return items

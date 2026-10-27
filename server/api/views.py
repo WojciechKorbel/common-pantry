@@ -1303,8 +1303,12 @@ class ShoppingMoveToPantryView(HouseholdMixin, APIView):
         serializer = ShoppingMoveToPantrySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        expiry_by_id = {
-            row['id']: row['expiry_date'] for row in serializer.validated_data['items']
+        dates_by_id = {
+            row['id']: row['expiry_dates'] for row in serializer.validated_data['items']
+        }
+
+        brand_by_id = {
+            row['id']: row.get('brand', '') for row in serializer.validated_data['items']
         }
 
         with transaction.atomic():
@@ -1312,9 +1316,9 @@ class ShoppingMoveToPantryView(HouseholdMixin, APIView):
                 ShoppingItem.objects
                 .select_for_update(of=('self',))
                 .select_related('product')
-                .filter(household=household, is_bought=True, pk__in=expiry_by_id)
+                .filter(household=household, is_bought=True, pk__in=dates_by_id)
             )
-            if len(shopping_items) != len(expiry_by_id):
+            if len(shopping_items) != len(dates_by_id):
                 return Response(
                     {'detail': 'Some items were not found or are not marked as bought.'},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -1322,20 +1326,21 @@ class ShoppingMoveToPantryView(HouseholdMixin, APIView):
 
             pantry_items = []
             for item in shopping_items:
-                product = item.product or self._get_or_create_custom_product(household, item)
-                count = self._package_count(item)
+                product = item.product or self._find_or_create_product(
+                    household, item, brand_by_id[item.pk]
+                )
                 pantry_items.extend(
                     PantryItem(
                         household=household,
                         product=product,
-                        expiry_date=expiry_by_id[item.pk],
+                        expiry_date=expiry_date,
                         added_by=request.user,
                     )
-                    for _ in range(count)
+                    for expiry_date in dates_by_id[item.pk]
                 )
 
             created = PantryItem.objects.bulk_create(pantry_items)
-            ShoppingItem.objects.filter(pk__in=expiry_by_id).delete()
+            ShoppingItem.objects.filter(pk__in=dates_by_id).delete()
 
         return Response(
             {'moved': len(shopping_items), 'items': PantryItemSerializer(created, many=True).data},
@@ -1343,23 +1348,28 @@ class ShoppingMoveToPantryView(HouseholdMixin, APIView):
         )
 
     @staticmethod
-    def _package_count(item):
-        if item.unit == 'pcs' and item.quantity == item.quantity.to_integral_value():
-            return max(1, min(int(item.quantity), 20))
-        return 1
-
-    @staticmethod
-    def _get_or_create_custom_product(household, item):
-        product = Product.objects.filter(
-            product_type=ProductType.CUSTOM,
-            household=household,
-            name__iexact=item.name,
-        ).filter(Q(brand__isnull=True) | Q(brand='')).first()
+    def _find_or_create_product(household, item, brand):
+        """Reuses a product with the same name and brand, otherwise creates a custom one."""
+        brand = (brand or '').strip()
+        brand_filter = (
+            Q(brand__iexact=brand) if brand else (Q(brand__isnull=True) | Q(brand=''))
+        )
+        product = (
+            Product.objects
+            .filter(brand_filter, name__iexact=item.name)
+            .filter(
+                Q(product_type=ProductType.GLOBAL)
+                | Q(product_type=ProductType.CUSTOM, household=household)
+            )
+            .order_by('product_type')
+            .first()
+        )
         if product is None:
             product = Product.objects.create(
                 product_type=ProductType.CUSTOM,
                 household=household,
                 name=item.name,
+                brand=brand or None,
                 category=item.category,
             )
         return product
