@@ -73,6 +73,11 @@ urlpatterns = [
         views.PantryItemDetailView.as_view(),
         name='pantry-item-detail',
     ),
+    path(
+            'households/<int:household_id>/items/<int:pk>/close/',
+            views.PantryItemCloseView.as_view(),
+            name='pantry-item-close',
+        ),
     # Households
     path('households/', views.HouseholdListCreateAPIView.as_view(), name='household_list_create'),
     path(
