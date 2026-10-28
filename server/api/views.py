@@ -46,6 +46,7 @@ from .serializers import (
     VerifyEmailSerializer,
     ShoppingItemSerializer,
     ShoppingMoveToPantrySerializer,
+    ClosePantryItemSerializer,
 )
 from .services import open_food_facts
 
@@ -1373,3 +1374,30 @@ class ShoppingMoveToPantryView(HouseholdMixin, APIView):
                 category=item.category,
             )
         return product
+
+
+class PantryItemCloseView(HouseholdMixin, APIView):
+    """Marks an active pantry item as eaten or wasted (Issue #36)."""
+
+    def post(self, request, household_id, pk):
+        household = self.get_household()
+        item = get_object_or_404(
+            PantryItem,
+            pk=pk,
+            household=household,
+        )
+
+        if item.status != ItemStatus.ACTIVE:
+            return Response(
+                {'detail': f'Item is already closed with status "{item.status}".'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = ClosePantryItemSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        item.status = serializer.validated_data['status']
+        item.closed_at = timezone.now()
+        item.save(update_fields=['status', 'closed_at'])
+
+        return Response(PantryItemSerializer(item).data, status=status.HTTP_200_OK)

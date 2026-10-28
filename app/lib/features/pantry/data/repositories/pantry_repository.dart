@@ -141,6 +141,18 @@ class PantryRepository {
     );
   }
 
+  /// Closes an active pantry item as 'eaten' or 'wasted'.
+  Future<void> closeItem(
+    int householdId, {
+    required int itemId,
+    required String status,
+  }) async {
+    await api.dio.post<Map<String, dynamic>>(
+      '/api/households/$householdId/items/$itemId/close/',
+      data: {'status': status},
+    );
+  }
+
   Future<void> updateProduct(
     int householdId, {
     required int productId,

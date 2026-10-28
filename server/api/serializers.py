@@ -5,7 +5,16 @@ from rest_framework import serializers
 from decimal import Decimal
 
 
-from .models import Category, Household, Membership, PantryItem, Product, ProductType, ShoppingItem
+from .models import (
+    Category,
+    Household,
+    ItemStatus,
+    Membership,
+    PantryItem,
+    Product,
+    ProductType,
+    ShoppingItem,
+)
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -294,3 +303,12 @@ class ShoppingMoveToPantrySerializer(serializers.Serializer):
         if len(ids) != len(set(ids)):
             raise serializers.ValidationError('Duplicate item ids.')
         return items
+
+
+class ClosePantryItemSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=[ItemStatus.EATEN, ItemStatus.WASTED],
+        error_messages={
+            'invalid_choice': 'Status must be either "eaten" or "wasted".',
+        },
+    )
