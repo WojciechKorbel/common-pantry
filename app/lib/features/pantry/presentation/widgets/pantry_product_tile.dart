@@ -10,11 +10,13 @@ class PantryProductTile extends StatefulWidget {
     required this.product,
     this.onItemAction,
     this.onDeleteItem,
+    this.onCloseItem,
   });
 
   final PantryGroup product;
   final ValueChanged<PantryGroupItem>? onItemAction;
   final Future<bool> Function(PantryGroupItem item)? onDeleteItem;
+  final void Function(PantryGroupItem item, String status)? onCloseItem;
 
   @override
   State<PantryProductTile> createState() => _PantryProductTileState();
@@ -103,8 +105,7 @@ class _PantryProductTileState extends State<PantryProductTile> {
   Widget _buildDismissibleItemRow(BuildContext context, PantryGroupItem item) {
     final row = _buildItemRow(
       context,
-      item.expiryDate,
-      item.addedBy?.username,
+      item,
       widget.onItemAction != null ? () => widget.onItemAction!(item) : null,
     );
 
@@ -155,10 +156,11 @@ class _PantryProductTileState extends State<PantryProductTile> {
 
   Widget _buildItemRow(
     BuildContext context,
-    DateTime expiryDate,
-    String? addedBy,
+    PantryGroupItem item,
     VoidCallback? onItemAction,
   ) {
+    final expiryDate = item.expiryDate;
+    final addedBy = item.addedBy?.username;
     final status = expiryStatusOf(expiryDate, DateTime.now());
     final colors = Theme.of(context).extension<ExpiryColors>()!;
 
@@ -171,12 +173,12 @@ class _PantryProductTileState extends State<PantryProductTile> {
     return Padding(
       padding: const EdgeInsets.only(
         left: 12,
-        right: 2,
+        right: 4,
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
             decoration: BoxDecoration(
               color: background,
               borderRadius: BorderRadius.circular(20),
@@ -184,8 +186,8 @@ class _PantryProductTileState extends State<PantryProductTile> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.access_time, size: 16, color: foreground),
-                const SizedBox(width: 6),
+                Icon(Icons.access_time, size: 14, color: foreground),
+                const SizedBox(width: 4),
                 Text(
                   _formatDate(expiryDate),
                   style: TextStyle(
@@ -197,10 +199,10 @@ class _PantryProductTileState extends State<PantryProductTile> {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
                 color: AppColors.freshContainer,
                 borderRadius: BorderRadius.circular(20),
@@ -210,10 +212,10 @@ class _PantryProductTileState extends State<PantryProductTile> {
                 children: [
                   const Icon(
                     Icons.shopping_cart_outlined,
-                    size: 16,
+                    size: 14,
                     color: AppColors.textSecondary,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
                   Flexible(
                     child: Text(
                       addedBy ?? 'Unknown user',
@@ -230,6 +232,24 @@ class _PantryProductTileState extends State<PantryProductTile> {
             ),
           ),
           const Spacer(),
+          IconButton(
+            onPressed: widget.onCloseItem != null ? () => widget.onCloseItem!(item, 'eaten') : null,
+            icon: const Icon(Icons.restaurant_outlined),
+            color: Colors.green.shade700,
+            iconSize: 20,
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Mark as eaten',
+          ),
+          IconButton(
+            onPressed: widget.onCloseItem != null
+                ? () => widget.onCloseItem!(item, 'wasted')
+                : null,
+            icon: const Icon(Icons.cancel_outlined),
+            color: Colors.orange.shade800,
+            iconSize: 20,
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Mark as wasted',
+          ),
           IconButton(
             onPressed: onItemAction,
             icon: const Icon(Icons.edit_outlined),

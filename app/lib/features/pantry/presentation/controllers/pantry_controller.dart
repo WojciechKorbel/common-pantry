@@ -130,6 +130,27 @@ class PantryController extends ChangeNotifier {
     }
   }
 
+  /// Closes an item as 'eaten' or 'wasted'
+  Future<bool> closeItem({
+    required int itemId,
+    required String status,
+  }) async {
+    _errorMessage = null;
+    try {
+      await _repository.closeItem(
+        _households.current.id,
+        itemId: itemId,
+        status: status,
+      );
+      await load();
+      return true;
+    } on DioException catch (e) {
+      _errorMessage = _messageFor(e);
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> updateProduct({
     required int productId,
     required String name,
@@ -191,6 +212,7 @@ class PantryController extends ChangeNotifier {
     DioExceptionType.receiveTimeout ||
     DioExceptionType.sendTimeout => 'Cannot reach the server. Check your connection and try again.',
     _ => switch (e.response?.statusCode) {
+      400 => 'Item cannot be closed in its current state.',
       401 => 'Your session has expired. Log in again.',
       404 => 'Item or household not found.',
       _ => 'Something went wrong. Try again.',

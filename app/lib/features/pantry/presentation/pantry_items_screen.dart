@@ -54,6 +54,71 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
       '${date.month.toString().padLeft(2, '0')}.'
       '${date.year}';
 
+  Future<void> _closeItem(
+    PantryGroup product,
+    PantryGroupItem item,
+    String status,
+  ) async {
+    final actionLabel = status == 'eaten' ? 'eaten' : 'wasted';
+    final actionTitle = status == 'eaten' ? 'Mark as eaten?' : 'Mark as wasted?';
+    final actionColor = status == 'eaten' ? Colors.green.shade700 : Colors.orange.shade800;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(actionTitle),
+        content: Text(
+          'Are you sure you want to mark "${product.name}" '
+          'expiring on ${_formatDate(item.expiryDate)} as $actionLabel?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              'Confirm',
+              style: TextStyle(
+                color: actionColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    final success = await widget.controller.closeItem(
+      itemId: item.id,
+      status: status,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Marked "${product.name}" as $actionLabel.'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.controller.errorMessage ?? 'Something went wrong. Try again.',
+          ),
+        ),
+      );
+    }
+  }
+
   Future<bool> _confirmAndDeleteItem(
     PantryGroup product,
     PantryGroupItem item,
@@ -259,6 +324,7 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
                                 controller: controller,
                               ),
                               onDeleteItem: (item) => _confirmAndDeleteItem(product, item),
+                              onCloseItem: (item, status) => _closeItem(product, item, status),
                             ),
                           ),
                         );
@@ -271,7 +337,6 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
           ),
         ),
       ),
-
       bottomNavigationBar: AppBottomNavigationBar(household: widget.household),
     );
   }
