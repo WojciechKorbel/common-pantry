@@ -99,7 +99,7 @@ class PantryRepository {
       data: {
         'name': name,
         if (brand != null && brand.isNotEmpty) 'brand': brand,
-        'category': categoryId,
+        'category': ?categoryId,
       },
     );
     final data = response.data;
@@ -170,8 +170,8 @@ class PantryRepository {
       '/api/households/$householdId/products/$productId/',
       data: {
         'name': name,
-        'brand': brand,
-        'category': categoryId,
+        'brand': ?brand,
+        'category': ?categoryId,
       },
     );
   }
