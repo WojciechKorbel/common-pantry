@@ -322,7 +322,7 @@ class PantryListView(HouseholdMixin, generics.ListAPIView):
             .select_related('added_by')
             .order_by('expiry_date', 'id')
         )
-        return (
+        queryset = (
             Product.objects
             .filter(pantry_items__household=household, pantry_items__status=ItemStatus.ACTIVE)
             .annotate(
@@ -333,6 +333,14 @@ class PantryListView(HouseholdMixin, generics.ListAPIView):
             .prefetch_related(Prefetch('pantry_items', queryset=active_items, to_attr='active_items'))
             .order_by('earliest_expiry', 'name')
         )
+
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(brand__icontains=search)
+            )
+
+        return queryset
 
 
 class PantryItemCreateView(HouseholdMixin, APIView):

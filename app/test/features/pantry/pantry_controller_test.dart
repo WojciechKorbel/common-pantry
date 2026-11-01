@@ -19,7 +19,7 @@ class _FakePantryRepository implements PantryRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 
   @override
-  Future<List<PantryGroup>> getPantry(int householdId) async {
+  Future<List<PantryGroup>> getPantry(int householdId, {String? search}) async {
     requestedIds.add(householdId);
     if (error case final Object error) {
       throw error;

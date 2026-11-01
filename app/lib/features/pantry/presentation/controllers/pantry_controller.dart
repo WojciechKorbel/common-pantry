@@ -65,7 +65,7 @@ class PantryController extends ChangeNotifier {
 
   List<ProductCategory> get categories => categoriesIn(_groups);
 
-  Future<void> load() async {
+  Future<void> load({String? search}) async {
     final request = ++_lastRequest;
     _isLoading = true;
     _errorMessage = null;
@@ -74,7 +74,10 @@ class PantryController extends ChangeNotifier {
     List<PantryGroup>? groups;
     String? error;
     try {
-      groups = await _repository.getPantry(_households.current.id);
+      groups = await _repository.getPantry(
+        _households.current.id,
+        search: search,
+      );
     } on DioException catch (e) {
       error = _messageFor(e);
     } on FormatException {
