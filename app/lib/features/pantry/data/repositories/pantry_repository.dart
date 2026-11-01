@@ -11,8 +11,14 @@ class PantryRepository {
   final ApiClient api;
 
   /// Active pantry items grouped by product, soonest expiry first.
-  Future<List<PantryGroup>> getPantry(int householdId) async {
-    final response = await api.dio.get<List<dynamic>>('/api/households/$householdId/pantry/');
+  /// Supports optional server-side [search] parameter.
+  Future<List<PantryGroup>> getPantry(int householdId, {String? search}) async {
+    final response = await api.dio.get<List<dynamic>>(
+      '/api/households/$householdId/pantry/',
+      queryParameters: {
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      },
+    );
     final data = response.data;
     if (data == null) {
       throw const FormatException('Empty pantry response');
@@ -93,7 +99,7 @@ class PantryRepository {
       data: {
         'name': name,
         if (brand != null && brand.isNotEmpty) 'brand': brand,
-        'category': ?categoryId,
+        if (categoryId != null) 'category': categoryId,
       },
     );
     final data = response.data;
@@ -164,8 +170,8 @@ class PantryRepository {
       '/api/households/$householdId/products/$productId/',
       data: {
         'name': name,
-        'brand': ?brand,
-        'category': ?categoryId,
+        if (brand != null) 'brand': brand,
+        if (categoryId != null) 'category': categoryId,
       },
     );
   }
