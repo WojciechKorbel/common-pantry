@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="widget_background_color">#FFFFFF</color>
-    <color name="widget_title_color">#1F2937</color>
-    <color name="widget_subtitle_color">#6B7280</color>
+    <color name="widget_title_color">#111827</color>
+    <color name="widget_subtitle_color">#4B5563</color>
     <color name="widget_divider_color">#E5E7EB</color>
-    <color name="widget_alert_color">#DC2626</color>
+    <color name="widget_alert_expired">#DC2626</color>
+    <color name="widget_alert_soon">#D97706</color>
+    <color name="widget_status_fresh">#10B981</color>
 </resources>

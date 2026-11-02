@@ -2,7 +2,9 @@
 <resources>
     <color name="widget_background_color">#1F2937</color>
     <color name="widget_title_color">#F9FAFB</color>
-    <color name="widget_subtitle_color">#9CA3AF</color>
+    <color name="widget_subtitle_color">#D1D5DB</color>
     <color name="widget_divider_color">#374151</color>
-    <color name="widget_alert_color">#F87171</color>
+    <color name="widget_alert_expired">#F87171</color>
+    <color name="widget_alert_soon">#FBBF24</color>
+    <color name="widget_status_fresh">#34D399</color>
 </resources>
