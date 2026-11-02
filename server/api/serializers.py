@@ -1,8 +1,10 @@
+from datetime import timedelta
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
-from decimal import Decimal
 
 from .models import (
     Category,
@@ -14,6 +16,18 @@ from .models import (
     ProductType,
     ShoppingItem,
 )
+
+
+def calculate_expiry_status(expiry_date):
+    """Calculates status based on expiry_date: 'expired', 'soon', or 'fresh'."""
+    if not expiry_date:
+        return None
+    today = timezone.localdate() if hasattr(timezone, 'localdate') else timezone.now().date()
+    if expiry_date < today:
+        return 'expired'
+    elif expiry_date <= today + timedelta(days=2):
+        return 'soon'
+    return 'fresh'
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -134,10 +148,14 @@ class PantryGroupItemSerializer(serializers.ModelSerializer):
     """One package inside a pantry group (a row under an expanded tile)."""
 
     added_by = UserSummarySerializer(read_only=True)
+    expiry_status = serializers.SerializerMethodField()
 
     class Meta:
         model = PantryItem
-        fields = ['id', 'expiry_date', 'added_by', 'created_at']
+        fields = ['id', 'expiry_date', 'expiry_status', 'added_by', 'created_at']
+
+    def get_expiry_status(self, obj):
+        return calculate_expiry_status(obj.expiry_date)
 
 
 class PantryGroupSerializer(serializers.ModelSerializer):
@@ -146,22 +164,30 @@ class PantryGroupSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     item_count = serializers.IntegerField(read_only=True)
     earliest_expiry = serializers.DateField(read_only=True)
+    expiry_status = serializers.SerializerMethodField()
     items = PantryGroupItemSerializer(source='active_items', many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'brand', 'image_url', 'package_size', 'category',
-            'item_count', 'earliest_expiry', 'items',
+            'item_count', 'earliest_expiry', 'expiry_status', 'items',
         ]
+
+    def get_expiry_status(self, obj):
+        return calculate_expiry_status(getattr(obj, 'earliest_expiry', None))
 
 
 class PantryItemSerializer(serializers.ModelSerializer):
     added_by = UserSummarySerializer(read_only=True)
+    expiry_status = serializers.SerializerMethodField()
 
     class Meta:
         model = PantryItem
-        fields = ['id', 'product', 'expiry_date', 'status', 'added_by', 'created_at']
+        fields = ['id', 'product', 'expiry_date', 'expiry_status', 'status', 'added_by', 'created_at']
+
+    def get_expiry_status(self, obj):
+        return calculate_expiry_status(obj.expiry_date)
 
 
 class PantryItemCreateSerializer(serializers.Serializer):

@@ -235,16 +235,16 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
           child: Column(
             children: [
               PantrySearchBar(
                 controller: widget.controller,
                 searchController: _searchController,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               _buildFilterChips(context),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Expanded(
                 child: ListenableBuilder(
                   listenable: widget.controller,
@@ -301,6 +301,7 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
                     }
 
                     return ListView.separated(
+                      padding: const EdgeInsets.only(bottom: 16),
                       itemCount: controller.visibleGroups.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
