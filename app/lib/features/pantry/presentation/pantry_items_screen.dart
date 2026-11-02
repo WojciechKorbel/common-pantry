@@ -14,13 +14,6 @@ import 'package:common_pantry/features/pantry/presentation/widgets/pantry_search
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-enum ExpiryFilterOption {
-  all,
-  fresh,
-  soon,
-  expired,
-}
-
 class PantryItemsScreen extends StatefulWidget {
   const PantryItemsScreen({
     super.key,
@@ -185,6 +178,48 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
     return true;
   }
 
+  Widget _buildFilterChips(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        final controller = widget.controller;
+
+        if (controller.categories.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              FilterChip(
+                label: const Text('All categories'),
+                selected: controller.categoryId == null,
+                onSelected: (_) {
+                  controller.setCategory(null);
+                },
+              ),
+              const SizedBox(width: 8),
+              ...controller.categories.map((cat) {
+                final isSelected = controller.categoryId == cat.id;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(cat.name),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      controller.setCategory(selected ? cat.id : null);
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -207,7 +242,9 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
                 controller: widget.controller,
                 searchController: _searchController,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _buildFilterChips(context),
+              const SizedBox(height: 12),
               Expanded(
                 child: ListenableBuilder(
                   listenable: widget.controller,
