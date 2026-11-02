@@ -25,79 +25,142 @@ class PantryProductTile extends StatefulWidget {
 class _PantryProductTileState extends State<PantryProductTile> {
   bool _isExpanded = false;
 
+  ExpiryStatus _resolveStatus(DateTime date, String? backendStatus) {
+    if (backendStatus != null) {
+      switch (backendStatus.toLowerCase()) {
+        case 'expired':
+          return ExpiryStatus.expired;
+        case 'soon':
+          return ExpiryStatus.soon;
+        case 'fresh':
+          return ExpiryStatus.fresh;
+      }
+    }
+    return expiryStatusOf(date, DateTime.now());
+  }
+
+  String _formatRelativeExpiry(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(date.year, date.month, date.day);
+    final difference = target.difference(today).inDays;
+
+    if (difference < 0) {
+      final daysAgo = difference.abs();
+      return daysAgo == 1 ? 'Expired yesterday' : 'Expired $daysAgo days ago';
+    } else if (difference == 0) {
+      return 'Expires today';
+    } else if (difference == 1) {
+      return 'Expires tomorrow';
+    } else if (difference <= 2) {
+      return 'Expires in $difference days';
+    }
+    return _formatDate(date);
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
     final items = [...product.items]..sort((a, b) => a.expiryDate.compareTo(b.expiryDate));
 
+    final groupStatus = _resolveStatus(product.earliestExpiry, product.expiryStatus);
+    final colors = Theme.of(context).extension<ExpiryColors>()!;
+
+    final markerColor = switch (groupStatus) {
+      ExpiryStatus.expired => colors.expired,
+      ExpiryStatus.soon => colors.soon,
+      ExpiryStatus.fresh => colors.fresh,
+    };
+
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
-        onExpansionChanged: (expanded) {
-          setState(() => _isExpanded = expanded);
-        },
-        leading: SizedBox(
-          width: 56,
-          height: 56,
-          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    product.imageUrl!,
-                    width: 56,
-                    height: 56,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const Icon(
-                      Icons.fastfood,
-                      size: 32,
-                    ),
-                  ),
-                )
-              : const Icon(
-                  Icons.fastfood,
-                  size: 32,
-                ),
-        ),
-        title: Row(
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // List marker (boczny pasek statusu ważności)
+            Container(
+              width: 5,
+              color: markerColor,
+            ),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  if (!_isExpanded) ...[
-                    const SizedBox(height: 6),
-                    _buildExpiryChip(context, product.earliestExpiry),
+              child: ExpansionTile(
+                shape: const Border(),
+                collapsedShape: const Border(),
+                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                onExpansionChanged: (expanded) {
+                  setState(() => _isExpanded = expanded);
+                },
+                leading: SizedBox(
+                  width: 52,
+                  height: 52,
+                  child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            product.imageUrl!,
+                            width: 52,
+                            height: 52,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const Icon(
+                              Icons.fastfood,
+                              size: 32,
+                            ),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.fastfood,
+                          size: 32,
+                        ),
+                ),
+                title: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            product.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          if (!_isExpanded) ...[
+                            const SizedBox(height: 6),
+                            _buildExpiryChip(
+                              context,
+                              product.earliestExpiry,
+                              product.expiryStatus,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${product.itemCount}',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text('Quantity', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
                   ],
+                ),
+                children: [
+                  const Divider(height: 1),
+                  ...items.map(
+                    (item) => _buildDismissibleItemRow(context, item),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${product.itemCount}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Text('Quantity', style: TextStyle(fontSize: 12)),
-              ],
-            ),
           ],
         ),
-        children: [
-          const Divider(),
-          ...items.map(
-            (item) => _buildDismissibleItemRow(context, item),
-          ),
-        ],
       ),
     );
   }
@@ -127,8 +190,8 @@ class _PantryProductTileState extends State<PantryProductTile> {
     );
   }
 
-  Widget _buildExpiryChip(BuildContext context, DateTime date) {
-    final status = expiryStatusOf(date, DateTime.now());
+  Widget _buildExpiryChip(BuildContext context, DateTime date, String? backendStatus) {
+    final status = _resolveStatus(date, backendStatus);
     final colors = Theme.of(context).extension<ExpiryColors>()!;
 
     final (foreground, background) = switch (status) {
@@ -144,7 +207,7 @@ class _PantryProductTileState extends State<PantryProductTile> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        _formatDate(date),
+        _formatRelativeExpiry(date),
         style: TextStyle(
           color: foreground,
           fontSize: 11,
@@ -161,7 +224,7 @@ class _PantryProductTileState extends State<PantryProductTile> {
   ) {
     final expiryDate = item.expiryDate;
     final addedBy = item.addedBy?.username;
-    final status = expiryStatusOf(expiryDate, DateTime.now());
+    final status = _resolveStatus(expiryDate, item.expiryStatus);
     final colors = Theme.of(context).extension<ExpiryColors>()!;
 
     final (foreground, background) = switch (status) {
@@ -171,14 +234,11 @@ class _PantryProductTileState extends State<PantryProductTile> {
     };
 
     return Padding(
-      padding: const EdgeInsets.only(
-        left: 12,
-        right: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: background,
               borderRadius: BorderRadius.circular(20),
@@ -202,7 +262,7 @@ class _PantryProductTileState extends State<PantryProductTile> {
           const SizedBox(width: 6),
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.freshContainer,
                 borderRadius: BorderRadius.circular(20),
@@ -211,7 +271,7 @@ class _PantryProductTileState extends State<PantryProductTile> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(
-                    Icons.shopping_cart_outlined,
+                    Icons.person_outline,
                     size: 14,
                     color: AppColors.textSecondary,
                   ),

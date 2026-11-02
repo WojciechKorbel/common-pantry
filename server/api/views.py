@@ -31,6 +31,7 @@ from .models import (
 )
 from .serializers import (
     CategorySerializer,
+    ClosePantryItemSerializer,
     CustomProductCreateSerializer,
     HouseholdSerializer,
     PantryGroupSerializer,
@@ -43,10 +44,9 @@ from .serializers import (
     ProductUpdateSerializer,
     RegisterSerializer,
     ResendCodeSerializer,
-    VerifyEmailSerializer,
     ShoppingItemSerializer,
     ShoppingMoveToPantrySerializer,
-    ClosePantryItemSerializer,
+    VerifyEmailSerializer,
 )
 from .services import open_food_facts
 
@@ -339,6 +339,23 @@ class PantryListView(HouseholdMixin, generics.ListAPIView):
             queryset = queryset.filter(
                 Q(name__icontains=search) | Q(brand__icontains=search)
             )
+
+        category_id = self.request.query_params.get('category')
+        if category_id and category_id.isdigit():
+            queryset = queryset.filter(category_id=int(category_id))
+
+        today = timezone.localdate() if hasattr(timezone, 'localdate') else timezone.now().date()
+        expiry_status = self.request.query_params.get('expiry_status', '').strip().lower()
+
+        if expiry_status == 'expired':
+            queryset = queryset.filter(earliest_expiry__lt=today)
+        elif expiry_status == 'soon':
+            queryset = queryset.filter(
+                earliest_expiry__gte=today,
+                earliest_expiry__lte=today + timedelta(days=2),
+            )
+        elif expiry_status == 'fresh':
+            queryset = queryset.filter(earliest_expiry__gt=today + timedelta(days=2))
 
         return queryset
 
