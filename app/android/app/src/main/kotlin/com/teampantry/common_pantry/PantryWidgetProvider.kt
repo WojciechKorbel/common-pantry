@@ -5,7 +5,6 @@ import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.res.Configuration
 import android.graphics.Color
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetProvider
@@ -23,29 +22,24 @@ class PantryWidgetProvider : HomeWidgetProvider() {
                 val count = widgetData.getInt("expiring_count", 0)
                 val headline = widgetData.getString("headline", "Everything is fresh!") ?: "Everything is fresh!"
                 val themeMode = widgetData.getString("theme_mode", "system") ?: "system"
-
-                val isDark = when (themeMode) {
-                    "dark" -> true
-                    "light" -> false
+                
+                when (themeMode) {
+                    "dark" -> {
+                        setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_dark)
+                        setTextColor(R.id.widget_household, Color.parseColor("#F9FAFB"))
+                        setTextColor(R.id.widget_message, Color.parseColor("#9CA3AF"))
+                        setTextColor(R.id.widget_count, Color.parseColor("#F87171"))
+                    }
+                    "light" -> {
+                        setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_light)
+                        setTextColor(R.id.widget_household, Color.parseColor("#1F2937"))
+                        setTextColor(R.id.widget_message, Color.parseColor("#6B7280"))
+                        setTextColor(R.id.widget_count, Color.parseColor("#DC2626"))
+                    }
                     else -> {
-                        val nightFlags = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-                        nightFlags == Configuration.UI_MODE_NIGHT_YES
+                        setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_background)
                     }
                 }
-
-                setInt(
-                    R.id.widget_container,
-                    "setBackgroundResource",
-                    if (isDark) R.drawable.widget_bg_dark else R.drawable.widget_bg_light
-                )
-
-                val titleColor = if (isDark) Color.parseColor("#F9FAFB") else Color.parseColor("#1F2937")
-                val subtitleColor = if (isDark) Color.parseColor("#9CA3AF") else Color.parseColor("#6B7280")
-                val alertColor = if (isDark) Color.parseColor("#F87171") else Color.parseColor("#DC2626")
-
-                setTextColor(R.id.widget_household, titleColor)
-                setTextColor(R.id.widget_message, subtitleColor)
-                setTextColor(R.id.widget_count, alertColor)
 
                 setTextViewText(R.id.widget_household, household)
                 setTextViewText(
