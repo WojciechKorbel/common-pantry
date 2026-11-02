@@ -28,7 +28,7 @@ class PantryWidgetService {
 
     for (final group in groups) {
       String? status = group.expiryStatus;
-      if (status == null && group.earliestExpiry != null) {
+      if (status == null) {
         final calcStatus = expiryStatusOf(group.earliestExpiry, now);
         status = calcStatus.name;
       }
@@ -75,25 +75,25 @@ class PantryWidgetService {
       final topGroups = allPriorityGroups.take(5).toList();
 
       for (final g in topGroups) {
-        String timeInfo = '';
-        if (g.earliestExpiry != null) {
-          final expDate = DateTime(
-            g.earliestExpiry!.year,
-            g.earliestExpiry!.month,
-            g.earliestExpiry!.day,
-          );
-          final diff = expDate.difference(today).inDays;
-          if (diff < 0) {
-            final daysAgo = diff.abs();
-            timeInfo = daysAgo == 1 ? ' · yesterday' : ' · $daysAgo d ago';
-          } else if (diff == 0) {
-            timeInfo = ' · today';
-          } else if (diff == 1) {
-            timeInfo = ' · tomorrow';
-          } else {
-            timeInfo = ' · in $diff d';
-          }
+        final expDate = DateTime(
+          g.earliestExpiry.year,
+          g.earliestExpiry.month,
+          g.earliestExpiry.day,
+        );
+        final diff = expDate.difference(today).inDays;
+
+        String timeInfo;
+        if (diff < 0) {
+          final daysAgo = diff.abs();
+          timeInfo = daysAgo == 1 ? ' · yesterday' : ' · $daysAgo d ago';
+        } else if (diff == 0) {
+          timeInfo = ' · today';
+        } else if (diff == 1) {
+          timeInfo = ' · tomorrow';
+        } else {
+          timeInfo = ' · in $diff d';
         }
+
         listLines.add('• ${g.name} (${g.itemCount}x)$timeInfo');
       }
 
