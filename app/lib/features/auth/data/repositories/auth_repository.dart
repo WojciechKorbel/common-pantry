@@ -1,13 +1,15 @@
 import 'package:common_pantry/core/network/api_client.dart';
+import 'package:common_pantry/core/services/notification_service.dart';
 import 'package:common_pantry/core/storage/token_storage.dart';
 import 'package:common_pantry/features/auth/data/models/auth_tokens.dart';
 import 'package:common_pantry/features/auth/data/models/login_request.dart';
 
 class AuthRepository {
-  AuthRepository(this.api, this.tokenStorage);
+  AuthRepository(this.api, this.tokenStorage) : notificationService = NotificationService(api);
 
   final ApiClient api;
   final TokenStorage tokenStorage;
+  final NotificationService notificationService;
 
   Future<void> login({
     required String username,
@@ -26,6 +28,13 @@ class AuthRepository {
     final tokens = AuthTokens.fromJson(
       Map<String, dynamic>.from(response.data as Map),
     );
+
+    try {
+      await notificationService.registerDevice();
+    } catch (e) {
+      // Notification registration must not break login.
+      print('FCM registration failed: $e');
+    }
 
     await tokenStorage.saveTokens(
       access: tokens.access,
