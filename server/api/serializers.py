@@ -4,7 +4,6 @@ from django.utils import timezone
 from rest_framework import serializers
 from decimal import Decimal
 
-
 from .models import (
     Category,
     Household,
@@ -311,4 +310,9 @@ class ClosePantryItemSerializer(serializers.Serializer):
         error_messages={
             'invalid_choice': 'Status must be either "eaten" or "wasted".',
         },
+    )
+
+    add_to_shopping_list = serializers.BooleanField(
+        required=False,
+        default=False,
     )

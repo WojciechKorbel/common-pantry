@@ -61,32 +61,61 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
   ) async {
     final actionLabel = status == 'eaten' ? 'eaten' : 'wasted';
     final actionTitle = status == 'eaten' ? 'Mark as eaten?' : 'Mark as wasted?';
+
     final actionColor = status == 'eaten' ? Colors.green.shade700 : Colors.orange.shade800;
+
+    bool addToShoppingList = false;
 
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(actionTitle),
-        content: Text(
-          'Are you sure you want to mark "${product.name}" '
-          'expiring on ${_formatDate(item.expiryDate)} as $actionLabel?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(actionTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Are you sure you want to mark "${product.name}" '
+                'expiring on ${_formatDate(item.expiryDate)} as $actionLabel?',
+              ),
+              const SizedBox(height: 16),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                value: addToShoppingList,
+                onChanged: (value) {
+                  setDialogState(() {
+                    addToShoppingList = value ?? false;
+                  });
+                },
+                title: const Text(
+                  'Add to shopping list',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                subtitle: const Text(
+                  'Add this product so you can buy it again.',
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              'Confirm',
-              style: TextStyle(
-                color: actionColor,
-                fontWeight: FontWeight.bold,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(
+                'Confirm',
+                style: TextStyle(
+                  color: actionColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 
@@ -97,14 +126,19 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
     final success = await widget.controller.closeItem(
       itemId: item.id,
       status: status,
+      addToShoppingList: addToShoppingList,
     );
 
     if (!mounted) return;
 
     if (success) {
+      final message = addToShoppingList
+          ? 'Marked "${product.name}" as $actionLabel and added to shopping list.'
+          : 'Marked "${product.name}" as $actionLabel.';
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Marked "${product.name}" as $actionLabel.'),
+          content: Text(message),
           duration: const Duration(seconds: 2),
         ),
       );

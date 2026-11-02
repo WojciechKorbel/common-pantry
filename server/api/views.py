@@ -567,7 +567,7 @@ class PantryItemDetailView(HouseholdMixin, generics.RetrieveUpdateDestroyAPIView
         household = self.get_household()
         return PantryItem.objects.filter(household=household)
 
-      
+
 # HOUSEHOLD MEMBERS MANAGEMENT
 class HouseholdManagementMixin:
 
@@ -856,6 +856,7 @@ class HouseholdDetailsAPIView(
             },
             status=status.HTTP_200_OK,
         )
+
 
 # PASSWORD FORGOT
 def generate_password_reset_code():
@@ -1377,27 +1378,79 @@ class ShoppingMoveToPantryView(HouseholdMixin, APIView):
 
 
 class PantryItemCloseView(HouseholdMixin, APIView):
-    """Marks an active pantry item as eaten or wasted (Issue #36)."""
+    """Marks an active pantry item as eaten or wasted (Issue #36).
+    Optionally adds the product back to the shopping list."""
+
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, household_id, pk):
         household = self.get_household()
-        item = get_object_or_404(
-            PantryItem,
-            pk=pk,
-            household=household,
-        )
-
-        if item.status != ItemStatus.ACTIVE:
-            return Response(
-                {'detail': f'Item is already closed with status "{item.status}".'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         serializer = ClosePantryItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        item.status = serializer.validated_data['status']
-        item.closed_at = timezone.now()
-        item.save(update_fields=['status', 'closed_at'])
+        with transaction.atomic():
+            item = get_object_or_404(
+                PantryItem.objects.select_for_update(),
+                pk=pk,
+                household=household,
+            )
 
-        return Response(PantryItemSerializer(item).data, status=status.HTTP_200_OK)
+            if item.status != ItemStatus.ACTIVE:
+                return Response(
+                    {
+                        'detail': (
+                            f'Item is already closed with status "{item.status}".'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            item.status = serializer.validated_data['status']
+            item.closed_at = timezone.now()
+            item.save(update_fields=['status', 'closed_at'])
+
+            shopping_item = None
+
+            if serializer.validated_data['add_to_shopping_list']:
+                shopping_item = (
+                    ShoppingItem.objects
+                    .select_for_update()
+                    .filter(
+                        household=household,
+                        product=item.product,
+                        is_bought=False,
+                    )
+                    .first()
+                )
+
+                if shopping_item:
+                    shopping_item.quantity += 1
+                    shopping_item.save(update_fields=['quantity'])
+                else:
+                    shopping_item = ShoppingItem.objects.create(
+                        household=household,
+                        product=item.product,
+                        name=item.product.name,
+                        quantity=1,
+                        unit='pcs',
+                        category=item.product.category,
+                        added_by=request.user,
+                    )
+
+        response_data = {
+            'detail': 'Pantry item closed successfully.',
+            'item': PantryItemSerializer(item).data,
+            'shopping_item': (
+                ShoppingItemSerializer(
+                    shopping_item,
+                    context={'request': request, 'household': household},
+                ).data
+                if shopping_item else None
+            ),
+        }
+
+        return Response(
+            response_data,
+            status=status.HTTP_200_OK,
+        )
