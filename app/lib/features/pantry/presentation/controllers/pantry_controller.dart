@@ -133,18 +133,23 @@ class PantryController extends ChangeNotifier {
     }
   }
 
-  /// Closes an item as 'eaten' or 'wasted'
+  /// Closes an item as 'eaten' or 'wasted'.
+  /// Optionally adds the product to the shopping list.
   Future<bool> closeItem({
     required int itemId,
     required String status,
+    bool addToShoppingList = false,
   }) async {
     _errorMessage = null;
+
     try {
       await _repository.closeItem(
         _households.current.id,
         itemId: itemId,
         status: status,
+        addToShoppingList: addToShoppingList,
       );
+
       await load();
       return true;
     } on DioException catch (e) {

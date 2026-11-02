@@ -4,6 +4,7 @@ import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/close_pantry_item_dialog.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/edit_item_dialog.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/edit_product_dialog.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/empty_pantry_state.dart';
@@ -59,52 +60,37 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
     PantryGroupItem item,
     String status,
   ) async {
-    final actionLabel = status == 'eaten' ? 'eaten' : 'wasted';
-    final actionTitle = status == 'eaten' ? 'Mark as eaten?' : 'Mark as wasted?';
-    final actionColor = status == 'eaten' ? Colors.green.shade700 : Colors.orange.shade800;
-
-    final confirmed = await showDialog<bool>(
+    final result = await showClosePantryItemDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(actionTitle),
-        content: Text(
-          'Are you sure you want to mark "${product.name}" '
-          'expiring on ${_formatDate(item.expiryDate)} as $actionLabel?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              'Confirm',
-              style: TextStyle(
-                color: actionColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+      productName: product.name,
+      expiryDate: item.expiryDate,
+      status: status,
     );
 
-    if (confirmed != true || !mounted) {
+    if (result == null || !mounted) {
       return;
     }
+
+    final addToShoppingList = result.addToShoppingList;
 
     final success = await widget.controller.closeItem(
       itemId: item.id,
       status: status,
+      addToShoppingList: addToShoppingList,
     );
 
     if (!mounted) return;
 
     if (success) {
+      final actionLabel = status == 'eaten' ? 'eaten' : 'wasted';
+
+      final message = addToShoppingList
+          ? 'Marked "${product.name}" as $actionLabel and added to shopping list.'
+          : 'Marked "${product.name}" as $actionLabel.';
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Marked "${product.name}" as $actionLabel.'),
+          content: Text(message),
           duration: const Duration(seconds: 2),
         ),
       );
