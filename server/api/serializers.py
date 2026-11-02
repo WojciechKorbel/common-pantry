@@ -4,7 +4,6 @@ from django.utils import timezone
 from rest_framework import serializers
 from decimal import Decimal
 
-
 from .models import (
     Category,
     Household,
@@ -312,3 +311,16 @@ class ClosePantryItemSerializer(serializers.Serializer):
             'invalid_choice': 'Status must be either "eaten" or "wasted".',
         },
     )
+
+
+class DeviceRegisterSerializer(serializers.Serializer):
+    fcm_token = serializers.CharField(
+        max_length=500,
+        trim_whitespace=True,
+    )
+
+    def validate_fcm_token(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("FCM token cannot be empty.")
+        return value.strip()
+   

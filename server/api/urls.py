@@ -17,7 +17,7 @@ from .views import (
     PasswordResetVerifyView,
     RegisterView,
     ResendCodeView,
-    VerifyEmailView,
+    VerifyEmailView, DeviceRegisterView, DeviceUnregisterView,
 )
 
 urlpatterns = [
@@ -74,10 +74,10 @@ urlpatterns = [
         name='pantry-item-detail',
     ),
     path(
-            'households/<int:household_id>/items/<int:pk>/close/',
-            views.PantryItemCloseView.as_view(),
-            name='pantry-item-close',
-        ),
+        'households/<int:household_id>/items/<int:pk>/close/',
+        views.PantryItemCloseView.as_view(),
+        name='pantry-item-close',
+    ),
     # Households
     path('households/', views.HouseholdListCreateAPIView.as_view(), name='household_list_create'),
     path(
@@ -137,4 +137,15 @@ urlpatterns = [
         views.ShoppingMoveToPantryView.as_view(),
         name='shopping-move-to-pantry',
     ),
+    path(
+        "devices/register/",
+        DeviceRegisterView.as_view(),
+        name="device-register",
+    ),
+    path(
+        "devices/unregister/",
+        DeviceUnregisterView.as_view(),
+        name="device-unregister",
+    ),
+
 ]

@@ -27,7 +27,7 @@ from .models import (
     PasswordReset,
     Product,
     ProductType,
-    ShoppingItem,
+    ShoppingItem, Device,
 )
 from .serializers import (
     CategorySerializer,
@@ -46,7 +46,7 @@ from .serializers import (
     VerifyEmailSerializer,
     ShoppingItemSerializer,
     ShoppingMoveToPantrySerializer,
-    ClosePantryItemSerializer,
+    ClosePantryItemSerializer, DeviceRegisterSerializer,
 )
 from .services import open_food_facts
 
@@ -1401,3 +1401,53 @@ class PantryItemCloseView(HouseholdMixin, APIView):
         item.save(update_fields=['status', 'closed_at'])
 
         return Response(PantryItemSerializer(item).data, status=status.HTTP_200_OK)
+
+
+class DeviceRegisterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = DeviceRegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data["fcm_token"]
+
+        # A token can belong to only one user at a time.
+        Device.objects.update_or_create(
+            fcm_token=token,
+            defaults={
+                "user": request.user,
+                "is_active": True,
+            },
+        )
+
+        return Response(
+            {"detail": "Device registered successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class DeviceUnregisterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        token = request.data.get("fcm_token")
+
+        if not isinstance(token, str) or not token.strip():
+            return Response(
+                {"detail": "FCM token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        deleted, _ = Device.objects.filter(
+            user=request.user,
+            fcm_token=token.strip(),
+        ).update(
+            user=None,
+            is_active=False,
+        )
+
+        return Response(
+            {"detail": "Device unregistered successfully."},
+            status=status.HTTP_200_OK,
+        )
