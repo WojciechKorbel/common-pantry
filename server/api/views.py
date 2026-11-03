@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Count, Min, Prefetch, Q
+from django.db.models.functions import TruncMonth, TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
@@ -1478,4 +1479,188 @@ class PantryItemCloseView(HouseholdMixin, APIView):
         return Response(
             response_data,
             status=status.HTTP_200_OK,
+        )
+
+
+class FoodWasteStatisticsView(HouseholdMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    PERIODS = {
+        '7d': 7,
+        '30d': 30,
+        '12m': 365,
+    }
+
+    def get(self, request, household_id):
+        """Return food waste statistics for the selected period."""
+        household = self.get_household()
+        period = request.query_params.get('period', '30d')
+
+        if period not in (*self.PERIODS, 'all'):
+            return Response(
+                {'detail': 'Invalid period.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = self.get_queryset(household, period)
+
+        return Response({
+            'period': period,
+            'summary': self.get_summary(household, queryset),
+            'timeline': self.get_timeline(queryset, period),
+            'categories': self.get_categories(queryset),
+            'top_wasted_products': self.get_top_products(queryset),
+            'expiry': self.get_expiry_statistics(queryset),
+        })
+
+    def get_queryset(self, household, period):
+        """Return closed pantry items for the household within the selected period."""
+        queryset = PantryItem.objects.filter(
+            household=household,
+            status__in=[
+                ItemStatus.EATEN,
+                ItemStatus.WASTED,
+            ],
+            closed_at__isnull=False,
+        )
+
+        if period == 'all':
+            return queryset
+
+        today = timezone.localdate()
+        start_date = today - timedelta(
+            days=self.PERIODS[period] - 1
+        )
+
+        return queryset.filter(
+            closed_at__date__range=(start_date, today),
+        )
+
+    def get_summary(self, household, queryset):
+        """Calculate overall food waste statistics and active pantry item count."""
+        summary = queryset.aggregate(
+            wasted_count=Count(
+                'id',
+                filter=Q(status=ItemStatus.WASTED),
+            ),
+            eaten_count=Count(
+                'id',
+                filter=Q(status=ItemStatus.EATEN),
+            ),
+        )
+
+        summary['active_count'] = PantryItem.objects.filter(
+            household=household,
+            status=ItemStatus.ACTIVE,
+        ).count()
+
+        closed_count = (
+                summary['wasted_count'] +
+                summary['eaten_count']
+        )
+
+        summary['waste_percentage'] = round(
+            summary['wasted_count'] / closed_count * 100,
+            2,
+        ) if closed_count else 0
+
+        return summary
+
+    def get_timeline(self, queryset, period):
+        """Return daily or monthly food consumption and waste statistics."""
+        trunc_function = (
+            TruncMonth if period in ('12m', 'all') else TruncDate
+        )
+
+        timeline = (
+            queryset
+            .annotate(
+                date=trunc_function(
+                    'closed_at',
+                    tzinfo=timezone.get_current_timezone(),
+                )
+            )
+            .values('date')
+            .annotate(
+                wasted=Count(
+                    'id',
+                    filter=Q(status=ItemStatus.WASTED),
+                ),
+                eaten=Count(
+                    'id',
+                    filter=Q(status=ItemStatus.EATEN),
+                ),
+            )
+            .order_by('date')
+        )
+
+        return [
+            {
+                'date': row['date'].isoformat(),
+                'wasted': row['wasted'],
+                'eaten': row['eaten'],
+            }
+            for row in timeline
+        ]
+
+    def get_categories(self, queryset):
+        """Return food waste statistics grouped by product category."""
+        categories = (
+            queryset
+            .filter(status=ItemStatus.WASTED)
+            .values('product__category__name')
+            .annotate(wasted=Count('id'))
+            .order_by('-wasted')
+        )
+
+        return [
+            {
+                'name': row['product__category__name'] or 'Uncategorized',
+                'wasted': row['wasted'],
+            }
+            for row in categories
+        ]
+
+    def get_top_products(self, queryset):
+        """Return the five most frequently wasted products."""
+        products = (
+            queryset
+            .filter(status=ItemStatus.WASTED)
+            .values(
+                'product__name',
+                'product__brand',
+            )
+            .annotate(count=Count('id'))
+            .order_by('-count')[:5]
+        )
+
+        return [
+            {
+                'name': row['product__name'],
+                'brand': row['product__brand'],
+                'count': row['count'],
+            }
+            for row in products
+        ]
+
+    def get_expiry_statistics(self, queryset):
+        """Calculate how many wasted items were expired or not expired."""
+        closed_date = TruncDate(
+            'closed_at',
+            tzinfo=timezone.get_current_timezone(),
+        )
+
+        return (
+            queryset
+            .filter(status=ItemStatus.WASTED)
+            .aggregate(
+                expired=Count(
+                    'id',
+                    filter=Q(expiry_date__lt=closed_date),
+                ),
+                not_expired=Count(
+                    'id',
+                    filter=Q(expiry_date__gte=closed_date),
+                ),
+            )
         )
