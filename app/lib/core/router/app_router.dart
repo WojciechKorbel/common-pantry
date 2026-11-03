@@ -192,7 +192,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/stats',
         builder: (context, state) {
           final household = state.extra! as Household;
-          return StatsScreen(household: household);
+          return StatsScreen(
+            household: household,
+            controller: Dependencies.statisticsController(household.id),
+          );
         },
       ),
       GoRoute(

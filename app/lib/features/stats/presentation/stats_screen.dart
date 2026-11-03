@@ -1,22 +1,354 @@
-import 'package:common_pantry/core/widgets/placeholder_screen.dart';
+import 'package:common_pantry/core/widgets/app_app_bar.dart';
+import 'package:common_pantry/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/stats/presentation/controllers/statistics_controller.dart';
+import 'package:common_pantry/features/stats/presentation/widgets/statistics_category_list.dart';
+import 'package:common_pantry/features/stats/presentation/widgets/statistics_period_selector.dart';
+import 'package:common_pantry/features/stats/presentation/widgets/statistics_summary_card.dart';
+import 'package:common_pantry/features/stats/presentation/widgets/statistics_timeline_chart.dart';
+import 'package:common_pantry/features/stats/presentation/widgets/top_wasted_products_list.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-// TODO: ONLY PLACEHOLDER
-class StatsScreen extends StatelessWidget {
+class StatsScreen extends StatefulWidget {
   const StatsScreen({
     super.key,
     required this.household,
+    required this.controller,
   });
 
   final Household household;
+  final StatisticsController controller;
+
+  @override
+  State<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends State<StatsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.load();
+  }
+
+  String _periodLabel(String period) {
+    return switch (period) {
+      '7d' => '7 days',
+      '30d' => '30 days',
+      '12m' => '12 months',
+      'all' => 'All time',
+      _ => period,
+    };
+  }
+
+  Widget _sectionTitle(String title, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionCard({
+    required Widget child,
+  }) {
+    return Card(
+      elevation: 0,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildExpiryStatistics(
+    int expired,
+    int notExpired,
+    ThemeData theme,
+  ) {
+    final total = expired + notExpired;
+    final expiredPercentage = total == 0 ? 0.0 : expired / total;
+    final notExpiredPercentage = total == 0 ? 0.0 : notExpired / total;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _ExpiryValue(
+                title: 'Expired',
+                value: expired,
+                color: theme.colorScheme.error,
+              ),
+            ),
+            Expanded(
+              child: _ExpiryValue(
+                title: 'Not expired',
+                value: notExpired,
+                color: Colors.green,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Row(
+            children: [
+              Expanded(
+                flex: expired,
+                child: Container(
+                  height: 12,
+                  color: theme.colorScheme.error,
+                ),
+              ),
+              Expanded(
+                flex: notExpired,
+                child: Container(
+                  height: 12,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Expired: ${(expiredPercentage * 100).toStringAsFixed(1)}%  •  '
+          'Not expired: ${(notExpiredPercentage * 100).toStringAsFixed(1)}%',
+          style: theme.textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent(StatisticsController controller) {
+    final statistics = controller.statistics!;
+    final summary = statistics.summary;
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Overview',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 1.25,
+          children: [
+            StatisticsSummaryCard(
+              title: 'Active',
+              value: summary.activeCount,
+              icon: Icons.inventory_2_outlined,
+              color: Colors.blue,
+            ),
+            StatisticsSummaryCard(
+              title: 'Eaten',
+              value: summary.eatenCount,
+              icon: Icons.restaurant_outlined,
+              color: Colors.green,
+            ),
+            StatisticsSummaryCard(
+              title: 'Wasted',
+              value: summary.wastedCount,
+              icon: Icons.delete_outline,
+              color: theme.colorScheme.error,
+            ),
+            StatisticsSummaryCard(
+              title: 'Waste percentage',
+              value: summary.wastePercentage.round(),
+              icon: Icons.pie_chart_outline,
+              color: Colors.orange,
+              subtitle: '% of closed products',
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 24),
+
+        _sectionTitle('Food consumption history', theme),
+        _sectionCard(
+          child: StatisticsTimelineChart(
+            entries: statistics.timeline,
+            period: statistics.period,
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        _sectionTitle('Waste by category', theme),
+        _sectionCard(
+          child: StatisticsCategoryList(
+            categories: statistics.categories,
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        _sectionTitle('Most wasted products', theme),
+        _sectionCard(
+          child: TopWastedProductsList(
+            products: statistics.topWastedProducts,
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        _sectionTitle('Expiry statistics', theme),
+        _sectionCard(
+          child: _buildExpiryStatistics(
+            statistics.expiry.expired,
+            statistics.expiry.notExpired,
+            theme,
+          ),
+        ),
+
+        const SizedBox(height: 24),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return HouseholdPlaceholderScreen(
-      household: household,
-      title: 'Statistics',
-      icon: Icons.bar_chart_outlined,
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppAppBar(
+        title: widget.household.name,
+        onBack: () => context.go('/households'),
+        trailing: IconButton(
+          icon: const Icon(Icons.person_outline),
+          onPressed: () => context.push('/settings'),
+        ),
+      ),
+      body: SafeArea(
+        child: ListenableBuilder(
+          listenable: widget.controller,
+          builder: (context, _) {
+            final controller = widget.controller;
+
+            if (controller.isLoading && !controller.hasLoaded) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            if (controller.errorMessage != null && !controller.hasLoaded) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.bar_chart_outlined,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        controller.errorMessage!,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: controller.load,
+                        child: const Text('Try again'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: StatisticsPeriodSelector(
+                    controller: controller,
+                  ),
+                ),
+                if (controller.isLoading) const LinearProgressIndicator(),
+                if (controller.errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      controller.errorMessage!,
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: controller.refresh,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: _buildContent(controller),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      bottomNavigationBar: AppBottomNavigationBar(
+        household: widget.household,
+      ),
+    );
+  }
+}
+
+class _ExpiryValue extends StatelessWidget {
+  const _ExpiryValue({
+    required this.title,
+    required this.value,
+    required this.color,
+  });
+
+  final String title;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value.toString(),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }

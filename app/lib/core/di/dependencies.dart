@@ -18,6 +18,8 @@ import 'package:common_pantry/features/pantry/presentation/controllers/household
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/shopping/data/repositories/shopping_repository.dart';
 import 'package:common_pantry/features/shopping/presentation/controllers/shopping_controller.dart';
+import 'package:common_pantry/features/stats/data/repositories/statistics_repository.dart';
+import 'package:common_pantry/features/stats/presentation/controllers/statistics_controller.dart';
 
 class Dependencies {
   Dependencies._();
@@ -91,4 +93,14 @@ class Dependencies {
   // shopping feature
   static final shoppingRepository = ShoppingRepository(apiClient);
   static final shoppingController = ShoppingController(shoppingRepository, householdController);
+
+  // statistics
+  static final statisticsRepository = StatisticsRepository(apiClient);
+
+  static StatisticsController statisticsController(int householdId) {
+    return StatisticsController(
+      statisticsRepository,
+      householdId: householdId,
+    );
+  }
 }

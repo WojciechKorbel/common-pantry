@@ -74,10 +74,10 @@ urlpatterns = [
         name='pantry-item-detail',
     ),
     path(
-            'households/<int:household_id>/items/<int:pk>/close/',
-            views.PantryItemCloseView.as_view(),
-            name='pantry-item-close',
-        ),
+        'households/<int:household_id>/items/<int:pk>/close/',
+        views.PantryItemCloseView.as_view(),
+        name='pantry-item-close',
+    ),
     # Households
     path('households/', views.HouseholdListCreateAPIView.as_view(), name='household_list_create'),
     path(
@@ -136,5 +136,12 @@ urlpatterns = [
         'households/<int:household_id>/shopping/move-to-pantry/',
         views.ShoppingMoveToPantryView.as_view(),
         name='shopping-move-to-pantry',
+    ),
+
+    # Statistics
+    path(
+        'households/<int:household_id>/statistics/food-waste/',
+        views.FoodWasteStatisticsView.as_view(),
+        name='food-waste-statistics',
     ),
 ]
