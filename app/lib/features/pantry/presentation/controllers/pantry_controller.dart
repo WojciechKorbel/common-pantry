@@ -6,6 +6,7 @@ import 'package:common_pantry/features/pantry/data/models/product_category.dart'
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:common_pantry/features/pantry/domain/pantry_filter.dart';
+import 'package:common_pantry/features/services/pantry_widget_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
@@ -65,6 +66,17 @@ class PantryController extends ChangeNotifier {
 
   List<ProductCategory> get categories => categoriesIn(_groups);
 
+  Future<void> _syncWidget() async {
+    try {
+      await PantryWidgetService.updateWidget(
+        householdName: _households.current.name,
+        groups: _groups,
+      );
+    } catch (_) {
+      // Ignore
+    }
+  }
+
   Future<void> load({String? search}) async {
     final request = ++_lastRequest;
     _isLoading = true;
@@ -91,6 +103,7 @@ class PantryController extends ChangeNotifier {
     if (groups != null) {
       _groups = groups;
       _hasLoaded = true;
+      unawaited(_syncWidget());
     }
     _errorMessage = error;
     _isLoading = false;

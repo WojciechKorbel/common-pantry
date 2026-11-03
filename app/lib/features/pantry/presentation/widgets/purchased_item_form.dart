@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/di/dependencies.dart';
-import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
@@ -207,9 +206,9 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
                 leadingIcon: c.isCategoryLocked ? const Icon(Icons.lock_outline) : null,
                 errorText: c.categoriesError,
                 inputDecorationTheme: theme.inputDecorationTheme,
-                menuStyle: const MenuStyle(
-                  backgroundColor: WidgetStatePropertyAll(AppColors.surface),
-                  surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+                menuStyle: MenuStyle(
+                  backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+                  surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
                 ),
                 onSelected: c.setCategory,
                 dropdownMenuEntries: [
