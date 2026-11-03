@@ -1,7 +1,8 @@
+
 from datetime import timedelta
 from decimal import Decimal
-import secrets
 import random
+import secrets
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
@@ -23,6 +24,43 @@ from api.models import (
 class Command(BaseCommand):
     help = "Creates a demo household with food waste statistics data."
 
+    PRODUCT_DATA = [
+        ("Milk 1L", "Example Brand"),
+        ("Natural Yogurt", "Example Brand"),
+        ("Cheese", "Example Brand"),
+        ("White Bread", "Example Brand"),
+        ("Apples", None),
+        ("Tomatoes", None),
+        ("Chicken Breast", None),
+        ("Rice", "Example Brand"),
+        ("Orange Juice", "Example Brand"),
+        ("Frozen Pizza", "Example Brand"),
+        ("Chocolate", "Example Brand"),
+        ("Bananas", None),
+        ("Butter", "Example Brand"),
+        ("Cucumbers", None),
+        ("Spaghetti", "Example Brand"),
+        ("Eggs", None),
+        ("Carrots", None),
+        ("Ham", "Example Brand"),
+        ("Orange", None),
+        ("Biscuits", "Example Brand"),
+        ("Potatoes", None),
+        ("Onions", None),
+        ("Salmon", None),
+        ("Ground Beef", None),
+        ("Cream", "Example Brand"),
+        ("Strawberries", None),
+        ("Grapes", None),
+        ("Lettuce", None),
+        ("Cereal", "Example Brand"),
+        ("Oat Milk", "Example Brand"),
+    ]
+
+    HISTORY_ITEMS = 180
+    ACTIVE_ITEMS = 15
+    HISTORY_DAYS = 365
+
     def add_arguments(self, parser):
         parser.add_argument("--name", required=True)
         parser.add_argument("--username", required=True)
@@ -35,7 +73,9 @@ class Command(BaseCommand):
         try:
             user = User.objects.get(username=username)
         except User.DoesNotExist:
-            raise CommandError(f"User '{username}' does not exist.")
+            raise CommandError(
+                f"User '{username}' does not exist."
+            )
 
         if Membership.objects.filter(user=user).exists():
             self.stdout.write(
@@ -77,6 +117,15 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Household ID: {household.id}")
         self.stdout.write(f"Owner: {user.username}")
+        self.stdout.write(
+            f"Products created: {len(products)}"
+        )
+        self.stdout.write(
+            f"Historical items: {self.HISTORY_ITEMS}"
+        )
+        self.stdout.write(
+            f"Active items: {self.ACTIVE_ITEMS}"
+        )
 
     @staticmethod
     def generate_invite_code():
@@ -103,101 +152,128 @@ class Command(BaseCommand):
                 "Create categories before running the seed command."
             )
 
-        return categories
+        return list(categories.values())
 
     def create_products(self, household, categories):
-        product_data = [
-            ("Milk 1L", "Example Brand"),
-            ("Natural Yogurt", "Example Brand"),
-            ("Cheese", "Example Brand"),
-            ("White Bread", "Example Brand"),
-            ("Apples", None),
-            ("Tomatoes", None),
-            ("Chicken Breast", None),
-            ("Rice", "Example Brand"),
-            ("Orange Juice", "Example Brand"),
-            ("Frozen Pizza", "Example Brand"),
-            ("Chocolate", "Example Brand"),
-            ("Bananas", None),
-            ("Butter", "Example Brand"),
-            ("Cucumbers", None),
-            ("Spaghetti", "Example Brand"),
-            ("Eggs", None),
-            ("Carrots", None),
-            ("Ham", "Example Brand"),
-            ("Orange", None),
-            ("Biscuits", "Example Brand"),
-        ]
-
-        available_categories = list(categories.values())
-
-        if not available_categories:
-            raise CommandError("No categories available in database.")
-
         products = []
 
-        for name, brand in product_data:
+        for name, brand in self.PRODUCT_DATA:
             product = Product.objects.create(
                 household=household,
                 name=name,
                 brand=brand,
                 product_type=ProductType.CUSTOM,
-                category=random.choice(available_categories),
+                category=random.choice(categories),
             )
 
             products.append(product)
 
         return products
 
-    def create_pantry_history(self, household, user, products):
+    def create_pantry_history(
+        self,
+        household,
+        user,
+        products,
+    ):
         today = timezone.localdate()
+        now = timezone.now()
 
-        # Each tuple: product index, days ago, status, expiry offset
-        history = [
-            (0, 30, ItemStatus.WASTED, -5),
-            (1, 28, ItemStatus.EATEN, 3),
-            (2, 25, ItemStatus.WASTED, -2),
-            (3, 23, ItemStatus.EATEN, 5),
-            (4, 20, ItemStatus.EATEN, 4),
-            (5, 18, ItemStatus.WASTED, -1),
-            (6, 15, ItemStatus.EATEN, 3),
-            (7, 12, ItemStatus.WASTED, -3),
-            (8, 10, ItemStatus.EATEN, 5),
-            (9, 8, ItemStatus.WASTED, 0),
-            (10, 7, ItemStatus.EATEN, 4),
-            (11, 6, ItemStatus.EATEN, 2),
-            (12, 5, ItemStatus.WASTED, -1),
-            (13, 4, ItemStatus.EATEN, 5),
-            (14, 3, ItemStatus.WASTED, -2),
-            (15, 2, ItemStatus.EATEN, 3),
-        ]
+        history = []
 
-        for index, days_ago, item_status, expiry_offset in history:
+        for i in range(self.HISTORY_ITEMS):
+            # Spread records over the last 365 days.
+            days_ago = random.randint(
+                0,
+                self.HISTORY_DAYS - 1,
+            )
+
             added_date = today - timedelta(days=days_ago)
 
-            item = PantryItem.objects.create(
-                household=household,
-                product=products[index],
-                added_by=user,
-                expiry_date=added_date + timedelta(
-                    days=expiry_offset
-                ),
-                status=item_status,
-                created_at=added_date,
+            # Around 35% wasted and 65% eaten.
+            item_status = (
+                ItemStatus.WASTED
+                if random.random() < 0.35
+                else ItemStatus.EATEN
             )
 
-            if item_status != ItemStatus.ACTIVE:
-                item.closed_at = timezone.now() - timedelta(
-                    days=days_ago - 1
+            # Generate expiry dates relative to added date.
+            expiry_offset = random.randint(-5, 14)
+
+            expiry_date = (
+                added_date + timedelta(days=expiry_offset)
+            )
+
+            # Closing date should always be after added date.
+            days_until_closed = random.randint(0, 5)
+
+            closed_date = min(
+                added_date + timedelta(days=days_until_closed),
+                today,
+            )
+
+            # Make some wasted items expired and some not expired.
+            if item_status == ItemStatus.WASTED:
+                if random.random() < 0.7:
+                    expiry_date = closed_date - timedelta(
+                        days=random.randint(1, 7)
+                    )
+                else:
+                    expiry_date = closed_date + timedelta(
+                        days=random.randint(0, 5)
+                    )
+
+            closed_at = timezone.make_aware(
+                timezone.datetime.combine(
+                    closed_date,
+                    timezone.datetime.min.time(),
                 )
-                item.save(update_fields=["closed_at"])
-
-        # Current active pantry products
-        for index, product in enumerate(products[:8]):
-            PantryItem.objects.create(
-                household=household,
-                product=product,
-                added_by=user,
-                expiry_date=today + timedelta(days=index - 2),
-                status=ItemStatus.ACTIVE,
+            ) + timedelta(
+                hours=random.randint(8, 21),
+                minutes=random.randint(0, 59),
             )
+
+            # Do not generate future closing timestamps.
+            closed_at = min(closed_at, now)
+
+            history.append(
+                PantryItem(
+                    household=household,
+                    product=random.choice(products),
+                    added_by=user,
+                    expiry_date=expiry_date,
+                    status=item_status,
+                    created_at=timezone.make_aware(
+                        timezone.datetime.combine(
+                            added_date,
+                            timezone.datetime.min.time(),
+                        )
+                    ),
+                    closed_at=closed_at,
+                )
+            )
+
+        PantryItem.objects.bulk_create(history)
+
+        # Current active pantry products.
+        active_items = []
+
+        for _ in range(self.ACTIVE_ITEMS):
+            added_days_ago = random.randint(0, 20)
+
+            active_items.append(
+                PantryItem(
+                    household=household,
+                    product=random.choice(products),
+                    added_by=user,
+                    expiry_date=today + timedelta(
+                        days=random.randint(-3, 14)
+                    ),
+                    status=ItemStatus.ACTIVE,
+                    created_at=now - timedelta(
+                        days=added_days_ago
+                    ),
+                )
+            )
+
+        PantryItem.objects.bulk_create(active_items)
