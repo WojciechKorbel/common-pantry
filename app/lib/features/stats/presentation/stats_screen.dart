@@ -31,16 +31,6 @@ class _StatsScreenState extends State<StatsScreen> {
     widget.controller.load();
   }
 
-  String _periodLabel(String period) {
-    return switch (period) {
-      '7d' => '7 days',
-      '30d' => '30 days',
-      '12m' => '12 months',
-      'all' => 'All time',
-      _ => period,
-    };
-  }
-
   Widget _sectionTitle(String title, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -239,10 +229,6 @@ class _StatsScreenState extends State<StatsScreen> {
       appBar: AppAppBar(
         title: widget.household.name,
         onBack: () => context.go('/households'),
-        trailing: IconButton(
-          icon: const Icon(Icons.person_outline),
-          onPressed: () => context.push('/settings'),
-        ),
       ),
       body: SafeArea(
         child: ListenableBuilder(
