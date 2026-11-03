@@ -648,6 +648,17 @@ class HouseholdLeaveAPIView(
 
             # If this is the last member, delete the entire household.
             if not other_members.exists():
+                # Delete pantry items.
+                PantryItem.objects.filter(
+                    household=household
+                ).delete()
+
+                # Delete shopping items.
+                ShoppingItem.objects.filter(
+                    household=household
+                ).delete()
+
+                # Delete household.
                 household.delete()
 
                 return Response(
