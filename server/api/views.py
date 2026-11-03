@@ -1569,7 +1569,7 @@ class FoodWasteStatisticsView(HouseholdMixin, APIView):
     def get_timeline(self, queryset, period):
         """Return daily or monthly food consumption and waste statistics."""
         trunc_function = (
-            TruncMonth if period == '12m' else TruncDate
+            TruncMonth if period in ('12m', 'all') else TruncDate
         )
 
         timeline = (

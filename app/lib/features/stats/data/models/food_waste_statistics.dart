@@ -22,23 +22,25 @@ class FoodWasteStatistics {
         Map<String, dynamic>.from(json['summary'] as Map),
       ),
       timeline: (json['timeline'] as List<dynamic>)
-          .map((e) =>
-          StatisticsTimelineEntry.fromJson(
-            Map<String, dynamic>.from(e as Map),
-          ))
+          .map(
+            (e) => StatisticsTimelineEntry.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
           .toList(),
       categories: (json['categories'] as List<dynamic>)
-          .map((e) =>
-          WastedCategory.fromJson(
-            Map<String, dynamic>.from(e as Map),
-          ))
+          .map(
+            (e) => WastedCategory.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
           .toList(),
-      topWastedProducts:
-      (json['top_wasted_products'] as List<dynamic>)
-          .map((e) =>
-          TopWastedProduct.fromJson(
-            Map<String, dynamic>.from(e as Map),
-          ))
+      topWastedProducts: (json['top_wasted_products'] as List<dynamic>)
+          .map(
+            (e) => TopWastedProduct.fromJson(
+              Map<String, dynamic>.from(e as Map),
+            ),
+          )
           .toList(),
       expiry: ExpiryStatistics.fromJson(
         Map<String, dynamic>.from(json['expiry'] as Map),
@@ -85,7 +87,9 @@ class StatisticsTimelineEntry {
 
   factory StatisticsTimelineEntry.fromJson(Map<String, dynamic> json) {
     return StatisticsTimelineEntry(
-      date: DateTime.parse(json['date'] as String),
+      date: DateTime.parse(
+        (json['date'] as String).substring(0, 10),
+      ),
       eaten: (json['eaten'] as num).toInt(),
       wasted: (json['wasted'] as num).toInt(),
     );
