@@ -3,6 +3,7 @@ import 'package:common_pantry/features/pantry/data/models/household_details.dart
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:common_pantry/features/pantry/data/models/product_origin.dart';
 import 'package:dio/dio.dart';
 
 class PantryRepository {
@@ -93,6 +94,7 @@ class PantryRepository {
     required String name,
     String? brand,
     int? categoryId,
+    required ProductOrigin origin,
   }) async {
     final response = await api.dio.post<Map<String, dynamic>>(
       '/api/households/$householdId/products/',
@@ -100,6 +102,7 @@ class PantryRepository {
         'name': name,
         if (brand != null && brand.isNotEmpty) 'brand': brand,
         'category': ?categoryId,
+        'origin': origin.name,
       },
     );
     final data = response.data;
@@ -114,6 +117,7 @@ class PantryRepository {
     required int productId,
     required DateTime expiryDate,
     required int count,
+    required ProductOrigin origin,
   }) async {
     await api.dio.post<List<dynamic>>(
       '/api/households/$householdId/items/',
@@ -121,6 +125,7 @@ class PantryRepository {
         'product': productId,
         'expiry_date': _isoDate(expiryDate),
         'count': count,
+        'origin': origin.name,
       },
     );
   }

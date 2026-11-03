@@ -53,18 +53,21 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
     PantryGroupItem item,
     String status,
   ) async {
+    final canAddToShoppingList = item.origin == 'purchased';
+
     final result = await showClosePantryItemDialog(
       context: context,
       productName: product.name,
       expiryDate: item.expiryDate,
       status: status,
+      origin: item.origin,
     );
 
     if (result == null || !mounted) {
       return;
     }
 
-    final addToShoppingList = result.addToShoppingList;
+    final addToShoppingList = canAddToShoppingList && result.addToShoppingList;
 
     final success = await widget.controller.closeItem(
       itemId: item.id,

@@ -6,6 +6,7 @@ class PantryGroupItem {
     required this.id,
     required this.expiryDate,
     this.expiryStatus,
+    required this.origin,
     required this.addedBy,
     required this.createdAt,
   });
@@ -13,6 +14,7 @@ class PantryGroupItem {
   final int id;
   final DateTime expiryDate;
   final String? expiryStatus;
+  final String origin;
 
   /// Null when the user who added the item no longer exists.
   final UserSummary? addedBy;
@@ -28,6 +30,7 @@ class PantryGroupItem {
         id: id,
         expiryDate: DateTime.parse(expiryDate),
         expiryStatus: json['expiry_status'] as String?,
+        origin: json['origin'] as String? ?? '',
         addedBy: switch (json['added_by']) {
           final Map<String, dynamic> user => UserSummary.fromJson(user),
           _ => null,

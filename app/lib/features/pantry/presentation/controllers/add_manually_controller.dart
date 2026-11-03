@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:common_pantry/features/pantry/data/models/product_origin.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -189,7 +190,7 @@ class AddManuallyController extends ChangeNotifier {
   }
 
   /// Creates the custom product if needed, then adds the items. True on success.
-  Future<bool> submit() async {
+  Future<bool> submit({required ProductOrigin origin}) async {
     if (_isSubmitting) {
       return false;
     }
@@ -209,12 +210,14 @@ class AddManuallyController extends ChangeNotifier {
             householdId,
             name: _name.trim(),
             categoryId: _category?.id,
+            origin: origin,
           );
       await _repository.addItems(
         householdId,
         productId: product.id,
         expiryDate: _expiryDate!,
         count: _count,
+        origin: origin,
       );
       _isSubmitting = false;
       notifyListeners();

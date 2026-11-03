@@ -27,6 +27,7 @@ from .models import (
     PantryItem,
     PasswordReset,
     Product,
+    ProductOrigin,
     ProductType,
     ShoppingItem,
 )
@@ -467,7 +468,10 @@ class ProductByBarcodeView(HouseholdMixin, APIView):
 
             data['category'] = open_food_facts.match_category(data.pop('categories_tags'))
             product, _ = Product.objects.get_or_create(
-                product_type=ProductType.GLOBAL, barcode=barcode, defaults=data
+                product_type=ProductType.GLOBAL, barcode=barcode, defaults={
+                    **data,
+                    'origin': ProductOrigin.PURCHASED,
+                }
             )
 
         return Response(ProductSerializer(product).data)
@@ -1410,6 +1414,7 @@ class ShoppingMoveToPantryView(HouseholdMixin, APIView):
                 name=item.name,
                 brand=brand or None,
                 category=item.category,
+                origin=ProductOrigin.PURCHASED,
             )
         return product
 
@@ -1450,6 +1455,14 @@ class PantryItemCloseView(HouseholdMixin, APIView):
             shopping_item = None
 
             if serializer.validated_data['add_to_shopping_list']:
+                if item.product.origin == ProductOrigin.HOMEMADE:
+                    return Response(
+                        {
+                            'detail': 'Homemade products cannot be added to the shopping list.'
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
                 shopping_item = (
                     ShoppingItem.objects
                     .select_for_update()

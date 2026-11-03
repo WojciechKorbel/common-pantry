@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:common_pantry/features/pantry/data/models/product_origin.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/add_manually_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
 import 'package:flutter/material.dart';
@@ -85,7 +86,9 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    final success = await _controller.submit();
+    final success = await _controller.submit(
+      origin: ProductOrigin.homemade,
+    );
     if (!mounted) {
       return;
     }
