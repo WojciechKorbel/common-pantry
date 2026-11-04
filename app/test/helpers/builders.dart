@@ -85,13 +85,14 @@ FoodWasteStatistics aStatistics({String period = '30d'}) => FoodWasteStatistics(
   expiry: const ExpiryStatistics(expired: 0, notExpired: 0),
 );
 
-/// The server answered with [statusCode].
-DioException serverError(int statusCode) => DioException(
+/// The server answered with [statusCode] and an optional JSON body.
+DioException serverError(int statusCode, {Object? data}) => DioException(
   requestOptions: RequestOptions(path: '/'),
   type: DioExceptionType.badResponse,
   response: Response<dynamic>(
     requestOptions: RequestOptions(path: '/'),
     statusCode: statusCode,
+    data: data,
   ),
 );
 
