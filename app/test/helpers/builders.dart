@@ -3,6 +3,7 @@ import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/shopping/data/models/shopping_item.dart';
+import 'package:common_pantry/features/stats/data/models/food_waste_statistics.dart';
 import 'package:dio/dio.dart';
 
 const dairy = ProductCategory(id: 4, name: 'Dairy');
@@ -59,6 +60,20 @@ ShoppingItem aShoppingItem({
   isBought: bought,
   addedBy: null,
   boughtBy: null,
+);
+
+FoodWasteStatistics aStatistics({String period = '30d'}) => FoodWasteStatistics(
+  period: period,
+  summary: const StatisticsSummary(
+    activeCount: 0,
+    eatenCount: 0,
+    wastedCount: 0,
+    wastePercentage: 0,
+  ),
+  timeline: const [],
+  categories: const [],
+  topWastedProducts: const [],
+  expiry: const ExpiryStatistics(expired: 0, notExpired: 0),
 );
 
 /// The server answered with [statusCode].
