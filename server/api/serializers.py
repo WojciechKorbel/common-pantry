@@ -13,6 +13,7 @@ from .models import (
     Membership,
     PantryItem,
     Product,
+    ProductOrigin,
     ProductType,
     ShoppingItem,
 )
@@ -121,7 +122,7 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'brand', 'barcode', 'package_size', 'image_url', 'category', 'product_type']
+        fields = ['id', 'name', 'brand', 'barcode', 'package_size', 'image_url', 'category', 'product_type', 'origin']
 
 
 class CustomProductCreateSerializer(serializers.ModelSerializer):
@@ -132,6 +133,12 @@ class CustomProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['name', 'brand', 'package_size', 'category', 'barcode']
+        extra_kwargs = {
+            'origin': {
+                'required': False,
+                'default': ProductOrigin.PURCHASED,
+            }
+        }
 
 
 class ProductUpdateSerializer(serializers.ModelSerializer):
@@ -141,7 +148,8 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['name', 'brand', 'package_size', 'category']
+        fields = [
+            'name', 'brand', 'package_size', 'category', 'origin']
 
 
 class PantryGroupItemSerializer(serializers.ModelSerializer):
@@ -149,10 +157,21 @@ class PantryGroupItemSerializer(serializers.ModelSerializer):
 
     added_by = UserSummarySerializer(read_only=True)
     expiry_status = serializers.SerializerMethodField()
+    origin = serializers.CharField(
+        source='product.origin',
+        read_only=True
+    )
 
     class Meta:
         model = PantryItem
-        fields = ['id', 'expiry_date', 'expiry_status', 'added_by', 'created_at']
+        fields = [
+            'id',
+            'expiry_date',
+            'expiry_status',
+            'origin',
+            'added_by',
+            'created_at',
+        ]
 
     def get_expiry_status(self, obj):
         return calculate_expiry_status(obj.expiry_date)
@@ -170,7 +189,7 @@ class PantryGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'brand', 'image_url', 'package_size', 'category',
+            'id', 'name', 'brand', 'image_url', 'package_size', 'category', 'origin',
             'item_count', 'earliest_expiry', 'expiry_status', 'items',
         ]
 
@@ -181,10 +200,20 @@ class PantryGroupSerializer(serializers.ModelSerializer):
 class PantryItemSerializer(serializers.ModelSerializer):
     added_by = UserSummarySerializer(read_only=True)
     expiry_status = serializers.SerializerMethodField()
+    origin = serializers.CharField(source='product.origin', read_only=True)
 
     class Meta:
         model = PantryItem
-        fields = ['id', 'product', 'expiry_date', 'expiry_status', 'status', 'added_by', 'created_at']
+        fields = [
+            'id',
+            'product',
+            'expiry_date',
+            'expiry_status',
+            'status',
+            'origin',
+            'added_by',
+            'created_at',
+        ]
 
     def get_expiry_status(self, obj):
         return calculate_expiry_status(obj.expiry_date)
@@ -194,6 +223,10 @@ class PantryItemCreateSerializer(serializers.Serializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     expiry_date = serializers.DateField()
     count = serializers.IntegerField(min_value=1, max_value=20, default=1)
+    origin = serializers.ChoiceField(
+        choices=ProductOrigin.choices,
+        required=False
+    )
 
     def validate_product(self, product):
         household = self.context['household']
@@ -203,7 +236,21 @@ class PantryItemCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         count = validated_data.pop('count')
-        return PantryItem.objects.bulk_create(PantryItem(**validated_data) for _ in range(count))
+        origin = validated_data.pop('origin', None)
+
+        # Extract product before creating PantryItems
+        product = validated_data['product']
+
+        # Update Product origin, not PantryItem origin
+        if origin is not None and product.origin != origin:
+            product.origin = origin
+            product.save(update_fields=['origin'])
+
+        # Create pantry items without origin
+        return PantryItem.objects.bulk_create(
+            PantryItem(**validated_data)
+            for _ in range(count)
+        )
 
 
 class HouseholdSerializer(serializers.ModelSerializer):

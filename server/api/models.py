@@ -205,6 +205,11 @@ class ProductType(models.TextChoices):
     CUSTOM = 'custom', 'Custom'  # added by hand, visible only in its household
 
 
+class ProductOrigin(models.TextChoices):
+    PURCHASED = 'purchased', 'Purchased'
+    HOMEMADE = 'homemade', 'Homemade'
+
+
 class Product(models.Model):
     household = models.ForeignKey(
         Household, on_delete=models.CASCADE, null=True, blank=True, related_name='products'
@@ -212,6 +217,7 @@ class Product(models.Model):
     barcode = models.CharField(max_length=64, null=True, blank=True, db_index=True)
     name = models.CharField(max_length=255)
     brand = models.CharField(max_length=255, null=True, blank=True)
+    origin = models.CharField(max_length=20, choices=ProductOrigin.choices, default=ProductOrigin.PURCHASED)
     package_size = models.CharField(max_length=50, blank=True, default='')
     product_type = models.CharField(max_length=20, choices=ProductType.choices, default=ProductType.CUSTOM)
     image_url = models.TextField(null=True, blank=True)

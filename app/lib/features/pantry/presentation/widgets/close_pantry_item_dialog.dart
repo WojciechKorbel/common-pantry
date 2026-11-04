@@ -5,6 +5,7 @@ Future<CloseItemDialogResult?> showClosePantryItemDialog({
   required String productName,
   required DateTime expiryDate,
   required String status,
+  required String origin,
 }) {
   return showDialog<CloseItemDialogResult>(
     context: context,
@@ -12,6 +13,7 @@ Future<CloseItemDialogResult?> showClosePantryItemDialog({
       productName: productName,
       expiryDate: expiryDate,
       status: status,
+      origin: origin,
     ),
   );
 }
@@ -30,11 +32,13 @@ class ClosePantryItemDialog extends StatefulWidget {
     required this.productName,
     required this.expiryDate,
     required this.status,
+    required this.origin,
   });
 
   final String productName;
   final DateTime expiryDate;
   final String status;
+  final String origin;
 
   @override
   State<ClosePantryItemDialog> createState() => _ClosePantryItemDialogState();
@@ -55,8 +59,14 @@ class _ClosePantryItemDialogState extends State<ClosePantryItemDialog> {
       '${date.month.toString().padLeft(2, '0')}.'
       '${date.year}';
 
+  bool get _canAddToShoppingList => widget.origin == 'purchased';
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // debugPrint('Pantry item origin: "${widget.origin}"');
+    // debugPrint('Can add to shopping list: $_canAddToShoppingList');
     return AlertDialog(
       title: Text(_actionTitle),
       content: Column(
@@ -67,24 +77,38 @@ class _ClosePantryItemDialogState extends State<ClosePantryItemDialog> {
             'Are you sure you want to mark "${widget.productName}" '
             'expiring on ${_formatDate(widget.expiryDate)} as $_actionLabel?',
           ),
-          const SizedBox(height: 16),
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.leading,
-            value: _addToShoppingList,
-            onChanged: (value) {
-              setState(() {
-                _addToShoppingList = value ?? false;
-              });
-            },
-            title: const Text(
-              'Add to shopping list',
-              style: TextStyle(fontWeight: FontWeight.w500),
+
+          if (widget.origin == 'homemade') ...[
+            const SizedBox(height: 12),
+            Text(
+              'Homemade products cannot be added to the shopping list.',
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.secondary,
+              ),
             ),
-            subtitle: const Text(
-              'Add this product so you can buy it again.',
+          ],
+
+          if (_canAddToShoppingList) ...[
+            const SizedBox(height: 16),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _addToShoppingList,
+              onChanged: (value) {
+                setState(() {
+                  _addToShoppingList = value ?? false;
+                });
+              },
+              title: const Text(
+                'Add to shopping list',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
+              subtitle: const Text(
+                'Add this product so you can buy it again.',
+              ),
             ),
-          ),
+          ],
         ],
       ),
       actions: [

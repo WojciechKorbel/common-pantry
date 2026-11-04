@@ -1,0 +1,4 @@
+enum ProductOrigin {
+  homemade,
+  purchased,
+}
