@@ -1,9 +1,31 @@
+import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:dio/dio.dart';
 
 const dairy = ProductCategory(id: 4, name: 'Dairy');
-const readyMeals = ProductCategory(id: 3, name: 'Ready meals & soups');
+const readyMeals = ProductCategory(id: 3, name: 'Ready meals & soups'); // existing line
+
+const home = Household(id: 1, name: 'Akademik');
+
+PantryGroup aPantryGroup({
+  int id = 1,
+  String name = 'Serek wiejski',
+  ProductCategory? category,
+  int itemCount = 1,
+  DateTime? earliestExpiry,
+}) => PantryGroup(
+  id: id,
+  name: name,
+  brand: null,
+  imageUrl: null,
+  packageSize: '',
+  category: category,
+  itemCount: itemCount,
+  earliestExpiry: earliestExpiry ?? DateTime(2026, 11, 20),
+  items: const [],
+);
 
 Product aProduct({
   int id = 1,
@@ -26,7 +48,10 @@ Product aProduct({
 DioException serverError(int statusCode) => DioException(
   requestOptions: RequestOptions(path: '/'),
   type: DioExceptionType.badResponse,
-  response: Response<dynamic>(requestOptions: RequestOptions(path: '/'), statusCode: statusCode),
+  response: Response<dynamic>(
+    requestOptions: RequestOptions(path: '/'),
+    statusCode: statusCode,
+  ),
 );
 
 /// The server could not be reached at all.
