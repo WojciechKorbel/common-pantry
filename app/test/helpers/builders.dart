@@ -1,4 +1,5 @@
 import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/pantry/data/models/household_details.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
@@ -10,6 +11,14 @@ const dairy = ProductCategory(id: 4, name: 'Dairy');
 const readyMeals = ProductCategory(id: 3, name: 'Ready meals & soups');
 
 const home = Household(id: 1, name: 'Akademik');
+
+const homeDetails = HouseholdDetails(
+  id: 1,
+  name: 'Akademik',
+  inviteCode: 'K7Q2MX',
+  role: 'owner',
+  members: [],
+);
 
 PantryGroup aPantryGroup({
   int id = 1,

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:common_pantry/features/pantry/data/models/household_details.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
@@ -27,6 +28,11 @@ class FakePantryRepository implements PantryRepository {
   final deletedItemIds = <int>[];
   final closedItems = <({int itemId, String status, bool addToShoppingList})>[];
   final updatedProducts = <({int productId, String name, String? brand, int? categoryId})>[];
+  HouseholdDetails householdDetails = homeDetails;
+  Object? detailsError;
+  int detailsRequests = 0;
+  Object? householdActionError;
+  final householdActions = <String>[];
 
   List<Product> products = []; // existing line
   List<ProductCategory> categories = [dairy, readyMeals];
@@ -151,6 +157,38 @@ class FakePantryRepository implements PantryRepository {
   }) async {
     _throwItemActionError();
     updatedProducts.add((productId: productId, name: name, brand: brand, categoryId: categoryId));
+  }
+
+  @override
+  Future<HouseholdDetails> getHouseholdDetails(int householdId) async {
+    detailsRequests++;
+    if (detailsError case final Object error) {
+      throw error;
+    }
+    return householdDetails;
+  }
+
+  @override
+  Future<void> promoteMember(int householdId, int userId) => _householdAction('promote $userId');
+
+  @override
+  Future<void> demoteMember(int householdId, int userId) => _householdAction('demote $userId');
+
+  @override
+  Future<void> removeMember(int householdId, int userId) => _householdAction('remove $userId');
+
+  @override
+  Future<void> updateHouseholdName(int householdId, {required String name}) =>
+      _householdAction('rename $name');
+
+  @override
+  Future<void> leaveHousehold(int householdId) => _householdAction('leave');
+
+  Future<void> _householdAction(String action) async {
+    if (householdActionError case final Object error) {
+      throw error;
+    }
+    householdActions.add(action);
   }
 
   void _throwItemActionError() {

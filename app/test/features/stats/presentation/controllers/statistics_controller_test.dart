@@ -86,6 +86,7 @@ void main() {
       expect(controller.period, '7d');
       expect(controller.statistics?.period, '7d');
     },
-    skip: 'Known bug: a period chosen during a load is never fetched (see block 13b)',
+    // TODO: remove when fixed
+    skip: 'Known bug: a period chosen during a load is never fetched',
   );
 }
