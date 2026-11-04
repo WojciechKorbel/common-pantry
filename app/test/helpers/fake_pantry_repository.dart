@@ -24,6 +24,9 @@ class FakePantryRepository implements PantryRepository {
   Object? createProductError;
   Object? addItemsError;
 
+  int? failAddItemsOnCall;
+  int _addItemsCalls = 0;
+
   final searchQueries = <String>[];
   int categoriesCalls = 0;
   final createdProducts = <CreatedProduct>[];
@@ -74,7 +77,9 @@ class FakePantryRepository implements PantryRepository {
         required int count,
         required ProductOrigin origin,
       }) async {
-    if (addItemsError case final Object error) {
+    _addItemsCalls++;
+    final failThisCall = failAddItemsOnCall == null || failAddItemsOnCall == _addItemsCalls;
+    if (addItemsError case final Object error when failThisCall) {
       throw error;
     }
     addedItems.add((productId: productId, expiryDate: expiryDate, count: count, origin: origin));
