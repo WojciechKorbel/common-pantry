@@ -1,8 +1,10 @@
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/household_details.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
+import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:common_pantry/features/pantry/data/models/user_summary.dart';
 import 'package:common_pantry/features/shopping/data/models/shopping_item.dart';
 import 'package:common_pantry/features/stats/data/models/food_waste_statistics.dart';
 import 'package:dio/dio.dart';
@@ -26,6 +28,8 @@ PantryGroup aPantryGroup({
   ProductCategory? category,
   int itemCount = 1,
   DateTime? earliestExpiry,
+  String? expiryStatus,
+  List<PantryGroupItem> items = const [],
 }) => PantryGroup(
   id: id,
   name: name,
@@ -35,7 +39,21 @@ PantryGroup aPantryGroup({
   category: category,
   itemCount: itemCount,
   earliestExpiry: earliestExpiry ?? DateTime(2026, 11, 20),
-  items: const [],
+  expiryStatus: expiryStatus,
+  items: items,
+);
+
+PantryGroupItem aPantryGroupItem({
+  int id = 1,
+  DateTime? expiryDate,
+  String? addedBy = 'user1',
+  String origin = 'purchased',
+}) => PantryGroupItem(
+  id: id,
+  expiryDate: expiryDate ?? DateTime(2026, 11, 20),
+  origin: origin,
+  addedBy: addedBy == null ? null : UserSummary(id: 1, username: addedBy),
+  createdAt: DateTime(2026, 11, 1),
 );
 
 Product aProduct({
