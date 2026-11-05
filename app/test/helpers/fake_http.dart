@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:common_pantry/core/network/api_client.dart';
 import 'package:common_pantry/core/storage/token_storage.dart';
 import 'package:dio/dio.dart';
 
@@ -24,6 +25,10 @@ class FakeHttpAdapter implements HttpClientAdapter {
   Duration delay = Duration.zero;
 
   final requests = <FakeRequest>[];
+
+  /// (method, path) of every request, in order.
+  List<(String, String)> get calls =>
+      requests.map((request) => (request.method, request.path)).toList();
 
   @override
   Future<ResponseBody> fetch(
@@ -85,3 +90,10 @@ class FakeTokenStorage implements TokenStorage {
     refresh = null;
   }
 }
+
+/// [ApiClient] talking to [server] instead of the network, with a logged-in user.
+ApiClient fakeApiClient(FakeHttpAdapter server, {FakeTokenStorage? tokens}) => ApiClient(
+  tokens ?? FakeTokenStorage(access: 'access-1', refresh: 'refresh-1'),
+  baseUrl: 'https://api.test',
+  httpClientAdapter: server,
+);
