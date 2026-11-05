@@ -81,6 +81,7 @@ void main() {
         expect(repository.itemRequests, hasLength(1));
         expect(controller.items, [mleko]);
       },
+      // TODO: remove when fixed
       skip: 'Known bug: every HouseholdController notification reloads the list (see block 25b)',
     );
   });
