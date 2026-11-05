@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:common_pantry/features/auth/data/repositories/auth_repository.dart';
 
 /// In-memory [AuthRepository]: logs every call, then throws [error] or returns [response].
@@ -7,6 +9,21 @@ class FakeAuthRepository implements AuthRepository {
 
   /// Readable log of calls, e.g. 'requestPasswordReset jan@pantry.pl'.
   final calls = <String>[];
+
+  /// When set, login waits until the test completes it.
+  Completer<void>? pendingLogin;
+
+  @override
+  Future<void> login({required String username, required String password}) async {
+    calls.add('login $username $password');
+    if (error case final Object error) {
+      throw error;
+    }
+    final pending = pendingLogin;
+    if (pending != null) {
+      await pending.future;
+    }
+  }
 
   @override
   Future<Map<String, dynamic>> register({
