@@ -117,6 +117,21 @@ void main() {
       expect(controller.expiryFilter, isNull);
       expect(repository.pantryRequests.last.householdId, 2);
     });
+
+    test(
+      'reloading the households list keeps the pantry and its filters',
+      () async {
+        await controller.load();
+        controller.setQuery('ser');
+
+        await households.loadHouseholds();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(repository.pantryRequests, hasLength(1));
+        expect(controller.query, 'ser');
+      },
+      skip: 'Known bug: every HouseholdController notification reloads the pantry (see block 25b)',
+    );
   });
 
   group('filters', () {
@@ -200,10 +215,10 @@ void main() {
       );
 
       expect(repository.updatedProducts.single, (
-      productId: 3,
-      name: 'Zupa krem',
-      brand: null,
-      categoryId: readyMeals.id,
+        productId: 3,
+        name: 'Zupa krem',
+        brand: null,
+        categoryId: readyMeals.id,
       ));
       expect(repository.pantryRequests, hasLength(1));
     });

@@ -68,6 +68,21 @@ void main() {
       expect(repository.itemRequests, [home.id, 2]);
       expect(controller.hasLoaded, isTrue);
     });
+
+    test(
+      'reloading the households list keeps the shopping list',
+      () async {
+        repository.items = [mleko];
+        await controller.load();
+
+        await households.loadHouseholds();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(repository.itemRequests, hasLength(1));
+        expect(controller.items, [mleko]);
+      },
+      skip: 'Known bug: every HouseholdController notification reloads the list (see block 25b)',
+    );
   });
 
   group('list actions', () {
