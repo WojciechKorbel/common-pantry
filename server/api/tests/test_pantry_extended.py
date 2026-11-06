@@ -271,3 +271,23 @@ class PantryExtendedAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("homemade products cannot be added", response.data.get("detail", "").lower())
+
+    def test_household_mixin_rejects_non_member_access(self):
+        """User cannot access pantry, items, or custom products of a household they do not belong to."""
+        # Accessing other household pantry list
+        url_pantry = reverse("pantry", args=[self.other_household.id])
+        self.assertEqual(self.client.get(url_pantry).status_code, status.HTTP_404_NOT_FOUND)
+
+        # Creating item in other household
+        url_item = reverse("pantry-item-create", args=[self.other_household.id])
+        self.assertEqual(
+            self.client.post(url_item, {"count": 1}, format="json").status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+
+        # Creating custom product in other household
+        url_custom = reverse("custom-product-create", args=[self.other_household.id])
+        self.assertEqual(
+            self.client.post(url_custom, {"name": "Intruder Bread"}, format="json").status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
