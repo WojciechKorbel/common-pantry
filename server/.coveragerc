@@ -1,23 +1,12 @@
 [run]
-source = api
-omit =
-    *migrations*
-    *management*
-    *tests*
-    *config*
-    manage.py
-    *asgi.py
-    *wsgi.py
+include =
+    api/*.py
+    api/services/*.py
 
 [report]
-omit =
-    *migrations*
-    *management*
-    *tests*
-    *config*
-    manage.py
-    *asgi.py
-    *wsgi.py
+include =
+    api/*.py
+    api/services/*.py
 exclude_lines =
     pragma: no cover
     def __str__
