@@ -132,7 +132,7 @@ class CustomProductCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['name', 'brand', 'package_size', 'category', 'barcode']
+        fields = ['name', 'brand', 'package_size', 'category', 'barcode', 'origin']
         extra_kwargs = {
             'origin': {
                 'required': False,

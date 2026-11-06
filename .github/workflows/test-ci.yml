@@ -1,0 +1,62 @@
+name: Tests & Coverage
+
+on:
+  push:
+    branches: [ "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: server
+
+    env:
+      DJANGO_SECRET_KEY: "ci-test-secret-key-not-for-production"
+      DJANGO_DEBUG: "False"
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
+      EMAIL_VERIFICATION_CODE_LENGTH: "6"
+      EMAIL_VERIFICATION_CODE_EXPIRY_MINUTES: "15"
+      EMAIL_VERIFICATION_MAX_ATTEMPTS: "5"
+      EMAIL_VERIFICATION_RESEND_COOLDOWN_SECONDS: "60"
+      EMAIL_VERIFICATION_RESEND_MAX_ATTEMPTS: "3"
+      PASSWORD_RESET_CODE_LENGTH: "6"
+      PASSWORD_RESET_CODE_EXPIRY_MINUTES: "15"
+      PASSWORD_RESET_MAX_ATTEMPTS: "5"
+      PASSWORD_RESET_RESEND_COOLDOWN_SECONDS: "60"
+      PASSWORD_RESET_RESEND_MAX_ATTEMPTS: "3"
+      PASSWORD_RESET_TOKEN_EXPIRY_MINUTES: "15"
+      OPEN_FOOD_FACTS_USER_AGENT: "SharedPantry-CI/1.0"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: server/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install coverage
+
+      - name: Run Django system checks & migrations test
+        run: |
+          python manage.py check
+          python manage.py migrate --no-input
+
+      - name: Run Tests with Coverage
+        run: |
+          coverage run --rcfile=.coveragerc manage.py test api.tests
+
+      - name: Check Coverage Report & Threshold (85% minimum)
+        run: |
+          coverage report --rcfile=.coveragerc -m --fail-under=85

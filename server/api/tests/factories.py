@@ -8,7 +8,7 @@ from itertools import count
 
 from django.contrib.auth.models import User
 
-from api.models import Category, Household, Membership, PantryItem, Product, ProductType
+from api.models import Category, Household, Membership, PantryItem, Product, ProductType, ProductOrigin
 
 _numbers = count(1)
 
@@ -24,15 +24,23 @@ def make_household(*members, name='Home'):
     return household
 
 
-def make_product(name, *, barcode=None, category=None, household=None):
-    """A global product (from Open Food Facts) or, with household=..., a custom one."""
-    return Product.objects.create(
-        name=name,
-        barcode=barcode,
-        category=Category.objects.get(name=category) if category else None,
-        product_type=ProductType.CUSTOM if household else ProductType.GLOBAL,
-        household=household,
-    )
+def make_product(
+    name,
+    *,
+    barcode=None,
+    category=None,
+    household=None,
+    origin=ProductOrigin.PURCHASED,
+):
+  """A global product (from Open Food Facts) or, with household=..., a custom one."""
+  return Product.objects.create(
+      name=name,
+      barcode=barcode,
+      category=Category.objects.get(name=category) if category else None,
+      product_type=ProductType.CUSTOM if household else ProductType.GLOBAL,
+      household=household,
+      origin=origin,
+  )
 
 
 def add_items(household, product, *expiry_dates, status='active', added_by=None):

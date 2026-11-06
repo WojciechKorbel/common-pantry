@@ -1,0 +1,13 @@
+[run]
+include =
+    api/*.py
+    api/services/*.py
+
+[report]
+include =
+    api/*.py
+    api/services/*.py
+exclude_lines =
+    pragma: no cover
+    def __str__
+    def __repr__
