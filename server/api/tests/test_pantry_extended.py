@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from api.models import Category, ItemStatus, PantryItem, ProductOrigin, ProductType
+from api.models import Category, ItemStatus, PantryItem, ProductOrigin
 from api.tests.factories import make_household, make_product, make_user
 
 
@@ -139,6 +139,42 @@ class PantryExtendedAPITests(APITestCase):
         resp_none = self.client.get(f"{url}?search=NonExistentProduct")
         self.assertEqual(resp_none.status_code, status.HTTP_200_OK)
         self.assertEqual(len(resp_none.data), 0)
+
+    def test_pantry_list_filter_expired_and_fresh(self):
+        """Test filtering pantry items by expired and fresh statuses."""
+        today = timezone.localdate()
+
+        # Expired item (-2 days)
+        PantryItem.objects.create(
+            household=self.household,
+            product=self.product,
+            expiry_date=today - timedelta(days=2),
+            status=ItemStatus.ACTIVE,
+            added_by=self.user,
+        )
+        # Fresh item (+10 days)
+        fresh_product = make_product("Fresh Milk", household=self.household)
+        PantryItem.objects.create(
+            household=self.household,
+            product=fresh_product,
+            expiry_date=today + timedelta(days=10),
+            status=ItemStatus.ACTIVE,
+            added_by=self.user,
+        )
+
+        url = reverse("pantry", args=[self.household.id])
+
+        # Query expired
+        resp_expired = self.client.get(f"{url}?expiry_status=expired")
+        self.assertEqual(resp_expired.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp_expired.data), 1)
+        self.assertEqual(resp_expired.data[0]["id"], self.product.id)
+
+        # Query fresh
+        resp_fresh = self.client.get(f"{url}?expiry_status=fresh")
+        self.assertEqual(resp_fresh.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp_fresh.data), 1)
+        self.assertEqual(resp_fresh.data[0]["id"], fresh_product.id)
 
     def test_delete_individual_pantry_item(self):
         """Delete an individual package from the pantry."""
