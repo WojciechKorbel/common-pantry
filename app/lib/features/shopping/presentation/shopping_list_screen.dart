@@ -9,6 +9,7 @@ import 'package:common_pantry/features/shopping/presentation/widgets/empty_shopp
 import 'package:common_pantry/features/shopping/presentation/widgets/move_to_pantry_dialog.dart';
 import 'package:common_pantry/features/shopping/presentation/widgets/shopping_item_tile.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   const ShoppingListScreen({super.key, required this.household});
@@ -58,7 +59,14 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AppAppBar(title: 'Shopping list'),
+      appBar: AppAppBar(
+        title: widget.household.name,
+        onBack: () => context.go('/households'),
+        trailing: IconButton(
+          icon: const Icon(Icons.person_outline),
+          onPressed: () => context.push('/settings'),
+        ),
+      ),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _controller,
