@@ -4,7 +4,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from api.models import Category, ItemStatus, PantryItem, ProductOrigin
+from api.models import Category, ItemStatus, PantryItem, ProductOrigin, ShoppingItem
 from api.tests.factories import make_household, make_product, make_user
 
 
@@ -27,6 +27,12 @@ class PantryExtendedAPITests(APITestCase):
             household=self.household,
             category="Beverages",
             origin=ProductOrigin.PURCHASED,
+        )
+        self.homemade_product = make_product(
+            "Homemade Jam",
+            household=self.household,
+            category="Beverages",
+            origin=ProductOrigin.HOMEMADE,
         )
         self.other_household_product = make_product(
             "Foreign Cider",
@@ -176,8 +182,25 @@ class PantryExtendedAPITests(APITestCase):
         self.assertEqual(len(resp_fresh.data), 1)
         self.assertEqual(resp_fresh.data[0]["id"], fresh_product.id)
 
+    def test_patch_pantry_item_details_updates_expiry_date(self):
+        """PantryItemDetailView allows updating expiry_date via PATCH."""
+        item = PantryItem.objects.create(
+            household=self.household,
+            product=self.product,
+            expiry_date=timezone.localdate() + timedelta(days=5),
+            status=ItemStatus.ACTIVE,
+            added_by=self.user,
+        )
+        url = reverse("pantry-item-detail", args=[self.household.id, item.id])
+        new_expiry = (timezone.localdate() + timedelta(days=20)).isoformat()
+        response = self.client.patch(url, {"expiry_date": new_expiry}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item.refresh_from_db()
+        self.assertEqual(item.expiry_date.isoformat(), new_expiry)
+
     def test_delete_individual_pantry_item(self):
-        """Delete an individual package from the pantry."""
+        """Delete an individual package from the pantry via pantry-item-detail."""
         item = PantryItem.objects.create(
             household=self.household,
             product=self.product,
@@ -191,3 +214,60 @@ class PantryExtendedAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(PantryItem.objects.filter(id=item.id).exists())
+
+    def test_update_product_detail(self):
+        """ProductDetailView allows updating custom product metadata."""
+        url = reverse("product-detail", args=[self.household.id, self.product.id])
+        payload = {"name": "Freshly Squeezed Orange Juice"}
+        response = self.client.patch(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.name, "Freshly Squeezed Orange Juice")
+
+    def test_close_pantry_item_as_eaten_and_add_to_shopping_list(self):
+        """Closing a purchased item as eaten can automatically add it to shopping list."""
+        item = PantryItem.objects.create(
+            household=self.household,
+            product=self.product,
+            expiry_date=timezone.localdate() + timedelta(days=5),
+            status=ItemStatus.ACTIVE,
+            added_by=self.user,
+        )
+        url = reverse("pantry-item-close", args=[self.household.id, item.id])
+        payload = {
+            "status": ItemStatus.EATEN,
+            "add_to_shopping_list": True,
+        }
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item.refresh_from_db()
+        self.assertEqual(item.status, ItemStatus.EATEN)
+        self.assertIsNotNone(item.closed_at)
+
+        # Check shopping item creation
+        self.assertTrue(
+            ShoppingItem.objects.filter(
+                household=self.household, product=self.product
+            ).exists()
+        )
+
+    def test_close_homemade_pantry_item_cannot_be_added_to_shopping_list(self):
+        """Homemade products cannot be added to shopping list when closing."""
+        item = PantryItem.objects.create(
+            household=self.household,
+            product=self.homemade_product,
+            expiry_date=timezone.localdate() + timedelta(days=5),
+            status=ItemStatus.ACTIVE,
+            added_by=self.user,
+        )
+        url = reverse("pantry-item-close", args=[self.household.id, item.id])
+        payload = {
+            "status": ItemStatus.EATEN,
+            "add_to_shopping_list": True,
+        }
+        response = self.client.post(url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("homemade products cannot be added", response.data.get("detail", "").lower())
