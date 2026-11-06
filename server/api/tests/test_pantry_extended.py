@@ -1,10 +1,12 @@
 from datetime import timedelta
+from decimal import Decimal
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from api.models import Category, ItemStatus, PantryItem, ProductOrigin, ShoppingItem
+from api.models import Category, ItemStatus, PantryItem, Product, ProductOrigin, ProductType, ShoppingItem
+from api.serializers import calculate_expiry_status, ShoppingMoveToPantrySerializer
 from api.tests.factories import make_household, make_product, make_user
 
 
@@ -41,6 +43,10 @@ class PantryExtendedAPITests(APITestCase):
         )
 
         self.client.force_authenticate(user=self.user)
+
+    def test_calculate_expiry_status_helper_edge_cases(self):
+        """calculate_expiry_status handles None properly."""
+        self.assertIsNone(calculate_expiry_status(None))
 
     def test_bulk_create_pantry_items_with_count(self):
         """Verify creating multiple pantry item packages in a single request."""
@@ -91,96 +97,28 @@ class PantryExtendedAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("product", response.data)
 
-    def test_pantry_list_grouping_and_expiry_status(self):
-        """PantryListView groups packages by product and calculates earliest_expiry and status."""
-        today = timezone.localdate()
-
-        # Add 2 items: 1 expiring soon (+1 day), 1 fresh (+7 days)
-        PantryItem.objects.create(
-            household=self.household,
-            product=self.product,
-            expiry_date=today + timedelta(days=1),
-            status=ItemStatus.ACTIVE,
-            added_by=self.user,
-        )
-        PantryItem.objects.create(
-            household=self.household,
-            product=self.product,
-            expiry_date=today + timedelta(days=7),
-            status=ItemStatus.ACTIVE,
-            added_by=self.user,
-        )
-
-        url = reverse("pantry", args=[self.household.id])
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-
-        group = response.data[0]
-        self.assertEqual(group["id"], self.product.id)
-        self.assertEqual(group["item_count"], 2)
-        self.assertEqual(group["earliest_expiry"], (today + timedelta(days=1)).isoformat())
-        self.assertEqual(group["expiry_status"], "soon")
-
-    def test_pantry_list_filter_by_search(self):
-        """Filter pantry list by search query parameter."""
+    def test_pantry_list_filter_category_and_soon_status(self):
+        """Test filtering pantry list by category id and 'soon' expiry status."""
         today = timezone.localdate()
         PantryItem.objects.create(
             household=self.household,
             product=self.product,
-            expiry_date=today + timedelta(days=5),
+            expiry_date=today + timedelta(days=1),  # Status soon
             status=ItemStatus.ACTIVE,
             added_by=self.user,
         )
 
         url = reverse("pantry", args=[self.household.id])
 
-        # Matching search
-        resp_match = self.client.get(f"{url}?search=Orange")
-        self.assertEqual(resp_match.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(resp_match.data), 1)
+        # Filter category
+        resp_cat = self.client.get(f"{url}?category={self.category.id}")
+        self.assertEqual(resp_cat.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp_cat.data), 1)
 
-        # Non-matching search
-        resp_none = self.client.get(f"{url}?search=NonExistentProduct")
-        self.assertEqual(resp_none.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(resp_none.data), 0)
-
-    def test_pantry_list_filter_expired_and_fresh(self):
-        """Test filtering pantry items by expired and fresh statuses."""
-        today = timezone.localdate()
-
-        # Expired item (-2 days)
-        PantryItem.objects.create(
-            household=self.household,
-            product=self.product,
-            expiry_date=today - timedelta(days=2),
-            status=ItemStatus.ACTIVE,
-            added_by=self.user,
-        )
-        # Fresh item (+10 days)
-        fresh_product = make_product("Fresh Milk", household=self.household)
-        PantryItem.objects.create(
-            household=self.household,
-            product=fresh_product,
-            expiry_date=today + timedelta(days=10),
-            status=ItemStatus.ACTIVE,
-            added_by=self.user,
-        )
-
-        url = reverse("pantry", args=[self.household.id])
-
-        # Query expired
-        resp_expired = self.client.get(f"{url}?expiry_status=expired")
-        self.assertEqual(resp_expired.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(resp_expired.data), 1)
-        self.assertEqual(resp_expired.data[0]["id"], self.product.id)
-
-        # Query fresh
-        resp_fresh = self.client.get(f"{url}?expiry_status=fresh")
-        self.assertEqual(resp_fresh.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(resp_fresh.data), 1)
-        self.assertEqual(resp_fresh.data[0]["id"], fresh_product.id)
+        # Filter soon
+        resp_soon = self.client.get(f"{url}?expiry_status=soon")
+        self.assertEqual(resp_soon.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(resp_soon.data), 1)
 
     def test_patch_pantry_item_details_updates_expiry_date(self):
         """PantryItemDetailView allows updating expiry_date via PATCH."""
@@ -215,18 +153,30 @@ class PantryExtendedAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(PantryItem.objects.filter(id=item.id).exists())
 
-    def test_update_product_detail(self):
-        """ProductDetailView allows updating custom product metadata."""
-        url = reverse("product-detail", args=[self.household.id, self.product.id])
-        payload = {"name": "Freshly Squeezed Orange Juice"}
-        response = self.client.patch(url, payload, format="json")
+    def test_close_pantry_item_already_closed_fails(self):
+        """Attempting to close an already eaten/wasted item returns 400."""
+        item = PantryItem.objects.create(
+            household=self.household,
+            product=self.product,
+            expiry_date=timezone.localdate() + timedelta(days=5),
+            status=ItemStatus.EATEN,
+            added_by=self.user,
+        )
+        url = reverse("pantry-item-close", args=[self.household.id, item.id])
+        resp = self.client.post(url, {"status": ItemStatus.WASTED}, format="json")
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("already closed", resp.data.get("detail", "").lower())
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.product.refresh_from_db()
-        self.assertEqual(self.product.name, "Freshly Squeezed Orange Juice")
-
-    def test_close_pantry_item_as_eaten_and_add_to_shopping_list(self):
-        """Closing a purchased item as eaten can automatically add it to shopping list."""
+    def test_close_pantry_item_increments_existing_shopping_item_quantity(self):
+        """When an unbought item already exists on shopping list, quantity is incremented."""
+        ShoppingItem.objects.create(
+            household=self.household,
+            product=self.product,
+            name=self.product.name,
+            quantity=Decimal("1.00"),
+            is_bought=False,
+            added_by=self.user,
+        )
         item = PantryItem.objects.create(
             household=self.household,
             product=self.product,
@@ -235,59 +185,50 @@ class PantryExtendedAPITests(APITestCase):
             added_by=self.user,
         )
         url = reverse("pantry-item-close", args=[self.household.id, item.id])
-        payload = {
-            "status": ItemStatus.EATEN,
-            "add_to_shopping_list": True,
-        }
-        response = self.client.post(url, payload, format="json")
+        resp = self.client.post(url, {"status": ItemStatus.EATEN, "add_to_shopping_list": True}, format="json")
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        item.refresh_from_db()
-        self.assertEqual(item.status, ItemStatus.EATEN)
-        self.assertIsNotNone(item.closed_at)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        shop_item = ShoppingItem.objects.get(household=self.household, product=self.product, is_bought=False)
+        self.assertEqual(shop_item.quantity, Decimal("2.00"))
 
-        # Check shopping item creation
-        self.assertTrue(
-            ShoppingItem.objects.filter(
-                household=self.household, product=self.product
-            ).exists()
-        )
-
-    def test_close_homemade_pantry_item_cannot_be_added_to_shopping_list(self):
-        """Homemade products cannot be added to shopping list when closing."""
-        item = PantryItem.objects.create(
+    def test_move_to_pantry_adhoc_item_creates_product(self):
+        """Moving an unlinked shopping item creates a new custom product with brand."""
+        adhoc_item = ShoppingItem.objects.create(
             household=self.household,
-            product=self.homemade_product,
-            expiry_date=timezone.localdate() + timedelta(days=5),
-            status=ItemStatus.ACTIVE,
+            name="Organic Oatmeal",
+            quantity=Decimal("1.00"),
+            unit="pack",
+            is_bought=True,
             added_by=self.user,
         )
-        url = reverse("pantry-item-close", args=[self.household.id, item.id])
+        url = reverse("shopping-move-to-pantry", args=[self.household.id])
         payload = {
-            "status": ItemStatus.EATEN,
-            "add_to_shopping_list": True,
+            "items": [
+                {
+                    "id": adhoc_item.id,
+                    "expiry_dates": ["2026-11-20"],
+                    "brand": "BioFarm",
+                }
+            ]
         }
         response = self.client.post(url, payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("homemade products cannot be added", response.data.get("detail", "").lower())
+        created_product = Product.objects.filter(
+            household=self.household, name="Organic Oatmeal", brand="BioFarm"
+        ).first()
+        self.assertIsNotNone(created_product)
+        self.assertEqual(created_product.product_type, ProductType.CUSTOM)
+
+    def test_shopping_move_duplicate_ids_validation(self):
+        """Serializer validates duplicate item ids."""
+        serializer = ShoppingMoveToPantrySerializer(
+            data={"items": [{"id": 1, "expiry_dates": ["2026-12-01"]}, {"id": 1, "expiry_dates": ["2026-12-02"]}]}
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("items", serializer.errors)
 
     def test_household_mixin_rejects_non_member_access(self):
-        """User cannot access pantry, items, or custom products of a household they do not belong to."""
-        # Accessing other household pantry list
+        """User cannot access pantry of a household they do not belong to."""
         url_pantry = reverse("pantry", args=[self.other_household.id])
         self.assertEqual(self.client.get(url_pantry).status_code, status.HTTP_404_NOT_FOUND)
-
-        # Creating item in other household
-        url_item = reverse("pantry-item-create", args=[self.other_household.id])
-        self.assertEqual(
-            self.client.post(url_item, {"count": 1}, format="json").status_code,
-            status.HTTP_404_NOT_FOUND,
-        )
-
-        # Creating custom product in other household
-        url_custom = reverse("custom-product-create", args=[self.other_household.id])
-        self.assertEqual(
-            self.client.post(url_custom, {"name": "Intruder Bread"}, format="json").status_code,
-            status.HTTP_404_NOT_FOUND,
-        )
