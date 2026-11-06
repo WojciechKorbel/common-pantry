@@ -18,6 +18,8 @@ class EmailVerificationAPITests(APITestCase):
         self.register_url = reverse("register")
         self.verify_url = reverse("verify-email")
         self.resend_url = reverse("resend-code")
+        self.token_obtain_url = reverse("token_obtain_pair")
+        self.token_refresh_url = reverse("token_refresh")
         self.email = "testuser@example.com"
         self.password = "StrongPassword123!"
         self.username = "testuser"
@@ -39,6 +41,20 @@ class EmailVerificationAPITests(APITestCase):
         verification = EmailVerification.objects.filter(user=user).first()
         self.assertIsNotNone(verification)
         self.assertTrue(mock_send_email.called)
+
+    def test_registration_with_existing_email_or_username_fails(self):
+        """Registration with already used credentials returns 400 Bad Request."""
+        User.objects.create_user(
+            username=self.username,
+            email=self.email,
+            password=self.password,
+        )
+        response = self.client.post(
+            self.register_url,
+            {"username": self.username, "email": self.email, "password": self.password},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_verify_email_success_activates_user_and_removes_verification(self):
         """Submitting a valid code activates the user and removes the verification entry."""
@@ -241,6 +257,34 @@ class EmailVerificationAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         self.assertIn("limit exceeded", response.data.get("detail", "").lower())
 
+    def test_jwt_token_obtain_and_refresh_flow(self):
+        """Active user can obtain JWT token pair and refresh access token."""
+        User.objects.create_user(
+            username="jwt_user",
+            email="jwt@example.com",
+            password=self.password,
+            is_active=True,
+        )
+        # Obtain tokens
+        resp_login = self.client.post(
+            self.token_obtain_url,
+            {"username": "jwt_user", "password": self.password},
+            format="json",
+        )
+        self.assertEqual(resp_login.status_code, status.HTTP_200_OK)
+        self.assertIn("access", resp_login.data)
+        refresh_token = resp_login.data.get("refresh")
+        self.assertIsNotNone(refresh_token)
+
+        # Refresh token
+        resp_refresh = self.client.post(
+            self.token_refresh_url,
+            {"refresh": refresh_token},
+            format="json",
+        )
+        self.assertEqual(resp_refresh.status_code, status.HTTP_200_OK)
+        self.assertIn("access", resp_refresh.data)
+
 
 class PasswordResetAPITests(APITestCase):
     def setUp(self):
@@ -295,6 +339,43 @@ class PasswordResetAPITests(APITestCase):
         reset.refresh_from_db()
         self.assertTrue(reset.check_reset_token(reset_token))
 
+    def test_password_reset_verify_code_wrong_code(self):
+        """Submitting wrong code for password reset fails and increments attempts."""
+        reset = PasswordReset.objects.create(
+            user=self.user,
+            expires_at=timezone.now() + timedelta(minutes=15),
+            last_sent_at=timezone.now(),
+        )
+        reset.set_code("111111")
+        reset.save()
+
+        response = self.client.post(
+            self.verify_url,
+            {"email": self.email, "code": "222222"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        reset.refresh_from_db()
+        self.assertEqual(reset.attempts, 1)
+
+    def test_password_reset_verify_expired_code(self):
+        """Submitting expired code fails."""
+        reset = PasswordReset.objects.create(
+            user=self.user,
+            expires_at=timezone.now() - timedelta(minutes=1),
+            last_sent_at=timezone.now() - timedelta(minutes=16),
+        )
+        reset.set_code("111111")
+        reset.save()
+
+        response = self.client.post(
+            self.verify_url,
+            {"email": self.email, "code": "111111"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("expired", response.data.get("detail", "").lower())
+
     def test_password_reset_confirm_updates_password_and_cleans_record(self):
         """Confirming reset token sets a new password and deletes the PasswordReset record."""
         now = timezone.now()
@@ -321,6 +402,27 @@ class PasswordResetAPITests(APITestCase):
         # Verify login credentials with updated password
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password(new_password))
+
+    def test_password_reset_confirm_with_expired_token_fails(self):
+        """Confirming with an expired reset token returns 400 Bad Request."""
+        now = timezone.now()
+        reset = PasswordReset.objects.create(
+            user=self.user,
+            expires_at=now,
+            last_sent_at=now,
+            reset_token_expires_at=now - timedelta(minutes=5),
+        )
+        token = "expired-token-string-32-chars-long-here"
+        reset.set_reset_token(token)
+        reset.save()
+
+        response = self.client.post(
+            self.confirm_url,
+            {"reset_token": token, "new_password": "NewPassword123!"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("expired", response.data.get("detail", "").lower())
 
     def test_password_reset_confirm_with_invalid_token_fails(self):
         """Confirming with an invalid token returns 400 Bad Request."""
@@ -380,3 +482,12 @@ class PasswordResetAPITests(APITestCase):
         resp_success = self.client.post(self.resend_url, {"email": self.email}, format="json")
         self.assertEqual(resp_success.status_code, status.HTTP_200_OK)
         self.assertTrue(mock_send_email.called)
+
+    def test_password_reset_resend_without_prior_request(self):
+        """Attempting to resend a code when no reset request exists returns 200 to prevent user enumeration."""
+        response = self.client.post(
+            self.resend_url,
+            {"email": "nobody@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
