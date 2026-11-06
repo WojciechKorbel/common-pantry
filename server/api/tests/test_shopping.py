@@ -129,6 +129,19 @@ class ShoppingListAPITests(APITestCase):
         self.assertIsNone(item.bought_by)
         self.assertIsNone(item.bought_at)
 
+    def test_delete_shopping_item(self):
+        """Deleting an item via DELETE on shopping-detail removes it."""
+        item = ShoppingItem.objects.create(
+            household=self.household,
+            name="Garlic",
+            added_by=self.user,
+        )
+        url = reverse("shopping-detail", args=[self.household.id, item.id])
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ShoppingItem.objects.filter(id=item.id).exists())
+
     def test_clear_bought_shopping_items(self):
         """DELETE to clear-bought endpoint removes only bought items of the household."""
         item_active = ShoppingItem.objects.create(
