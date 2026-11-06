@@ -1,9 +1,10 @@
 from decimal import Decimal
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from api.models import Category, PantryItem, Product, ProductOrigin, ShoppingItem
+from api.models import Category, PantryItem, ProductOrigin, ShoppingItem
 from api.tests.factories import make_household, make_product, make_user
 
 
@@ -107,6 +108,26 @@ class ShoppingListAPITests(APITestCase):
         self.assertTrue(item.is_bought)
         self.assertEqual(item.bought_by, self.user)
         self.assertIsNotNone(item.bought_at)
+
+    def test_unmark_shopping_item_as_bought_clears_buyer_and_timestamp(self):
+        """Toggling is_bought back to false clears bought_by and bought_at."""
+        item = ShoppingItem.objects.create(
+            household=self.household,
+            name="Coffee",
+            is_bought=True,
+            bought_by=self.user,
+            bought_at=timezone.now(),
+            added_by=self.user,
+        )
+
+        url = reverse("shopping-detail", args=[self.household.id, item.id])
+        response = self.client.patch(url, {"is_bought": False}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item.refresh_from_db()
+        self.assertFalse(item.is_bought)
+        self.assertIsNone(item.bought_by)
+        self.assertIsNone(item.bought_at)
 
     def test_clear_bought_shopping_items(self):
         """DELETE to clear-bought endpoint removes only bought items of the household."""
