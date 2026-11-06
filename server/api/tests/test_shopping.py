@@ -189,6 +189,38 @@ class ShoppingListAPITests(APITestCase):
         # Ensure shopping item was deleted after move
         self.assertFalse(ShoppingItem.objects.filter(id=bought_item.id).exists())
 
+    def test_move_to_pantry_missing_items_payload_returns_400(self):
+        """Sending invalid or missing items array to move-to-pantry returns 400 Bad Request."""
+        url = reverse("shopping-move-to-pantry", args=[self.household.id])
+        response = self.client.post(url, {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response_empty = self.client.post(url, {"items": []}, format="json")
+        self.assertEqual(response_empty.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_move_to_pantry_unbought_item_fails(self):
+        """Attempting to move an unbought item to pantry fails."""
+        unbought_item = ShoppingItem.objects.create(
+            household=self.household,
+            product=self.product,
+            name=self.product.name,
+            quantity=Decimal("1.00"),
+            unit="pcs",
+            is_bought=False,
+            added_by=self.user,
+        )
+        url = reverse("shopping-move-to-pantry", args=[self.household.id])
+        payload = {
+            "items": [
+                {
+                    "id": unbought_item.id,
+                    "expiry_dates": ["2026-12-01"],
+                }
+            ]
+        }
+        response = self.client.post(url, payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_cannot_access_or_modify_other_household_shopping_items(self):
         """Household isolation: user cannot view or mutate shopping items of another household."""
         other_item = ShoppingItem.objects.create(
