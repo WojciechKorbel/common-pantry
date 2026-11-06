@@ -13,7 +13,7 @@ class HouseholdAPITests(APITestCase):
         self.member = make_user("member_user")
         self.outsider = make_user("outsider_user")
 
-        # Create household using factory (owner is added automatically)
+        # Create household using factory
         self.household = make_household(self.owner, name="Main Family House")
 
         # Set owner role explicitly
@@ -148,3 +148,21 @@ class HouseholdAPITests(APITestCase):
         self.assertFalse(Household.objects.filter(id=self.household.id).exists())
         self.assertFalse(PantryItem.objects.filter(household_id=self.household.id).exists())
         self.assertFalse(ShoppingItem.objects.filter(household_id=self.household.id).exists())
+
+    def test_owner_can_delete_member(self):
+        """Owner can remove a regular member from the household."""
+        url = reverse("household-member-delete", args=[self.household.id, self.member.id])
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            Membership.objects.filter(household=self.household, user=self.member).exists()
+        )
+
+    def test_owner_cannot_delete_last_owner(self):
+        """Cannot delete an owner if no other owners remain in the household."""
+        url = reverse("household-member-delete", args=[self.household.id, self.owner.id])
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("last owner cannot be removed", response.data.get("detail", "").lower())
