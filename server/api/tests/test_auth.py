@@ -135,7 +135,7 @@ class EmailVerificationAPITests(APITestCase):
         EmailVerification.objects.create(
             user=user,
             expires_at=timezone.now() + timedelta(minutes=15),
-            last_sent_at=timezone.now(),  # Sent right now
+            last_sent_at=timezone.now(),
         )
 
         response = self.client.post(
@@ -146,6 +146,49 @@ class EmailVerificationAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         self.assertFalse(mock_send_email.called)
+
+    def test_verify_email_already_active_user(self):
+        """Submitting verification for an already active user returns 200 OK."""
+        user = User.objects.create_user(
+            username="already_active",
+            email="active@example.com",
+            password="Password123!",
+            is_active=True,
+        )
+        EmailVerification.objects.create(
+            user=user,
+            expires_at=timezone.now() + timedelta(minutes=15),
+            last_sent_at=timezone.now(),
+        )
+        response = self.client.post(
+            self.verify_url,
+            {"email": "active@example.com", "code": "123456"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("already been verified", response.data.get("detail", ""))
+
+    def test_verify_email_attempt_limit_exceeded(self):
+        """Exceeding max attempts on email verification returns 429 Too Many Requests."""
+        user = User.objects.create_user(
+            username="max_attempts_user",
+            email="attempts@example.com",
+            password="Password123!",
+            is_active=False,
+        )
+        EmailVerification.objects.create(
+            user=user,
+            expires_at=timezone.now() + timedelta(minutes=15),
+            last_sent_at=timezone.now(),
+            attempts=settings.EMAIL_VERIFICATION_MAX_ATTEMPTS,
+        )
+        response = self.client.post(
+            self.verify_url,
+            {"email": "attempts@example.com", "code": "123456"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertIn("limit exceeded", response.data.get("detail", "").lower())
 
 
 class PasswordResetAPITests(APITestCase):
@@ -240,3 +283,13 @@ class PasswordResetAPITests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_password_reset_request_non_existent_email_does_not_reveal_user(self):
+        """Requesting password reset for an unknown email returns 200 OK without leaking existence."""
+        response = self.client.post(
+            self.request_url,
+            {"email": "nonexistent@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("If an active account exists", response.data.get("detail", ""))
