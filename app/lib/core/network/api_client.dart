@@ -4,8 +4,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 
 class ApiClient {
-  ApiClient(this.tokenStorage) {
-    debugPrint('[DEBUG] API URL: ${Env.apiUrl}'); // TODO: debug print is here!
+  ApiClient(
+    this.tokenStorage, {
+    String? baseUrl,
+    HttpClientAdapter? httpClientAdapter,
+  }) : _baseUrl = baseUrl ?? Env.apiUrl,
+       _httpClientAdapter = httpClientAdapter,
+       dio = _createDio(baseUrl ?? Env.apiUrl, httpClientAdapter) {
+    debugPrint('[DEBUG] API URL: $_baseUrl'); // TODO: debug print is here!
 
     dio.interceptors.add(
       InterceptorsWrapper(
@@ -79,18 +85,28 @@ class ApiClient {
   }
 
   final TokenStorage tokenStorage;
+  final String _baseUrl;
+  final HttpClientAdapter? _httpClientAdapter;
+  final Dio dio;
 
-  final Dio dio = Dio(
-    BaseOptions(
-      baseUrl: Env.apiUrl,
-      connectTimeout: const Duration(seconds: 20),
-      receiveTimeout: const Duration(seconds: 60),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-    ),
-  );
+  /// [httpClientAdapter] replaces the real network in tests.
+  static Dio _createDio(String baseUrl, HttpClientAdapter? httpClientAdapter) {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 60),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+    if (httpClientAdapter != null) {
+      dio.httpClientAdapter = httpClientAdapter;
+    }
+    return dio;
+  }
 
   Future<String?>? _refreshing;
 
@@ -108,13 +124,7 @@ class ApiClient {
       return null;
     }
 
-    final refreshDio = Dio(
-      BaseOptions(
-        baseUrl: Env.apiUrl,
-        connectTimeout: const Duration(seconds: 20),
-        receiveTimeout: const Duration(seconds: 60),
-      ),
-    );
+    final refreshDio = _createDio(_baseUrl, _httpClientAdapter);
 
     try {
       debugPrint('[DEBUG] Sending refresh'); // TODO: debug print is here!
