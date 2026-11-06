@@ -4,8 +4,9 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from api.models import ProductOrigin
 from api.services.open_food_facts import OpenFoodFactsError
-from api.tests.factories import make_household, make_user
+from api.tests.factories import make_household, make_product, make_user
 
 NUTELLA = {
     'name': 'Nutella',
@@ -32,6 +33,7 @@ class ProductByBarcodeTests(APITestCase):
         return self.client.get(reverse('product-by-barcode', args=[self.home.id, barcode]))
 
     def test_unknown_barcode_is_fetched_once_and_saved(self, fetch):
+        """Product fetched from Open Food Facts is cached globally and has 'purchased' origin."""
         fetch.return_value = dict(NUTELLA)
 
         first = self.lookup('3017620422003')
@@ -39,14 +41,16 @@ class ProductByBarcodeTests(APITestCase):
 
         self.assertEqual(first.status_code, status.HTTP_200_OK)
         self.assertEqual(first.data['name'], 'Nutella')
+        self.assertEqual(first.data['origin'], ProductOrigin.PURCHASED)
         self.assertEqual(first.data['category']['name'], 'Sweet spreads & honey')
         self.assertEqual(second.data['id'], first.data['id'])
         fetch.assert_called_once()
 
     def test_custom_product_with_barcode_is_found_without_open_food_facts(self, fetch):
+        """Custom household product is returned without querying Open Food Facts."""
         self.client.post(
             reverse('custom-product-create', args=[self.home.id]),
-            {'name': 'Local honey', 'barcode': '5901234123457'},
+            {'name': 'Local honey', 'barcode': '5901234123457', 'origin': ProductOrigin.HOMEMADE},
             format='json',
         )
 
@@ -54,6 +58,29 @@ class ProductByBarcodeTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], 'Local honey')
+        self.assertEqual(response.data['origin'], ProductOrigin.HOMEMADE)
+        fetch.assert_not_called()
+
+    def test_custom_product_takes_precedence_over_global_product(self, fetch):
+        """Household custom product takes precedence over an existing global product."""
+        shared_barcode = '5901111222233'
+
+        # Pre-existing global product
+        make_product('Generic Global Spread', barcode=shared_barcode, origin=ProductOrigin.PURCHASED)
+
+        # Household's homemade version with the same barcode
+        make_product(
+            'Homemade Hazelnut Cream',
+            household=self.home,
+            barcode=shared_barcode,
+            origin=ProductOrigin.HOMEMADE,
+        )
+
+        response = self.lookup(shared_barcode)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], 'Homemade Hazelnut Cream')
+        self.assertEqual(response.data['origin'], ProductOrigin.HOMEMADE)
         fetch.assert_not_called()
 
     def test_barcode_unknown_to_open_food_facts(self, fetch):
