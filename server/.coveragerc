@@ -5,6 +5,8 @@ omit =
     */tests/*
     */asgi.py
     */wsgi.py
+    manage.py
+    config/*
 
 [report]
 exclude_lines =
