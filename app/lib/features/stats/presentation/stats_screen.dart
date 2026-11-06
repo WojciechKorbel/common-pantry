@@ -229,6 +229,10 @@ class _StatsScreenState extends State<StatsScreen> {
       appBar: AppAppBar(
         title: widget.household.name,
         onBack: () => context.go('/households'),
+        trailing: IconButton(
+          icon: const Icon(Icons.person_outline),
+          onPressed: () => context.push('/settings'),
+        ),
       ),
       body: SafeArea(
         child: ListenableBuilder(

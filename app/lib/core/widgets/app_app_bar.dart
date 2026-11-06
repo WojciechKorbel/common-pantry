@@ -18,8 +18,18 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    Widget? leadingWidget;
+    if (showBackButton) {
+      leadingWidget = IconButton(
+        icon: const Icon(Icons.chevron_left),
+        onPressed: onBack ?? () => Navigator.of(context).maybePop(),
+      );
+    }
+
     return AppBar(
       centerTitle: centerTitle,
+      automaticallyImplyLeading: false,
+      leading: leadingWidget,
       title: Text(
         title,
         style: const TextStyle(
@@ -27,13 +37,7 @@ class AppAppBar extends StatelessWidget implements PreferredSizeWidget {
           fontSize: 20,
         ),
       ),
-      leading: !showBackButton || onBack == null
-          ? null
-          : IconButton(
-              icon: const Icon(Icons.chevron_left),
-              onPressed: onBack,
-            ),
-      actions: trailing == null ? null : [trailing!],
+      actions: trailing != null ? [trailing!] : null,
     );
   }
 

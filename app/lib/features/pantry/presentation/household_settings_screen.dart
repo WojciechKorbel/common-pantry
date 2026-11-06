@@ -175,8 +175,13 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AppAppBar(
-        title: 'Household details',
+      appBar: AppAppBar(
+        title: widget.household.name,
+        onBack: () => context.go('/households'),
+        trailing: IconButton(
+          icon: const Icon(Icons.person_outline),
+          onPressed: () => context.push('/settings'),
+        ),
       ),
       bottomNavigationBar: AppBottomNavigationBar(
         household: widget.household,
