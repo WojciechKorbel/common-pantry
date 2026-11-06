@@ -190,6 +190,57 @@ class EmailVerificationAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         self.assertIn("limit exceeded", response.data.get("detail", "").lower())
 
+    @patch("api.views.send_verification_email")
+    def test_resend_code_success_after_cooldown(self, mock_send_email):
+        """Resending verification code after cooldown succeeds and updates expiry."""
+        user = User.objects.create_user(
+            username="resend_success_user",
+            email="resend@example.com",
+            password="Password123!",
+            is_active=False,
+        )
+        old_time = timezone.now() - timedelta(minutes=5)
+        verification = EmailVerification.objects.create(
+            user=user,
+            expires_at=timezone.now() + timedelta(minutes=15),
+            last_sent_at=old_time,
+            resend_window_started_at=old_time,
+            resend_count=0,
+        )
+        response = self.client.post(
+            self.resend_url,
+            {"email": "resend@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        verification.refresh_from_db()
+        self.assertEqual(verification.resend_count, 1)
+        self.assertTrue(mock_send_email.called)
+
+    def test_resend_code_max_limit_reached(self):
+        """Reaching max resend attempts returns 429 Too Many Requests."""
+        user = User.objects.create_user(
+            username="max_resend_user",
+            email="maxresend@example.com",
+            password="Password123!",
+            is_active=False,
+        )
+        old_time = timezone.now() - timedelta(minutes=5)
+        EmailVerification.objects.create(
+            user=user,
+            expires_at=timezone.now() + timedelta(minutes=15),
+            last_sent_at=old_time,
+            resend_window_started_at=old_time,
+            resend_count=settings.EMAIL_VERIFICATION_RESEND_MAX_ATTEMPTS,
+        )
+        response = self.client.post(
+            self.resend_url,
+            {"email": "maxresend@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertIn("limit exceeded", response.data.get("detail", "").lower())
+
 
 class PasswordResetAPITests(APITestCase):
     def setUp(self):
@@ -293,3 +344,39 @@ class PasswordResetAPITests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("If an active account exists", response.data.get("detail", ""))
+
+    def test_password_reset_verify_max_attempts_exceeded(self):
+        """Exceeding max attempts on reset code verification returns 429."""
+        PasswordReset.objects.create(
+            user=self.user,
+            expires_at=timezone.now() + timedelta(minutes=15),
+            attempts=settings.PASSWORD_RESET_MAX_ATTEMPTS,
+        )
+        response = self.client.post(
+            self.verify_url,
+            {"email": self.email, "code": "123456"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertIn("limit exceeded", response.data.get("detail", "").lower())
+
+    @patch("api.views.send_password_reset_email")
+    def test_password_reset_resend_success_and_cooldown(self, mock_send_email):
+        """Testing resend code cooldown and successful resend for password reset."""
+        reset = PasswordReset.objects.create(
+            user=self.user,
+            expires_at=timezone.now() + timedelta(minutes=15),
+            last_sent_at=timezone.now(),
+            resend_window_started_at=timezone.now(),
+        )
+        # Attempt during cooldown
+        resp_cooldown = self.client.post(self.resend_url, {"email": self.email}, format="json")
+        self.assertEqual(resp_cooldown.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Bypass cooldown
+        reset.last_sent_at = timezone.now() - timedelta(minutes=10)
+        reset.save(update_fields=["last_sent_at"])
+
+        resp_success = self.client.post(self.resend_url, {"email": self.email}, format="json")
+        self.assertEqual(resp_success.status_code, status.HTTP_200_OK)
+        self.assertTrue(mock_send_email.called)
