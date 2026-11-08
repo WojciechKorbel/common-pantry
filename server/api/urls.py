@@ -17,7 +17,7 @@ from .views import (
     PasswordResetVerifyView,
     RegisterView,
     ResendCodeView,
-    VerifyEmailView,
+    VerifyEmailView, IngredientMatchView, RecipeMatchView,
 )
 
 urlpatterns = [
@@ -143,5 +143,18 @@ urlpatterns = [
         'households/<int:household_id>/statistics/food-waste/',
         views.FoodWasteStatisticsView.as_view(),
         name='food-waste-statistics',
+    ),
+
+    # The Meal Db API
+    path(
+        "product-match/",
+        IngredientMatchView.as_view(),
+        name="themealdb-ingredient-match",
+    ),
+
+    path(
+        "recipe-match/",
+        RecipeMatchView.as_view(),
+        name="recipe-match",
     ),
 ]
