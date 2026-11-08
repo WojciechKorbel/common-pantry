@@ -3,6 +3,20 @@ import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 
+class PantryWidgetSummary {
+  const PantryWidgetSummary({
+    required this.statusType,
+    required this.countHeader,
+    required this.bodyMessage,
+    required this.footerInfo,
+  });
+
+  final String statusType;
+  final String countHeader;
+  final String bodyMessage;
+  final String footerInfo;
+}
+
 class PantryWidgetService {
   static const String _androidWidgetName = 'PantryWidgetProvider';
 
@@ -14,11 +28,7 @@ class PantryWidgetService {
     );
   }
 
-  static Future<void> updateWidget({
-    required String householdName,
-    required List<PantryGroup> groups,
-  }) async {
-    final now = DateTime.now();
+  static PantryWidgetSummary buildSummary(List<PantryGroup> groups, DateTime now) {
     final today = DateTime(now.year, now.month, now.day);
 
     final totalItemsCount = groups.fold<int>(0, (sum, g) => sum + g.itemCount);
@@ -103,16 +113,25 @@ class PantryWidgetService {
       }
     }
 
-    final bodyMessage = listLines.join('\n');
-    final footerInfo = totalItemsCount > 0
-        ? '$totalItemsCount total items in pantry'
-        : 'Common Pantry';
+    return PantryWidgetSummary(
+      statusType: statusType,
+      countHeader: countHeader,
+      bodyMessage: listLines.join('\n'),
+      footerInfo: totalItemsCount > 0 ? '$totalItemsCount total items in pantry' : 'Common Pantry',
+    );
+  }
+
+  static Future<void> updateWidget({
+    required String householdName,
+    required List<PantryGroup> groups,
+  }) async {
+    final summary = buildSummary(groups, DateTime.now());
 
     await HomeWidget.saveWidgetData<String>('household_name', householdName);
-    await HomeWidget.saveWidgetData<String>('count_header', countHeader);
-    await HomeWidget.saveWidgetData<String>('status_type', statusType);
-    await HomeWidget.saveWidgetData<String>('body_message', bodyMessage);
-    await HomeWidget.saveWidgetData<String>('footer_info', footerInfo);
+    await HomeWidget.saveWidgetData<String>('count_header', summary.countHeader);
+    await HomeWidget.saveWidgetData<String>('status_type', summary.statusType);
+    await HomeWidget.saveWidgetData<String>('body_message', summary.bodyMessage);
+    await HomeWidget.saveWidgetData<String>('footer_info', summary.footerInfo);
 
     await HomeWidget.updateWidget(
       name: _androidWidgetName,
