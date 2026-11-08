@@ -1,5 +1,7 @@
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
+import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
+import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/homemade_item_form.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/purchased_item_form.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +14,8 @@ Future<void> showAddManuallyDialog(
   ItemSource? initialSource,
   Product? initialProduct,
   String? initialBarcode,
+  PantryRepository? repository,
+  PantryController? pantryController,
 }) {
   return showDialog<void>(
     context: context,
@@ -22,6 +26,8 @@ Future<void> showAddManuallyDialog(
       initialSource: initialSource,
       initialProduct: initialProduct,
       initialBarcode: initialBarcode,
+      repository: repository,
+      pantryController: pantryController,
     ),
   );
 }
@@ -33,12 +39,16 @@ class AddManuallyDialog extends StatefulWidget {
     this.initialSource,
     this.initialProduct,
     this.initialBarcode,
+    this.repository,
+    this.pantryController,
   });
 
   final Household household;
   final ItemSource? initialSource;
   final Product? initialProduct;
   final String? initialBarcode;
+  final PantryRepository? repository;
+  final PantryController? pantryController;
 
   @override
   State<AddManuallyDialog> createState() => _AddManuallyDialogState();
@@ -157,6 +167,8 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
                       key: const ValueKey(ItemSource.homemade),
                       household: widget.household,
                       onHasDataChanged: (value) => _hasData = value,
+                      repository: widget.repository,
+                      pantryController: widget.pantryController,
                     ),
                     ItemSource.purchased => PurchasedItemForm(
                       key: const ValueKey(ItemSource.purchased),
@@ -164,6 +176,8 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
                       initialProduct: widget.initialProduct,
                       initialBarcode: widget.initialBarcode,
                       onHasDataChanged: (value) => _hasData = value,
+                      repository: widget.repository,
+                      pantryController: widget.pantryController,
                     ),
                     null => const SizedBox.shrink(),
                   },

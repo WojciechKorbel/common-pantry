@@ -4,7 +4,9 @@ import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/data/models/product_origin.dart';
+import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/add_manually_controller.dart';
+import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
 import 'package:flutter/material.dart';
 
@@ -13,10 +15,14 @@ class HomemadeItemForm extends StatefulWidget {
     super.key,
     required this.household,
     required this.onHasDataChanged,
+    this.repository,
+    this.pantryController,
   });
 
   final Household household;
   final ValueChanged<bool> onHasDataChanged;
+  final PantryRepository? repository;
+  final PantryController? pantryController;
 
   @override
   State<HomemadeItemForm> createState() => _HomemadeItemFormState();
@@ -33,7 +39,7 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
   void initState() {
     super.initState();
     _controller = AddManuallyController(
-      Dependencies.pantryRepository,
+      widget.repository ?? Dependencies.pantryRepository,
       householdId: widget.household.id,
     )..addListener(_syncTexts);
     _nameFocus.addListener(_onNameFocusChanged);
@@ -95,7 +101,7 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
     final messenger = ScaffoldMessenger.of(context);
     if (success) {
       final navigator = Navigator.of(context);
-      unawaited(Dependencies.pantryController.load());
+      unawaited((widget.pantryController ?? Dependencies.pantryController).load());
       navigator.pop();
       messenger.showSnackBar(const SnackBar(content: Text('Item added to the pantry')));
     } else if (_controller.errorMessage != null) {
