@@ -4,7 +4,6 @@ import 'package:common_pantry/core/widgets/app_input.dart';
 import 'package:common_pantry/core/widgets/app_page_title.dart';
 import 'package:common_pantry/core/widgets/app_text_link.dart';
 import 'package:common_pantry/features/auth/presentation/controllers/login_controller.dart';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -38,7 +37,22 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     final message = widget.controller.errorMessage;
+    if (message != null) {
+      _showMessage(message);
+    }
+  }
 
+  Future<void> _loginWithGoogle() async {
+    final success = await widget.controller.loginWithGoogle();
+
+    if (!mounted) return;
+
+    if (success) {
+      context.go('/households');
+      return;
+    }
+
+    final message = widget.controller.errorMessage;
     if (message != null) {
       _showMessage(message);
     }
@@ -65,6 +79,9 @@ class _LoginScreenState extends State<LoginScreen> {
       listenable: widget.controller,
       builder: (context, child) {
         final isLoading = widget.controller.isLoading;
+        final isGoogleLoading = widget.controller.isGoogleLoading;
+        final isAnyBusy = isLoading || isGoogleLoading;
+
         return Scaffold(
           body: SafeArea(
             child: Padding(
@@ -126,16 +143,66 @@ class _LoginScreenState extends State<LoginScreen> {
                                       context.push('/forgot-password');
                                     },
                                   ),
-                                  const SizedBox(height: 32),
+                                  const SizedBox(height: 24),
 
                                   // LOGIN BUTTON
                                   AppButton(
                                     text: isLoading ? 'Logging in...' : 'Login',
-                                    onPressed: isLoading ? null : _login,
+                                    onPressed: isAnyBusy ? null : _login,
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // DIVIDER WITH TEXT
+                                  Row(
+                                    children: [
+                                      Expanded(child: Divider(color: Colors.grey.shade400)),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                                        child: Text(
+                                          'or',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(child: Divider(color: Colors.grey.shade400)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // GOOGLE SIGN IN BUTTON
+                                  OutlinedButton.icon(
+                                    icon: isGoogleLoading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(strokeWidth: 2),
+                                          )
+                                        : const Icon(Icons.g_mobiledata, size: 28),
+                                    label: Text(
+                                      isGoogleLoading
+                                          ? 'Connecting to Google...'
+                                          : 'Continue with Google',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      side: BorderSide(color: Colors.grey.shade400),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: isAnyBusy ? null : _loginWithGoogle,
                                   ),
                                 ],
                               ),
                             ),
+
+                            const SizedBox(height: 16),
 
                             // SIGN UP LINK
                             AppInlineLink(
