@@ -10,16 +10,21 @@ import 'package:common_pantry/features/services/pantry_widget_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-typedef PantryWidgetSync =
-Future<void> Function({required String householdName, required List<PantryGroup> groups});
+typedef PantryWidgetSync = Future<void> Function({
+  required String householdName,
+  required List<PantryGroup> groups,
+});
+
+late int _householdId;
 
 class PantryController extends ChangeNotifier {
   PantryController(
-      this._repository,
-      this._households, {
-        this._now = DateTime.now,
-        PantryWidgetSync syncWidget = PantryWidgetService.updateWidget,
-      }) : _syncWidgetData = syncWidget {
+    this._repository,
+    this._households, {
+    this._now = DateTime.now,
+    PantryWidgetSync syncWidget = PantryWidgetService.updateWidget,
+  }) : _syncWidgetData = syncWidget {
+    _householdId = _households.current.id;
     _households.addListener(_onHouseholdChanged);
   }
 
@@ -223,6 +228,10 @@ class PantryController extends ChangeNotifier {
   }
 
   void _onHouseholdChanged() {
+    final id = _households.current.id;
+    if (id == _householdId) return;
+    _householdId = id;
+
     _groups = const [];
     _hasLoaded = false;
     _query = '';
