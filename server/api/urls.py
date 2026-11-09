@@ -3,6 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from . import views
 from .views import (
+    GoogleLoginView,
     HouseholdDetailsAPIView,
     HouseholdJoinAPIView,
     HouseholdLeaveAPIView,
@@ -11,14 +12,15 @@ from .views import (
     HouseholdMemberDemoteAPIView,
     HouseholdMemberPromoteAPIView,
     HouseholdSettingsAPIView,
+    IngredientMatchView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     PasswordResetResendView,
     PasswordResetVerifyView,
+    RecipeMatchView,
     RegisterView,
     ResendCodeView,
     VerifyEmailView,
-    GoogleLoginView,
 )
 
 urlpatterns = [
@@ -145,5 +147,18 @@ urlpatterns = [
         'households/<int:household_id>/statistics/food-waste/',
         views.FoodWasteStatisticsView.as_view(),
         name='food-waste-statistics',
+    ),
+
+    # The Meal Db API
+    path(
+        "product-match/",
+        IngredientMatchView.as_view(),
+        name="themealdb-ingredient-match",
+    ),
+
+    path(
+        "recipe-match/",
+        RecipeMatchView.as_view(),
+        name="recipe-match",
     ),
 ]
