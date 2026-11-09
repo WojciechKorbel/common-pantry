@@ -53,6 +53,11 @@ class FakePantryRepository implements PantryRepository {
   final createdProducts = <CreatedProduct>[];
   final addedItems = <AddedItems>[];
 
+  Product? productByBarcode;
+  Object? barcodeError;
+  Completer<Product?>? pendingBarcode;
+  final barcodeLookups = <({int householdId, String barcode})>[];
+
   @override
   Future<List<Product>> searchProducts(int householdId, String search) async {
     searchQueries.add(search);
@@ -64,6 +69,19 @@ class FakePantryRepository implements PantryRepository {
       return pending.future;
     }
     return products;
+  }
+
+  @override
+  Future<Product?> getProductByBarcode(int householdId, String barcode) async {
+    barcodeLookups.add((householdId: householdId, barcode: barcode));
+    if (barcodeError case final Object error) {
+      throw error;
+    }
+    final pending = pendingBarcode;
+    if (pending != null) {
+      return pending.future;
+    }
+    return productByBarcode;
   }
 
   @override
