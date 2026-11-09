@@ -389,3 +389,7 @@ class ClosePantryItemSerializer(serializers.Serializer):
         required=False,
         default=False,
     )
+
+
+class GoogleLoginSerializer(serializers.Serializer):
+    id_token = serializers.CharField(required=True, write_only=True)
