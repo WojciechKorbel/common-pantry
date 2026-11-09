@@ -389,3 +389,11 @@ class ClosePantryItemSerializer(serializers.Serializer):
         required=False,
         default=False,
     )
+
+
+class IngredientSearchSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255, required=True)
+
+
+class RecipeMatchSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255)

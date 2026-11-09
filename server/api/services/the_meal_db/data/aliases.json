@@ -1,0 +1,506 @@
+[
+  {
+    "ingredient": "Chicken",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "kurcz",
+        "type": "prefix"
+      },
+      {
+        "name": "kurak",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Beef",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "wolowin",
+        "type": "prefix"
+      },
+      {
+        "name": "wolow",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Pork",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "wieprzowin",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Salmon",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "losos",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Avocado",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "awokado",
+        "type": "exact"
+      }
+    ]
+  },
+  {
+    "ingredient": "Asparagus",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "szparag",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Aubergine",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "baklazan",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Bacon",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "boczk",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Basil",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "bazyli",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Bay Leaf",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "lisci laurow",
+        "type": "prefix"
+      },
+      {
+        "name": "liść laurowy",
+        "type": "exact"
+      }
+    ]
+  },
+  {
+    "ingredient": "Black Pepper",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "pieprz czarny",
+        "type": "exact"
+      },
+      {
+        "name": "pieprz",
+        "type": "exact"
+      }
+    ]
+  },
+  {
+    "ingredient": "Butter",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "masl",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Carrots",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "marchew",
+        "type": "prefix"
+      },
+      {
+        "name": "marchewk",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Cheese",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "ser",
+        "type": "exact"
+      },
+      {
+        "name": "ser zolty",
+        "type": "exact"
+      }
+    ]
+  },
+  {
+    "ingredient": "Chilli",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "chili",
+        "type": "prefix"
+      },
+      {
+        "name": "papryczk chili",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Cinnamon",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "cynamon",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Coconut Milk",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "mleko kokosow",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Coriander",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "kolendr",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Cream",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "smietan",
+        "type": "prefix"
+      },
+      {
+        "name": "smietank",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Cucumber",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "ogorek",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Egg",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "jaj",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Flour",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "mak",
+        "type": "prefix"
+      },
+      {
+        "name": "maka",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Garlic",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "czosn",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Ginger",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "imbir",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Honey",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "miod",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Lemon",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "cytryn",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Lime",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "limonk",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Milk",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "mlek",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Mushrooms",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "grzyb",
+        "type": "prefix"
+      },
+      {
+        "name": "pieczark",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Mustard",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "musztard",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Olive Oil",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "oliwa",
+        "type": "prefix"
+      },
+      {
+        "name": "oliwa z oliwek",
+        "type": "exact"
+      }
+    ]
+  },
+  {
+    "ingredient": "Onion",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "cebul",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Orange",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "pomarancz",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Paprika",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "papryk",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Parsley",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "pietruszk",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Peas",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "grosz",
+        "type": "prefix"
+      },
+      {
+        "name": "groszek",
+        "type": "exact"
+      }
+    ]
+  },
+  {
+    "ingredient": "Potatoes",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "ziemniak",
+        "type": "prefix"
+      },
+      {
+        "name": "kartofel",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Rice",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "ryz",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Salt",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "sol",
+        "type": "exact"
+      }
+    ]
+  },
+  {
+    "ingredient": "Sugar",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "cukier",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Tomato",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "pomidor",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Vinegar",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "ocet",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Yogurt",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "jogurt",
+        "type": "prefix"
+      },
+      {
+        "name": "jogur",
+        "type": "prefix"
+      }
+    ]
+  },
+  {
+    "ingredient": "Natural Yoghurt",
+    "language": "pl",
+    "aliases": [
+      {
+        "name": "jogurt naturalny",
+        "type": "exact"
+      },
+      {
+        "name": "jogurt natural",
+        "type": "prefix"
+      },
+      {
+        "name": "jogurt naturalny grecki",
+        "type": "prefix"
+      }
+    ]
+  }
+]

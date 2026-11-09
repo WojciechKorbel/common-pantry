@@ -13,6 +13,7 @@ from django.db.models.functions import TruncMonth, TruncDate
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import generics, status
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -49,8 +50,14 @@ from .serializers import (
     ShoppingItemSerializer,
     ShoppingMoveToPantrySerializer,
     VerifyEmailSerializer,
+    IngredientSearchSerializer, RecipeMatchSerializer
 )
 from .services import open_food_facts
+from .services.the_meal_db.initializer import ensure_catalog_initialized
+from .services.the_meal_db.matcher import find_ingredients
+import logging
+
+from .services.the_meal_db.themealdb_recipes import fetch_recipes_for_top_ingredients
 
 
 def generate_verification_code():
@@ -1687,4 +1694,66 @@ class FoodWasteStatisticsView(HouseholdMixin, APIView):
                     filter=Q(expiry_date__gte=closed_date),
                 ),
             )
+        )
+
+
+# TODO: only for tests - remove later
+class IngredientMatchView(APIView):
+    permission_classes = [AllowAny]  # TODO delete later
+
+    def post(self, request):
+
+        serializer = IngredientSearchSerializer(
+            data=request.data
+        )
+
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            ensure_catalog_initialized()
+
+        except Exception:
+            raise APIException(
+                "Ingredient catalog initialization failed."
+            )
+
+        product_name = serializer.validated_data["name"]
+
+        results = find_ingredients(product_name)
+
+        return Response({
+            "query": product_name,
+            "count": len(results),
+            "results": results,
+        }, status=status.HTTP_200_OK)
+
+
+class RecipeMatchView(APIView):
+    permission_classes = [AllowAny] # TODO delete later
+
+    def post(self, request):
+        serializer = RecipeMatchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        product_name = serializer.validated_data["name"]
+
+        ensure_catalog_initialized()
+
+        ingredients = find_ingredients(product_name)
+
+        top_ingredients = ingredients[:3]
+
+        recipes = fetch_recipes_for_top_ingredients(
+            top_ingredients,
+            limit=3,
+        )
+
+        return Response(
+            {
+                "query": product_name,
+                "ingredients": top_ingredients,
+                "recipes_count": len(recipes),
+                "recipes": recipes,
+            },
+            status=status.HTTP_200_OK,
         )
