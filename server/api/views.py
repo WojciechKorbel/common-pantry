@@ -17,6 +17,9 @@ from rest_framework.exceptions import APIException
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import (
     Category,
@@ -36,7 +39,9 @@ from .serializers import (
     CategorySerializer,
     ClosePantryItemSerializer,
     CustomProductCreateSerializer,
+    GoogleLoginSerializer,
     HouseholdSerializer,
+    IngredientSearchSerializer,
     PantryGroupSerializer,
     PantryItemCreateSerializer,
     PantryItemSerializer,
@@ -45,12 +50,12 @@ from .serializers import (
     PasswordResetVerifySerializer,
     ProductSerializer,
     ProductUpdateSerializer,
+    RecipeMatchSerializer,
     RegisterSerializer,
     ResendCodeSerializer,
     ShoppingItemSerializer,
     ShoppingMoveToPantrySerializer,
     VerifyEmailSerializer,
-    IngredientSearchSerializer, RecipeMatchSerializer
 )
 from .services import open_food_facts
 from .services.the_meal_db.initializer import ensure_catalog_initialized
@@ -1697,21 +1702,87 @@ class FoodWasteStatisticsView(HouseholdMixin, APIView):
         )
 
 
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = GoogleLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data["id_token"]
+
+        try:
+            idinfo = google_id_token.verify_oauth2_token(
+                token,
+                google_requests.Request(),
+                settings.GOOGLE_OAUTH_CLIENT_ID,
+            )
+        except ValueError:
+            return Response(
+                {"detail": "Invalid or expired Google token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        email = idinfo.get("email")
+        if not email:
+            return Response(
+                {"detail": "No email address found in Google token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            base_username = email.split("@")[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            first_name = idinfo.get("given_name", "")
+            last_name = idinfo.get("family_name", "")
+
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                is_active=True,
+            )
+        else:
+            if not user.is_active:
+                user.is_active = True
+                user.save(update_fields=["is_active"])
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 # TODO: only for tests - remove later
 class IngredientMatchView(APIView):
     permission_classes = [AllowAny]  # TODO delete later
 
     def post(self, request):
-
         serializer = IngredientSearchSerializer(
             data=request.data
         )
-
         serializer.is_valid(raise_exception=True)
 
         try:
             ensure_catalog_initialized()
-
         except Exception:
             raise APIException(
                 "Ingredient catalog initialization failed."
@@ -1729,7 +1800,7 @@ class IngredientMatchView(APIView):
 
 
 class RecipeMatchView(APIView):
-    permission_classes = [AllowAny] # TODO delete later
+    permission_classes = [AllowAny]  # TODO delete later
 
     def post(self, request):
         serializer = RecipeMatchSerializer(data=request.data)

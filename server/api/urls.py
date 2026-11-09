@@ -3,6 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from . import views
 from .views import (
+    GoogleLoginView,
     HouseholdDetailsAPIView,
     HouseholdJoinAPIView,
     HouseholdLeaveAPIView,
@@ -11,19 +12,22 @@ from .views import (
     HouseholdMemberDemoteAPIView,
     HouseholdMemberPromoteAPIView,
     HouseholdSettingsAPIView,
+    IngredientMatchView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     PasswordResetResendView,
     PasswordResetVerifyView,
+    RecipeMatchView,
     RegisterView,
     ResendCodeView,
-    VerifyEmailView, IngredientMatchView, RecipeMatchView,
+    VerifyEmailView,
 )
 
 urlpatterns = [
     # Auth
     path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/google/', GoogleLoginView.as_view(), name='google-login'),
     # Auth - Register
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/verify-email/", VerifyEmailView.as_view(), name="verify-email"),
