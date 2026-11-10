@@ -363,8 +363,6 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
 
                         return LayoutBuilder(
                           builder: (context, constraints) {
-                            // Na szerokich ekranach dzielimy kafelki na dwie elastyczne kolumny
-                            // bez narzucania sztywnej wysokości z GridView
                             final isMultiColumn = constraints.maxWidth >= 900;
 
                             if (isMultiColumn) {
