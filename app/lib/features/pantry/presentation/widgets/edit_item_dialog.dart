@@ -2,6 +2,7 @@ import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ Future<void> showEditItemDialog(
   required PantryGroup product,
   required PantryGroupItem item,
   required PantryController controller,
+  PantryRepository? repository,
+  int? householdId,
 }) {
   return showDialog<void>(
     context: context,
@@ -20,6 +23,8 @@ Future<void> showEditItemDialog(
       product: product,
       item: item,
       controller: controller,
+      repository: repository,
+      householdId: householdId,
     ),
   );
 }
@@ -30,17 +35,24 @@ class EditItemDialog extends StatefulWidget {
     required this.product,
     required this.item,
     required this.controller,
+    this.repository,
+    this.householdId,
   });
 
   final PantryGroup product;
   final PantryGroupItem item;
   final PantryController controller;
+  final PantryRepository? repository;
+  final int? householdId;
 
   @override
   State<EditItemDialog> createState() => _EditItemDialogState();
 }
 
 class _EditItemDialogState extends State<EditItemDialog> {
+  PantryRepository get _repository => widget.repository ?? Dependencies.pantryRepository;
+
+  int get _householdId => widget.householdId ?? Dependencies.householdController.current.id;
   late final TextEditingController _nameText;
   late final TextEditingController _brandText;
   late final TextEditingController _categoryController;
@@ -107,8 +119,8 @@ class _EditItemDialogState extends State<EditItemDialog> {
     setState(() => _isLookingUp = true);
 
     try {
-      final householdId = Dependencies.householdController.current.id;
-      final results = await Dependencies.pantryRepository.searchProducts(
+      final householdId = _householdId;
+      final results = await _repository.searchProducts(
         householdId,
         query,
       );
@@ -146,7 +158,7 @@ class _EditItemDialogState extends State<EditItemDialog> {
 
   Future<void> _loadCategories() async {
     try {
-      final categories = await Dependencies.pantryRepository.getCategories();
+      final categories = await _repository.getCategories();
       if (!mounted) return;
       setState(() {
         _categories = categories;

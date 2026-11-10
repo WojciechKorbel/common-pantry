@@ -53,31 +53,40 @@ class ApiClient {
           debugPrint('[DEBUG] 401 for: ${request.path}'); // TODO: debug print is here!
           debugPrint('[DEBUG] Token refresh start'); // TODO: debug print is here!
 
+          String? newAccess;
           try {
-            final newAccess = await _refreshAccessToken();
+            newAccess = await _refreshAccessToken();
+          } catch (e) {
+            debugPrint('[DEBUG] Refresh failed: $e'); // TODO: debug print is here!
+            newAccess = null;
+          }
 
-            if (newAccess == null) {
-              debugPrint('[DEBUG] Token refresh failed'); // TODO: debug print is here!
-              handler.next(error);
-              return;
-            }
+          if (newAccess == null) {
+            debugPrint('[DEBUG] Token refresh failed'); // TODO: debug print is here!
+            handler.next(error);
+            return;
+          }
 
-            debugPrint('[DEBUG] Token refresh success'); // TODO: debug print is here!
-            debugPrint('[DEBUG] Retrying request: ${request.path}'); // TODO: debug print is here!
+          debugPrint('[DEBUG] Token refresh success'); // TODO: debug print is here!
+          debugPrint('[DEBUG] Retrying request: ${request.path}'); // TODO: debug print is here!
 
-            request.headers['Authorization'] = 'Bearer $newAccess';
-            request.extra['retried'] = true;
+          request.headers['Authorization'] = 'Bearer $newAccess';
+          request.extra['retried'] = true;
 
+          try {
             final response = await dio.fetch<dynamic>(request);
 
             debugPrint(
               '[DEBUG] Retried request: ${response.statusCode}',
             ); // TODO: debug print is here!
             handler.resolve(response);
+          } on DioException catch (e) {
+            if (e.response?.statusCode == 401) {
+              await tokenStorage.clear();
+            }
+            handler.next(e);
           } catch (e) {
-            debugPrint('[DEBUG] Refresh failed: $e'); // TODO: debug print is here!
-            await tokenStorage.clear();
-            handler.next(error);
+            handler.reject(DioException(requestOptions: request, error: e));
           }
         },
       ),

@@ -130,8 +130,6 @@ void main() {
         expect(repository.pantryRequests, hasLength(1));
         expect(controller.query, 'ser');
       },
-      // TODO: remove when fixed
-      skip: 'Known bug: every HouseholdController notification reloads the pantry (see block 25b)',
     );
   });
 

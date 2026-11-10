@@ -4,7 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 class StatisticsController extends ChangeNotifier {
-  StatisticsController(this._repository, {
+  StatisticsController(
+    this._repository, {
     required this.householdId,
   });
 
@@ -33,29 +34,38 @@ class StatisticsController extends ChangeNotifier {
 
   String? get errorMessage => _errorMessage;
 
-  Future<void> load() async {
-    if (_isLoading) return;
+  int _lastRequest = 0;
 
+  Future<void> load() async {
+    final request = ++_lastRequest;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
+    FoodWasteStatistics? statistics;
+    String? error;
     try {
-      _statistics = await _repository.getFoodWasteStatistics(
+      statistics = await _repository.getFoodWasteStatistics(
         householdId,
         period: _period,
       );
-      _hasLoaded = true;
     } on DioException catch (e) {
-      _errorMessage = _messageFor(e);
+      error = _messageFor(e);
     } on FormatException {
-      _errorMessage = 'Invalid statistics response.';
+      error = 'Invalid statistics response.';
     } catch (_) {
-      _errorMessage = 'Something went wrong. Try again.';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      error = 'Something went wrong. Try again.';
     }
+
+    if (request != _lastRequest) return;
+
+    if (statistics != null) {
+      _statistics = statistics;
+      _hasLoaded = true;
+    }
+    _errorMessage = error;
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> setPeriod(String period) async {
@@ -72,10 +82,8 @@ class StatisticsController extends ChangeNotifier {
       DioExceptionType.connectionError ||
       DioExceptionType.connectionTimeout ||
       DioExceptionType.receiveTimeout ||
-      DioExceptionType.sendTimeout =>
-      'Cannot reach the server. Check your connection.',
-      _ =>
-      switch (e.response?.statusCode) {
+      DioExceptionType.sendTimeout => 'Cannot reach the server. Check your connection.',
+      _ => switch (e.response?.statusCode) {
         400 => 'Invalid statistics period.',
         401 => 'Your session has expired. Log in again.',
         403 => 'You do not have access to this household.',

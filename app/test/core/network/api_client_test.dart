@@ -147,8 +147,6 @@ void main() {
         expect(tokens.access, 'access-2');
         expect(tokens.refresh, 'refresh-1');
       },
-      // TODO: remove when fixed
-      skip: 'Known bug: any failure of the retried request logs the user out',
     );
   });
 }

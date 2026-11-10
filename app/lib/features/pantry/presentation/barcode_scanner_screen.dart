@@ -1,18 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+typedef ScannerViewBuilder = Widget Function(
+  MobileScannerController controller,
+  void Function(BarcodeCapture) onDetect,
+);
+
 class BarcodeScannerScreen extends StatefulWidget {
-  const BarcodeScannerScreen({super.key});
+  const BarcodeScannerScreen({
+    super.key,
+    this.controller,
+    this.scannerBuilder,
+  });
+
+  final MobileScannerController? controller;
+  final ScannerViewBuilder? scannerBuilder;
 
   @override
   State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
 }
 
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    facing: CameraFacing.back,
-  );
+  late final MobileScannerController _controller =
+      widget.controller ??
+      MobileScannerController(
+        detectionSpeed: DetectionSpeed.noDuplicates,
+        facing: CameraFacing.back,
+      );
 
   bool _isProcessing = false;
 
@@ -59,10 +73,11 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       body: Stack(
         alignment: Alignment.center,
         children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: _onDetect,
-          ),
+          widget.scannerBuilder?.call(_controller, _onDetect) ??
+              MobileScanner(
+                controller: _controller,
+                onDetect: _onDetect,
+              ),
           ColorFiltered(
             colorFilter: ColorFilter.mode(
               Colors.black.withValues(alpha: 0.65),

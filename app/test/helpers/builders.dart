@@ -119,3 +119,23 @@ DioException connectionError() => DioException(
   requestOptions: RequestOptions(path: '/'),
   type: DioExceptionType.connectionError,
 );
+
+HouseholdMember aMember({
+  int userId = 1,
+  String username = 'jan',
+  String role = 'member',
+  bool isMe = false,
+}) => HouseholdMember(userId: userId, username: username, role: role, isMe: isMe);
+
+HouseholdDetails aHouseholdDetails({
+  String name = 'Akademik',
+  String inviteCode = 'K7Q2MX',
+  String role = 'owner',
+  List<HouseholdMember> members = const [],
+}) => HouseholdDetails(
+  id: 1,
+  name: name,
+  inviteCode: inviteCode,
+  role: role,
+  members: members,
+);

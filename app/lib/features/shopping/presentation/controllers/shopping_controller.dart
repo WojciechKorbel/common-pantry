@@ -7,8 +7,11 @@ import 'package:common_pantry/features/shopping/data/repositories/shopping_repos
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+late int _householdId;
+
 class ShoppingController extends ChangeNotifier {
   ShoppingController(this._repository, this._households) {
+    _householdId = _households.current.id;
     _households.addListener(_onHouseholdChanged);
   }
 
@@ -130,6 +133,10 @@ class ShoppingController extends ChangeNotifier {
   }
 
   void _onHouseholdChanged() {
+    final id = _households.current.id;
+    if (id == _householdId) return;
+    _householdId = id;
+
     _items = const [];
     _hasLoaded = false;
     unawaited(load());
