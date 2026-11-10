@@ -30,6 +30,7 @@ class FakePantryRepository implements PantryRepository {
   final updatedProducts = <({int productId, String name, String? brand, int? categoryId})>[];
   HouseholdDetails householdDetails = homeDetails;
   Object? detailsError;
+  Completer<HouseholdDetails>? pendingDetails;
   int detailsRequests = 0;
   Object? householdActionError;
   final householdActions = <String>[];
@@ -182,6 +183,10 @@ class FakePantryRepository implements PantryRepository {
     detailsRequests++;
     if (detailsError case final Object error) {
       throw error;
+    }
+    final pending = pendingDetails;
+    if (pending != null) {
+      return pending.future;
     }
     return householdDetails;
   }
