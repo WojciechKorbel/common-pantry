@@ -85,53 +85,46 @@ class _JoinHouseholdScreenState extends State<JoinHouseholdScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              SizedBox(height: isLandscape ? 8 : 16),
-
-                              // APP LOGO
-                              Center(
-                                child: Image.asset(
-                                  'assets/images/pantry_logo.png',
-                                  width: isLandscape ? 60 : 96,
-                                  height: isLandscape ? 60 : 96,
-                                  fit: BoxFit.contain,
+                              if (!isLandscape) ...[
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: Image.asset(
+                                    'assets/images/pantry_logo.png',
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 20),
+                              ] else
+                                const SizedBox(height: 4),
 
-                              SizedBox(height: isLandscape ? 12 : 24),
-
-                              // TITLE
                               Text(
                                 'Join a household',
                                 style:
                                     (isLandscape
-                                            ? theme.textTheme.headlineSmall
+                                            ? theme.textTheme.titleLarge
                                             : theme.textTheme.headlineMedium)
                                         ?.copyWith(
                                           fontWeight: FontWeight.bold,
                                         ),
                                 textAlign: TextAlign.center,
                               ),
-
-                              SizedBox(height: isLandscape ? 6 : 12),
-
-                              // DESCRIPTION
+                              const SizedBox(height: 4),
                               Text(
-                                'Enter the 6-digit invitation code to join the household.',
-                                style: theme.textTheme.bodyLarge,
+                                'Enter the 6-digit invitation code.',
+                                style: theme.textTheme.bodyMedium,
                                 textAlign: TextAlign.center,
                               ),
+                              SizedBox(height: isLandscape ? 14 : 32),
 
-                              SizedBox(height: isLandscape ? 18 : 36),
-
-                              // INVITATION CODE INPUT
                               InviteCodeInput(
                                 controller: _controller,
                                 hasError: _controller.hasError,
                               ),
 
-                              // ERROR MESSAGE
                               if (_controller.errorMessage != null) ...[
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 12),
                                 Text(
                                   _controller.errorMessage!,
                                   textAlign: TextAlign.center,
@@ -144,10 +137,7 @@ class _JoinHouseholdScreenState extends State<JoinHouseholdScreen> {
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: 16),
-
-                      // JOIN BUTTON
+                      const SizedBox(height: 12),
                       AppButton(
                         text: 'Join household',
                         onPressed: _controller.isLoading ? null : _joinHousehold,

@@ -1,4 +1,5 @@
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
@@ -227,6 +228,82 @@ class _EditProductDialogState extends State<EditProductDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = Responsive.isLandscape(context);
+    final isWide = isLandscape || Responsive.isTablet(context);
+
+    final nameField = TextField(
+      controller: _nameText,
+      focusNode: _nameFocus,
+      onTapOutside: (_) => _nameFocus.unfocus(),
+      decoration: InputDecoration(
+        labelText: 'Name',
+        suffixIcon: _isLookingUp
+            ? const Padding(
+                padding: EdgeInsets.all(14),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : null,
+      ),
+    );
+
+    final brandField = TextField(
+      controller: _brandText,
+      decoration: const InputDecoration(labelText: 'Brand'),
+    );
+
+    final categoryDropdown = DropdownMenu<ProductCategory>(
+      controller: _categoryController,
+      expandedInsets: EdgeInsets.zero,
+      label: const Text('Category'),
+      enabled: !_isLoadingCategories && !_isSubmitting,
+      requestFocusOnTap: false,
+      menuHeight: 300,
+      inputDecorationTheme: theme.inputDecorationTheme,
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+      ),
+      initialSelection: _selectedCategory,
+      onSelected: (value) => setState(() {
+        _selectedCategory = value;
+      }),
+      dropdownMenuEntries: [
+        for (final category in _categories)
+          DropdownMenuEntry(
+            value: category,
+            label: category.name,
+          ),
+      ],
+    );
+
+    final formContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(height: isLandscape ? 12 : 24),
+        if (isWide && _isPurchased)
+          Row(
+            children: [
+              Expanded(child: nameField),
+              const SizedBox(width: 16),
+              Expanded(child: brandField),
+            ],
+          )
+        else ...[
+          nameField,
+          if (_isPurchased) ...[
+            const SizedBox(height: 16),
+            brandField,
+          ],
+        ],
+        const SizedBox(height: 16),
+        categoryDropdown,
+        SizedBox(height: isLandscape ? 16 : 24),
+      ],
+    );
 
     return PopScope(
       canPop: false,
@@ -248,75 +325,49 @@ class _EditProductDialogState extends State<EditProductDialog> {
               'Edit product',
               style: TextStyle(fontWeight: FontWeight.w400, fontSize: 20),
             ),
+            actions: [
+              if (isLandscape)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: FilledButton(
+                    onPressed: _canSubmit ? _submit : null,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('Save'),
+                  ),
+                ),
+            ],
           ),
           body: SafeArea(
             bottom: false,
-            child: PinnedActionLayout(
-              action: ElevatedButton(
-                onPressed: _canSubmit ? _submit : null,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: isLandscape
+                    ? SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: formContent,
                       )
-                    : const Text('Save changes'),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _nameText,
-                    focusNode: _nameFocus,
-                    onTapOutside: (_) => _nameFocus.unfocus(),
-                    decoration: InputDecoration(
-                      labelText: 'Name',
-                      suffixIcon: _isLookingUp
-                          ? const Padding(
-                              padding: EdgeInsets.all(14),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            )
-                          : null,
-                    ),
-                  ),
-                  if (_isPurchased) ...[
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _brandText,
-                      decoration: const InputDecoration(labelText: 'Brand'),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  DropdownMenu<ProductCategory>(
-                    controller: _categoryController,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Category'),
-                    enabled: !_isLoadingCategories && !_isSubmitting,
-                    requestFocusOnTap: false,
-                    menuHeight: 300,
-                    inputDecorationTheme: theme.inputDecorationTheme,
-                    menuStyle: MenuStyle(
-                      backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
-                      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-                    ),
-                    initialSelection: _selectedCategory,
-                    onSelected: (value) => setState(() {
-                      _selectedCategory = value;
-                    }),
-                    dropdownMenuEntries: [
-                      for (final category in _categories)
-                        DropdownMenuEntry(
-                          value: category,
-                          label: category.name,
+                    : PinnedActionLayout(
+                        action: ElevatedButton(
+                          onPressed: _canSubmit ? _submit : null,
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Save changes'),
                         ),
-                    ],
-                  ),
-                ],
+                        child: formContent,
+                      ),
               ),
             ),
           ),

@@ -1,4 +1,5 @@
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/features/services/pantry_widget_service.dart';
 import 'package:flutter/material.dart';
@@ -42,6 +43,106 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = Responsive.isLandscape(context);
+
+    final appearanceCard = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Appearance',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Theme',
+                  style: theme.textTheme.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Choose app theme mode',
+                  style: theme.textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                ListenableBuilder(
+                  listenable: Dependencies.themeController,
+                  builder: (context, _) {
+                    final currentMode = Dependencies.themeController.themeMode;
+
+                    return SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<ThemeMode>(
+                        segments: const [
+                          ButtonSegment(
+                            value: ThemeMode.system,
+                            icon: Icon(Icons.brightness_auto_outlined),
+                            label: Text('System'),
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.light,
+                            icon: Icon(Icons.light_mode_outlined),
+                            label: Text('Light'),
+                          ),
+                          ButtonSegment(
+                            value: ThemeMode.dark,
+                            icon: Icon(Icons.dark_mode_outlined),
+                            label: Text('Dark'),
+                          ),
+                        ],
+                        selected: {currentMode},
+                        onSelectionChanged: (selected) {
+                          final mode = selected.first;
+                          Dependencies.themeController.setThemeMode(mode);
+                          PantryWidgetService.updateThemeMode(mode);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final accountCard = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Account',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: ListTile(
+            leading: Icon(
+              Icons.logout,
+              color: theme.colorScheme.error,
+            ),
+            title: Text(
+              'Log out',
+              style: TextStyle(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            onTap: () => _handleLogout(context),
+          ),
+        ),
+      ],
+    );
 
     return Scaffold(
       appBar: AppAppBar(
@@ -51,98 +152,24 @@ class SettingsScreen extends StatelessWidget {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
+            constraints: const BoxConstraints(maxWidth: 860),
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               children: [
-                Text(
-                  'Appearance',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Theme',
-                          style: theme.textTheme.titleSmall,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Choose app theme mode',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 16),
-                        ListenableBuilder(
-                          listenable: Dependencies.themeController,
-                          builder: (context, _) {
-                            final currentMode = Dependencies.themeController.themeMode;
-
-                            return SizedBox(
-                              width: double.infinity,
-                              child: SegmentedButton<ThemeMode>(
-                                segments: const [
-                                  ButtonSegment(
-                                    value: ThemeMode.system,
-                                    icon: Icon(Icons.brightness_auto_outlined),
-                                    label: Text('System'),
-                                  ),
-                                  ButtonSegment(
-                                    value: ThemeMode.light,
-                                    icon: Icon(Icons.light_mode_outlined),
-                                    label: Text('Light'),
-                                  ),
-                                  ButtonSegment(
-                                    value: ThemeMode.dark,
-                                    icon: Icon(Icons.dark_mode_outlined),
-                                    label: Text('Dark'),
-                                  ),
-                                ],
-                                selected: {currentMode},
-                                onSelectionChanged: (selected) {
-                                  final mode = selected.first;
-                                  Dependencies.themeController.setThemeMode(mode);
-                                  PantryWidgetService.updateThemeMode(mode);
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Account',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.logout,
-                      color: theme.colorScheme.error,
-                    ),
-                    title: Text(
-                      'Log out',
-                      style: TextStyle(
-                        color: theme.colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    onTap: () => _handleLogout(context),
-                  ),
-                ),
+                if (isLandscape)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(flex: 3, child: appearanceCard),
+                      const SizedBox(width: 20),
+                      Expanded(flex: 2, child: accountCard),
+                    ],
+                  )
+                else ...[
+                  appearanceCard,
+                  const SizedBox(height: 24),
+                  accountCard,
+                ],
               ],
             ),
           ),

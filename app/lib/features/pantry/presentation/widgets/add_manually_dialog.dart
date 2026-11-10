@@ -1,3 +1,4 @@
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
@@ -100,6 +101,7 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = Responsive.isLandscape(context);
 
     return PopScope(
       canPop: false,
@@ -131,7 +133,12 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                      padding: EdgeInsets.fromLTRB(
+                        24,
+                        isLandscape ? 12 : 24,
+                        24,
+                        0,
+                      ),
                       child: DropdownMenu<ItemSource>(
                         enabled: !_isScanned,
                         initialSelection: _source,
@@ -167,7 +174,7 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: isLandscape ? 12 : 24),
                     Expanded(
                       child: switch (_source) {
                         ItemSource.homemade => HomemadeItemForm(

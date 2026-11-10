@@ -96,45 +96,39 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              SizedBox(height: isLandscape ? 8 : 16),
-
-                              // LOGO
-                              Center(
-                                child: Image.asset(
-                                  'assets/images/pantry_logo.png',
-                                  width: isLandscape ? 60 : 96,
-                                  height: isLandscape ? 60 : 96,
-                                  fit: BoxFit.contain,
+                              if (!isLandscape) ...[
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: Image.asset(
+                                    'assets/images/pantry_logo.png',
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
-                              ),
+                                const SizedBox(height: 20),
+                              ] else
+                                const SizedBox(height: 4),
 
-                              SizedBox(height: isLandscape ? 12 : 24),
-
-                              // BOLD INFO TEXT
                               Text(
                                 'Create a new household',
                                 style:
                                     (isLandscape
-                                            ? theme.textTheme.headlineSmall
+                                            ? theme.textTheme.titleLarge
                                             : theme.textTheme.headlineMedium)
                                         ?.copyWith(
                                           fontWeight: FontWeight.bold,
                                         ),
                                 textAlign: TextAlign.center,
                               ),
-
-                              SizedBox(height: isLandscape ? 6 : 12),
-
-                              // INFO TEXT
+                              const SizedBox(height: 4),
                               Text(
                                 'Give your household a name.',
-                                style: theme.textTheme.bodyLarge,
+                                style: theme.textTheme.bodyMedium,
                                 textAlign: TextAlign.center,
                               ),
+                              SizedBox(height: isLandscape ? 14 : 32),
 
-                              SizedBox(height: isLandscape ? 18 : 36),
-
-                              // HOUSEHOLD NAME TEXT FIELD
                               AppInput(
                                 hintText: 'Household name',
                                 icon: Icons.home_outlined,
@@ -142,11 +136,11 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
                                 controller: _nameController,
                               ),
 
-                              // EMPTY FIELD ERROR
                               if (_controller.errorMessage != null) ...[
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 12),
                                 Text(
                                   _controller.errorMessage!,
+                                  textAlign: TextAlign.center,
                                   style: TextStyle(
                                     color: theme.colorScheme.error,
                                   ),
@@ -156,10 +150,7 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
                           ),
                         ),
                       ),
-
-                      const SizedBox(height: 16),
-
-                      // CREATE BUTTON
+                      const SizedBox(height: 12),
                       AppButton(
                         text: 'Create household',
                         onPressed: _createHousehold,
