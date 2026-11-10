@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
@@ -37,7 +38,9 @@ Future<void> showAddItemDialog(
 
   if (choice == AddItemChoice.scanBarcode) {
     final barcode = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: scannerBuilder ?? (_) => const BarcodeScannerScreen()),
+      MaterialPageRoute(
+        builder: scannerBuilder ?? (_) => const BarcodeScannerScreen(),
+      ),
     );
 
     if (barcode == null || barcode.trim().isEmpty || !context.mounted) return;
@@ -94,29 +97,52 @@ class _AddItemChoiceDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = Responsive.isLandscape(context);
 
     return Dialog(
       clipBehavior: Clip.antiAlias,
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _AddOption(
-              icon: Icons.qr_code_scanner,
-              label: 'Scan barcode',
-              onTap: () => Navigator.of(context).pop(AddItemChoice.scanBarcode),
-            ),
-            const Divider(height: 1),
-            _AddOption(
-              icon: Icons.edit_outlined,
-              label: 'Add manually',
-              onTap: () => Navigator.of(context).pop(AddItemChoice.manually),
-            ),
-          ],
-        ),
+        constraints: BoxConstraints(maxWidth: isLandscape ? 480 : 360),
+        child: isLandscape
+            ? IntrinsicHeight(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _AddOption(
+                        icon: Icons.qr_code_scanner,
+                        label: 'Scan barcode',
+                        onTap: () => Navigator.of(context).pop(AddItemChoice.scanBarcode),
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      child: _AddOption(
+                        icon: Icons.edit_outlined,
+                        label: 'Add manually',
+                        onTap: () => Navigator.of(context).pop(AddItemChoice.manually),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _AddOption(
+                    icon: Icons.qr_code_scanner,
+                    label: 'Scan barcode',
+                    onTap: () => Navigator.of(context).pop(AddItemChoice.scanBarcode),
+                  ),
+                  const Divider(height: 1),
+                  _AddOption(
+                    icon: Icons.edit_outlined,
+                    label: 'Add manually',
+                    onTap: () => Navigator.of(context).pop(AddItemChoice.manually),
+                  ),
+                ],
+              ),
       ),
     );
   }
