@@ -43,7 +43,6 @@ class ResponsiveNavigationScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sprawdzamy czy to tablet lub tryb poziomy
     final useNavRail =
         Responsive.isTablet(context) ||
         Responsive.isDesktop(context) ||
@@ -58,8 +57,6 @@ class ResponsiveNavigationScaffold extends StatelessWidget {
             NavigationRail(
               selectedIndex: selectedIndex == _addIndex ? 0 : selectedIndex,
               onDestinationSelected: (index) {
-                // Skoro w NavigationRail możemy przenieść '+' do leading FAB,
-                // mapujemy indeksy odpowiednio
                 _onItemTapped(context, index);
               },
               leading: Padding(
@@ -85,7 +82,7 @@ class ResponsiveNavigationScaffold extends StatelessWidget {
                 NavigationRailDestination(
                   icon: SizedBox.shrink(),
                   label: SizedBox.shrink(),
-                  disabled: true, // zachowuje indeksację dla spójności
+                  disabled: true,
                 ),
                 NavigationRailDestination(
                   icon: Icon(Icons.bar_chart_outlined),
@@ -106,7 +103,6 @@ class ResponsiveNavigationScaffold extends StatelessWidget {
       );
     }
 
-    // Telefon w trybie portretowym – oryginalny BottomNavigationBar
     return Scaffold(
       body: child,
       bottomNavigationBar: NavigationBar(
