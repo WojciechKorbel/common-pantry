@@ -48,98 +48,105 @@ class SettingsScreen extends StatelessWidget {
         title: 'Settings',
         onBack: () => context.pop(),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        children: [
-          Text(
-            'Appearance',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Theme',
-                    style: theme.textTheme.titleSmall,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              children: [
+                Text(
+                  'Appearance',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Choose app theme mode',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 16),
-                  ListenableBuilder(
-                    listenable: Dependencies.themeController,
-                    builder: (context, _) {
-                      final currentMode = Dependencies.themeController.themeMode;
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Theme',
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Choose app theme mode',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 16),
+                        ListenableBuilder(
+                          listenable: Dependencies.themeController,
+                          builder: (context, _) {
+                            final currentMode = Dependencies.themeController.themeMode;
 
-                      return SizedBox(
-                        width: double.infinity,
-                        child: SegmentedButton<ThemeMode>(
-                          segments: const [
-                            ButtonSegment(
-                              value: ThemeMode.system,
-                              icon: Icon(Icons.brightness_auto_outlined),
-                              label: Text('System'),
-                            ),
-                            ButtonSegment(
-                              value: ThemeMode.light,
-                              icon: Icon(Icons.light_mode_outlined),
-                              label: Text('Light'),
-                            ),
-                            ButtonSegment(
-                              value: ThemeMode.dark,
-                              icon: Icon(Icons.dark_mode_outlined),
-                              label: Text('Dark'),
-                            ),
-                          ],
-                          selected: {currentMode},
-                          onSelectionChanged: (selected) {
-                            final mode = selected.first;
-                            Dependencies.themeController.setThemeMode(mode);
-                            PantryWidgetService.updateThemeMode(mode);
+                            return SizedBox(
+                              width: double.infinity,
+                              child: SegmentedButton<ThemeMode>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: ThemeMode.system,
+                                    icon: Icon(Icons.brightness_auto_outlined),
+                                    label: Text('System'),
+                                  ),
+                                  ButtonSegment(
+                                    value: ThemeMode.light,
+                                    icon: Icon(Icons.light_mode_outlined),
+                                    label: Text('Light'),
+                                  ),
+                                  ButtonSegment(
+                                    value: ThemeMode.dark,
+                                    icon: Icon(Icons.dark_mode_outlined),
+                                    label: Text('Dark'),
+                                  ),
+                                ],
+                                selected: {currentMode},
+                                onSelectionChanged: (selected) {
+                                  final mode = selected.first;
+                                  Dependencies.themeController.setThemeMode(mode);
+                                  PantryWidgetService.updateThemeMode(mode);
+                                },
+                              ),
+                            );
                           },
                         ),
-                      );
-                    },
+                      ],
+                    ),
                   ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'Account',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: ListTile(
-              leading: Icon(
-                Icons.logout,
-                color: theme.colorScheme.error,
-              ),
-              title: Text(
-                'Log out',
-                style: TextStyle(
-                  color: theme.colorScheme.error,
-                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              onTap: () => _handleLogout(context),
+                const SizedBox(height: 32),
+                Text(
+                  'Account',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.logout,
+                      color: theme.colorScheme.error,
+                    ),
+                    title: Text(
+                      'Log out',
+                      style: TextStyle(
+                        color: theme.colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onTap: () => _handleLogout(context),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
