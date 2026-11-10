@@ -1,3 +1,4 @@
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/features/households/presentation/controllers/household_controller.dart';
 import 'package:common_pantry/features/households/presentation/widgets/app_household_button.dart';
@@ -50,15 +51,13 @@ class _HouseholdsScreenState extends State<HouseholdsScreen> {
             ),
           ),
           body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: _buildBody(controller),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1000),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: _buildBody(controller),
+                ),
               ),
             ),
           ),
@@ -135,20 +134,54 @@ class _HouseholdsScreenState extends State<HouseholdsScreen> {
 
     return RefreshIndicator(
       onRefresh: controller.loadHouseholds,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: controller.households.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final household = controller.households[index];
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 600 || Responsive.isLandscape(context);
 
-          return AppHouseholdButton(
-            householdName: household.name,
-            onPressed: () {
-              controller.select(household);
-              context.push(
-                '/pantry-items',
-                extra: household,
+          if (isWide) {
+            return GridView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 80),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 340,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                mainAxisExtent: 72,
+              ),
+              itemCount: controller.households.length,
+              itemBuilder: (context, index) {
+                final household = controller.households[index];
+                return AppHouseholdButton(
+                  householdName: household.name,
+                  onPressed: () {
+                    controller.select(household);
+                    context.push(
+                      '/pantry-items',
+                      extra: household,
+                    );
+                  },
+                );
+              },
+            );
+          }
+
+          return ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 80),
+            itemCount: controller.households.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final household = controller.households[index];
+
+              return AppHouseholdButton(
+                householdName: household.name,
+                onPressed: () {
+                  controller.select(household);
+                  context.push(
+                    '/pantry-items',
+                    extra: household,
+                  );
+                },
               );
             },
           );
