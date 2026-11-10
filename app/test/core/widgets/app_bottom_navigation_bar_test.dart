@@ -28,7 +28,7 @@ void main() {
               lastExtra = state.extra;
               return Scaffold(
                 body: Text('page $path'),
-                bottomNavigationBar: AppBottomNavigationBar(household: home),
+                bottomNavigationBar: const AppBottomNavigationBar(household: home),
               );
             },
           ),
