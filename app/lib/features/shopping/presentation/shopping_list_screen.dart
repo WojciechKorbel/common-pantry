@@ -59,7 +59,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   Widget _buildTile(ShoppingItem item) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: ShoppingItemTile(
         item: item,
         onToggle: (value) => _toggle(item, value),
@@ -68,12 +68,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     );
   }
 
-  Widget _buildToBuySection(List<ShoppingItem> toBuy) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _SectionHeader(title: 'To buy'),
-        if (toBuy.isEmpty)
+  Widget _buildToBuySection(List<ShoppingItem> toBuy, {bool asGrid = false}) {
+    if (toBuy.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(title: 'To buy'),
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
@@ -83,6 +83,49 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               ),
             ),
           ),
+        ],
+      );
+    }
+
+    if (asGrid) {
+      final leftItems = <ShoppingItem>[];
+      final rightItems = <ShoppingItem>[];
+      for (var i = 0; i < toBuy.length; i++) {
+        if (i.isEven) {
+          leftItems.add(toBuy[i]);
+        } else {
+          rightItems.add(toBuy[i]);
+        }
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(title: 'To buy'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  children: [for (final item in leftItems) _buildTile(item)],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  children: [for (final item in rightItems) _buildTile(item)],
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'To buy'),
         for (final item in toBuy) _buildTile(item),
       ],
     );
@@ -99,6 +142,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         _SectionHeader(
           title: 'Bought (${bought.length})',
           action: FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+            ),
             onPressed: () => showMoveToPantryDialog(context, bought),
             child: const Text('Add all to pantry'),
           ),
@@ -110,6 +156,12 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = Responsive.isLandscape(context);
+    final isWide =
+        Responsive.isTablet(context) ||
+        Responsive.isDesktop(context) ||
+        (isLandscape && MediaQuery.sizeOf(context).width >= 600);
+
     return ResponsiveScaffold(
       household: widget.household,
       appBar: AppAppBar(
@@ -120,15 +172,17 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           onPressed: () => context.push('/settings'),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showAddShoppingItemDialog(context),
-        tooltip: 'Add to shopping list',
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: isWide
+          ? null
+          : FloatingActionButton(
+              onPressed: () => showAddShoppingItemDialog(context),
+              tooltip: 'Add to shopping list',
+              child: const Icon(Icons.add),
+            ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
+            constraints: const BoxConstraints(maxWidth: 1100),
             child: ListenableBuilder(
               listenable: _controller,
               builder: (context, child) {
@@ -163,19 +217,20 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
                 final toBuy = controller.toBuy;
                 final bought = controller.bought;
-
-                final isWide =
-                    Responsive.isTablet(context) ||
-                    Responsive.isDesktop(context) ||
-                    (Responsive.isLandscape(context) && MediaQuery.sizeOf(context).width >= 700);
+                final hasBothSections = toBuy.isNotEmpty && bought.isNotEmpty;
 
                 return RefreshIndicator(
                   onRefresh: _refresh,
                   child: ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 96),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      isLandscape ? 8 : 16,
+                      16,
+                      isWide ? 24 : 80,
+                    ),
                     children: [
-                      if (isWide)
+                      if (isWide && hasBothSections)
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -183,13 +238,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                               flex: 1,
                               child: _buildToBuySection(toBuy),
                             ),
-                            const SizedBox(width: 24),
+                            const SizedBox(width: 16),
                             Expanded(
                               flex: 1,
                               child: _buildBoughtSection(bought),
                             ),
                           ],
                         )
+                      else if (isWide && bought.isEmpty)
+                        _buildToBuySection(toBuy, asGrid: true)
                       else ...[
                         _buildToBuySection(toBuy),
                         if (bought.isNotEmpty) ...[
@@ -224,7 +281,9 @@ class _SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           ?action,

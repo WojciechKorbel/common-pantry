@@ -18,20 +18,14 @@ class ResponsiveScaffold extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget? floatingActionButton;
 
-  static const _addIndex = 2;
-
   static const _routes = {
     0: '/pantry-items',
     1: '/shopping-list',
-    3: '/stats',
-    4: '/household-settings',
+    2: '/stats',
+    3: '/household-settings',
   };
 
   void _onNavigate(BuildContext context, int index) {
-    if (index == _addIndex) {
-      showAddItemDialog(context, household);
-      return;
-    }
     final targetRoute = _routes[index];
     if (targetRoute != null) {
       context.go(targetRoute, extra: household);
@@ -42,19 +36,23 @@ class ResponsiveScaffold extends StatelessWidget {
     final location = GoRouterState.of(context).uri.path;
     return switch (location) {
       '/shopping-list' => 1,
-      '/stats' => 3,
-      '/household-settings' => 4,
+      '/stats' => 2,
+      '/household-settings' => 3,
       _ => 0,
     };
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    // Używamy NavigationRail na tabletach lub gdy w poziomie mamy wystarczająco miejsca
     final isExpanded =
         Responsive.isTablet(context) ||
         Responsive.isDesktop(context) ||
         Responsive.isLandscape(context);
 
+    // Na niskich ekranach (np. telefon w landscape, wys. < 450) ukrywamy napisy pod ikonami
+    final isShortScreen = size.height < 450;
     final selectedIndex = _getSelectedIndex(context);
 
     if (isExpanded) {
@@ -63,45 +61,60 @@ class ResponsiveScaffold extends StatelessWidget {
         floatingActionButton: floatingActionButton,
         body: Row(
           children: [
-            NavigationRail(
-              selectedIndex: selectedIndex == _addIndex ? 0 : selectedIndex,
-              onDestinationSelected: (index) => _onNavigate(context, index),
-              labelType: NavigationRailLabelType.all,
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: FloatingActionButton.small(
-                  elevation: 0,
-                  onPressed: () => showAddItemDialog(context, household),
-                  child: const Icon(Icons.add),
+            SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      size.height -
+                      (appBar?.preferredSize.height ?? 0) -
+                      MediaQuery.paddingOf(context).top,
+                ),
+                child: IntrinsicHeight(
+                  child: NavigationRail(
+                    selectedIndex: selectedIndex,
+                    onDestinationSelected: (index) => _onNavigate(context, index),
+                    labelType: isShortScreen
+                        ? NavigationRailLabelType.none
+                        : NavigationRailLabelType.all,
+                    leading: Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 8),
+                      child: IconButton.filled(
+                        iconSize: 22,
+                        tooltip: 'Add item',
+                        style: IconButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () => showAddItemDialog(context, household),
+                        icon: const Icon(Icons.add),
+                      ),
+                    ),
+                    destinations: const [
+                      NavigationRailDestination(
+                        icon: Icon(Icons.location_on_outlined),
+                        selectedIcon: Icon(Icons.location_on),
+                        label: Text('Household'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.shopping_cart_outlined),
+                        selectedIcon: Icon(Icons.shopping_cart),
+                        label: Text('Shopping'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.bar_chart_outlined),
+                        selectedIcon: Icon(Icons.bar_chart),
+                        label: Text('Stats'),
+                      ),
+                      NavigationRailDestination(
+                        icon: Icon(Icons.settings_outlined),
+                        selectedIcon: Icon(Icons.settings),
+                        label: Text('Settings'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              destinations: const [
-                NavigationRailDestination(
-                  icon: Icon(Icons.location_on_outlined),
-                  selectedIcon: Icon(Icons.location_on),
-                  label: Text('Household'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.shopping_cart_outlined),
-                  selectedIcon: Icon(Icons.shopping_cart),
-                  label: Text('Shopping'),
-                ),
-                NavigationRailDestination(
-                  icon: SizedBox.shrink(),
-                  label: SizedBox.shrink(),
-                  disabled: true,
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.bar_chart_outlined),
-                  selectedIcon: Icon(Icons.bar_chart),
-                  label: Text('Stats'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings),
-                  label: Text('Settings'),
-                ),
-              ],
             ),
             const VerticalDivider(thickness: 1, width: 1),
             Expanded(child: body),
@@ -115,8 +128,25 @@ class ResponsiveScaffold extends StatelessWidget {
       body: body,
       floatingActionButton: floatingActionButton,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) => _onNavigate(context, index),
+        selectedIndex: switch (_getSelectedIndex(context)) {
+          1 => 1,
+          2 => 3,
+          3 => 4,
+          _ => 0,
+        },
+        onDestinationSelected: (index) {
+          if (index == 2) {
+            showAddItemDialog(context, household);
+            return;
+          }
+          final routeMap = {
+            0: '/pantry-items',
+            1: '/shopping-list',
+            3: '/stats',
+            4: '/household-settings',
+          };
+          context.go(routeMap[index]!, extra: household);
+        },
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.location_on_outlined),

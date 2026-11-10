@@ -143,10 +143,10 @@ class _HouseholdsScreenState extends State<HouseholdsScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 80),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 340,
+                maxCrossAxisExtent: 460,
                 mainAxisSpacing: 16,
                 crossAxisSpacing: 16,
-                mainAxisExtent: 72,
+                mainAxisExtent: 68,
               ),
               itemCount: controller.households.length,
               itemBuilder: (context, index) {

@@ -6,7 +6,6 @@ import 'package:common_pantry/features/pantry/data/models/household_details.dart
 import 'package:common_pantry/features/pantry/presentation/controllers/household_details_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/household_info_card.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/household_members_section.dart';
-import 'package:common_pantry/features/pantry/presentation/widgets/leave_household_button.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -177,7 +176,7 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
     final isWide =
         Responsive.isTablet(context) ||
         Responsive.isDesktop(context) ||
-        (Responsive.isLandscape(context) && MediaQuery.sizeOf(context).width >= 700);
+        (Responsive.isLandscape(context) && MediaQuery.sizeOf(context).width >= 600);
 
     final infoCard = HouseholdInfoCard(
       details: details,
@@ -203,19 +202,31 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
       onMemberAction: _handleMemberAction,
     );
 
-    final leaveButton = LeaveHouseholdButton(
-      isUpdating: widget.controller.isUpdating,
-      onPressed: () => _leaveHousehold(details),
+    final leaveButton = SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.logout, size: 18),
+        label: const Text('Leave household'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.error,
+          side: BorderSide(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: widget.controller.isUpdating ? null : () => _leaveHousehold(details),
+      ),
     );
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1200),
+        constraints: const BoxConstraints(maxWidth: 1100),
         child: RefreshIndicator(
           onRefresh: widget.controller.load,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             children: [
               if (isWide)
                 Row(
@@ -226,12 +237,12 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
                       child: Column(
                         children: [
                           infoCard,
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
                           leaveButton,
                         ],
                       ),
                     ),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 16),
                     Expanded(
                       flex: 5,
                       child: membersSection,
@@ -240,7 +251,7 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
                 )
               else ...[
                 infoCard,
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 membersSection,
                 const SizedBox(height: 24),
                 leaveButton,

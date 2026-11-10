@@ -134,7 +134,7 @@ class _StatsScreenState extends State<StatsScreen> {
     final isWide =
         Responsive.isTablet(context) ||
         Responsive.isDesktop(context) ||
-        (Responsive.isLandscape(context) && MediaQuery.sizeOf(context).width >= 700);
+        (Responsive.isLandscape(context) && MediaQuery.sizeOf(context).width >= 600);
 
     final historySection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,6 +187,32 @@ class _StatsScreenState extends State<StatsScreen> {
       ],
     );
 
+    final cardActive = StatisticsSummaryCard(
+      title: 'Active',
+      value: summary.activeCount,
+      icon: Icons.inventory_2_outlined,
+      color: Colors.blue,
+    );
+    final cardEaten = StatisticsSummaryCard(
+      title: 'Eaten',
+      value: summary.eatenCount,
+      icon: Icons.restaurant_outlined,
+      color: Colors.green,
+    );
+    final cardWasted = StatisticsSummaryCard(
+      title: 'Wasted',
+      value: summary.wastedCount,
+      icon: Icons.delete_outline,
+      color: theme.colorScheme.error,
+    );
+    final cardPercent = StatisticsSummaryCard(
+      title: 'Waste percentage',
+      value: summary.wastePercentage.round(),
+      icon: Icons.pie_chart_outline,
+      color: Colors.orange,
+      subtitle: '% of closed products',
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -197,41 +223,39 @@ class _StatsScreenState extends State<StatsScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: isWide ? 4 : 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: isWide ? 1.5 : 1.25,
-          children: [
-            StatisticsSummaryCard(
-              title: 'Active',
-              value: summary.activeCount,
-              icon: Icons.inventory_2_outlined,
-              color: Colors.blue,
-            ),
-            StatisticsSummaryCard(
-              title: 'Eaten',
-              value: summary.eatenCount,
-              icon: Icons.restaurant_outlined,
-              color: Colors.green,
-            ),
-            StatisticsSummaryCard(
-              title: 'Wasted',
-              value: summary.wastedCount,
-              icon: Icons.delete_outline,
-              color: theme.colorScheme.error,
-            ),
-            StatisticsSummaryCard(
-              title: 'Waste percentage',
-              value: summary.wastePercentage.round(),
-              icon: Icons.pie_chart_outline,
-              color: Colors.orange,
-              subtitle: '% of closed products',
-            ),
-          ],
-        ),
+        if (isWide)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: cardActive),
+              const SizedBox(width: 8),
+              Expanded(child: cardEaten),
+              const SizedBox(width: 8),
+              Expanded(child: cardWasted),
+              const SizedBox(width: 8),
+              Expanded(child: cardPercent),
+            ],
+          )
+        else
+          Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: cardActive),
+                  const SizedBox(width: 8),
+                  Expanded(child: cardEaten),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(child: cardWasted),
+                  const SizedBox(width: 8),
+                  Expanded(child: cardPercent),
+                ],
+              ),
+            ],
+          ),
         const SizedBox(height: 24),
         if (isWide)
           Row(
