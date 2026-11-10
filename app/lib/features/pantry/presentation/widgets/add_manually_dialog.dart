@@ -124,65 +124,74 @@ class _AddManuallyDialogState extends State<AddManuallyDialog> {
           ),
           body: SafeArea(
             bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                  child: DropdownMenu<ItemSource>(
-                    enabled: !_isScanned,
-                    initialSelection: _source,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Source'),
-                    requestFocusOnTap: false,
-                    leadingIcon: _isScanned ? const Icon(Icons.lock_outline) : null,
-                    helperText: _isScanned ? 'Fixed to purchased for scanned items' : null,
-                    inputDecorationTheme: theme.inputDecorationTheme,
-                    menuStyle: MenuStyle(
-                      backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
-                      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-                    ),
-                    onSelected: (value) => setState(() {
-                      _source = value;
-                      _hasData = false;
-                    }),
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(
-                        value: ItemSource.homemade,
-                        label: 'Homemade',
-                        leadingIcon: Icon(Icons.home_outlined),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                      child: DropdownMenu<ItemSource>(
+                        enabled: !_isScanned,
+                        initialSelection: _source,
+                        expandedInsets: EdgeInsets.zero,
+                        label: const Text('Source'),
+                        requestFocusOnTap: false,
+                        leadingIcon: _isScanned ? const Icon(Icons.lock_outline) : null,
+                        helperText: _isScanned ? 'Fixed to purchased for scanned items' : null,
+                        inputDecorationTheme: theme.inputDecorationTheme,
+                        menuStyle: MenuStyle(
+                          backgroundColor: WidgetStatePropertyAll(
+                            theme.colorScheme.surface,
+                          ),
+                          surfaceTintColor: const WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
+                        ),
+                        onSelected: (value) => setState(() {
+                          _source = value;
+                          _hasData = false;
+                        }),
+                        dropdownMenuEntries: const [
+                          DropdownMenuEntry(
+                            value: ItemSource.homemade,
+                            label: 'Homemade',
+                            leadingIcon: Icon(Icons.home_outlined),
+                          ),
+                          DropdownMenuEntry(
+                            value: ItemSource.purchased,
+                            label: 'Purchased',
+                            leadingIcon: Icon(Icons.shopping_bag_outlined),
+                          ),
+                        ],
                       ),
-                      DropdownMenuEntry(
-                        value: ItemSource.purchased,
-                        label: 'Purchased',
-                        leadingIcon: Icon(Icons.shopping_bag_outlined),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: switch (_source) {
-                    ItemSource.homemade => HomemadeItemForm(
-                      key: const ValueKey(ItemSource.homemade),
-                      household: widget.household,
-                      onHasDataChanged: (value) => _hasData = value,
-                      repository: widget.repository,
-                      pantryController: widget.pantryController,
                     ),
-                    ItemSource.purchased => PurchasedItemForm(
-                      key: const ValueKey(ItemSource.purchased),
-                      household: widget.household,
-                      initialProduct: widget.initialProduct,
-                      initialBarcode: widget.initialBarcode,
-                      onHasDataChanged: (value) => _hasData = value,
-                      repository: widget.repository,
-                      pantryController: widget.pantryController,
+                    const SizedBox(height: 24),
+                    Expanded(
+                      child: switch (_source) {
+                        ItemSource.homemade => HomemadeItemForm(
+                          key: const ValueKey(ItemSource.homemade),
+                          household: widget.household,
+                          onHasDataChanged: (value) => _hasData = value,
+                          repository: widget.repository,
+                          pantryController: widget.pantryController,
+                        ),
+                        ItemSource.purchased => PurchasedItemForm(
+                          key: const ValueKey(ItemSource.purchased),
+                          household: widget.household,
+                          initialProduct: widget.initialProduct,
+                          initialBarcode: widget.initialBarcode,
+                          onHasDataChanged: (value) => _hasData = value,
+                          repository: widget.repository,
+                          pantryController: widget.pantryController,
+                        ),
+                        null => const SizedBox.shrink(),
+                      },
                     ),
-                    null => const SizedBox.shrink(),
-                  },
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
