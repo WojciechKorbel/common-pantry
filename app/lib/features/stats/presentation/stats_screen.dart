@@ -1,5 +1,6 @@
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
-import 'package:common_pantry/core/widgets/app_bottom_navigation_bar.dart';
+import 'package:common_pantry/core/widgets/responsive_scaffold.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/stats/presentation/controllers/statistics_controller.dart';
 import 'package:common_pantry/features/stats/presentation/widgets/statistics_category_list.dart';
@@ -99,14 +100,14 @@ class _StatsScreenState extends State<StatsScreen> {
           child: Row(
             children: [
               Expanded(
-                flex: expired,
+                flex: expired > 0 ? expired : (notExpired > 0 ? 0 : 1),
                 child: Container(
                   height: 12,
                   color: theme.colorScheme.error,
                 ),
               ),
               Expanded(
-                flex: notExpired,
+                flex: notExpired > 0 ? notExpired : (expired > 0 ? 0 : 1),
                 child: Container(
                   height: 12,
                   color: Colors.green,
@@ -130,6 +131,62 @@ class _StatsScreenState extends State<StatsScreen> {
     final summary = statistics.summary;
     final theme = Theme.of(context);
 
+    final isWide =
+        Responsive.isTablet(context) ||
+        Responsive.isDesktop(context) ||
+        (Responsive.isLandscape(context) && MediaQuery.sizeOf(context).width >= 700);
+
+    final historySection = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Food consumption history', theme),
+        _sectionCard(
+          child: StatisticsTimelineChart(
+            entries: statistics.timeline,
+            period: statistics.period,
+          ),
+        ),
+      ],
+    );
+
+    final expirySection = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Expiry statistics', theme),
+        _sectionCard(
+          child: _buildExpiryStatistics(
+            statistics.expiry.expired,
+            statistics.expiry.notExpired,
+            theme,
+          ),
+        ),
+      ],
+    );
+
+    final categoriesSection = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Waste by category', theme),
+        _sectionCard(
+          child: StatisticsCategoryList(
+            categories: statistics.categories,
+          ),
+        ),
+      ],
+    );
+
+    final topWastedSection = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionTitle('Most wasted products', theme),
+        _sectionCard(
+          child: TopWastedProductsList(
+            products: statistics.topWastedProducts,
+          ),
+        ),
+      ],
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -140,14 +197,13 @@ class _StatsScreenState extends State<StatsScreen> {
           ),
         ),
         const SizedBox(height: 12),
-
         GridView.count(
-          crossAxisCount: 2,
+          crossAxisCount: isWide ? 4 : 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1.25,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: isWide ? 1.5 : 1.25,
           children: [
             StatisticsSummaryCard(
               title: 'Active',
@@ -176,47 +232,44 @@ class _StatsScreenState extends State<StatsScreen> {
             ),
           ],
         ),
-
         const SizedBox(height: 24),
-
-        _sectionTitle('Food consumption history', theme),
-        _sectionCard(
-          child: StatisticsTimelineChart(
-            entries: statistics.timeline,
-            period: statistics.period,
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        _sectionTitle('Waste by category', theme),
-        _sectionCard(
-          child: StatisticsCategoryList(
-            categories: statistics.categories,
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        _sectionTitle('Most wasted products', theme),
-        _sectionCard(
-          child: TopWastedProductsList(
-            products: statistics.topWastedProducts,
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        _sectionTitle('Expiry statistics', theme),
-        _sectionCard(
-          child: _buildExpiryStatistics(
-            statistics.expiry.expired,
-            statistics.expiry.notExpired,
-            theme,
-          ),
-        ),
-
-        const SizedBox(height: 24),
+        if (isWide)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 5,
+                child: Column(
+                  children: [
+                    historySection,
+                    const SizedBox(height: 24),
+                    expirySection,
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 4,
+                child: Column(
+                  children: [
+                    categoriesSection,
+                    const SizedBox(height: 24),
+                    topWastedSection,
+                  ],
+                ),
+              ),
+            ],
+          )
+        else ...[
+          historySection,
+          const SizedBox(height: 24),
+          categoriesSection,
+          const SizedBox(height: 24),
+          topWastedSection,
+          const SizedBox(height: 24),
+          expirySection,
+        ],
+        const SizedBox(height: 32),
       ],
     );
   }
@@ -225,7 +278,8 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return ResponsiveScaffold(
+      household: widget.household,
       appBar: AppAppBar(
         title: widget.household.name,
         onBack: () => context.go('/households'),
@@ -235,80 +289,82 @@ class _StatsScreenState extends State<StatsScreen> {
         ),
       ),
       body: SafeArea(
-        child: ListenableBuilder(
-          listenable: widget.controller,
-          builder: (context, _) {
-            final controller = widget.controller;
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: ListenableBuilder(
+              listenable: widget.controller,
+              builder: (context, _) {
+                final controller = widget.controller;
 
-            if (controller.isLoading && !controller.hasLoaded) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
+                if (controller.isLoading && !controller.hasLoaded) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
 
-            if (controller.errorMessage != null && !controller.hasLoaded) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.bar_chart_outlined,
-                        size: 48,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        controller.errorMessage!,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: controller.load,
-                        child: const Text('Try again'),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }
-
-            return Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: StatisticsPeriodSelector(
-                    controller: controller,
-                  ),
-                ),
-                if (controller.isLoading) const LinearProgressIndicator(),
-                if (controller.errorMessage != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      controller.errorMessage!,
-                      style: TextStyle(
-                        color: theme.colorScheme.error,
+                if (controller.errorMessage != null && !controller.hasLoaded) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.bar_chart_outlined,
+                            size: 48,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            controller.errorMessage!,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: controller.load,
+                            child: const Text('Try again'),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: controller.refresh,
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                      child: _buildContent(controller),
+                  );
+                }
+
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: StatisticsPeriodSelector(
+                        controller: controller,
+                      ),
                     ),
-                  ),
-                ),
-              ],
-            );
-          },
+                    if (controller.isLoading) const LinearProgressIndicator(),
+                    if (controller.errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          controller.errorMessage!,
+                          style: TextStyle(
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: controller.refresh,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          child: _buildContent(controller),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
-      ),
-      bottomNavigationBar: AppBottomNavigationBar(
-        household: widget.household,
       ),
     );
   }
