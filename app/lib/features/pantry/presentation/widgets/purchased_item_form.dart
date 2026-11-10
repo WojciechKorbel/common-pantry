@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
@@ -128,7 +129,9 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
       final navigator = Navigator.of(context);
       unawaited((widget.pantryController ?? Dependencies.pantryController).load());
       navigator.pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Items added to the pantry')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Items added to the pantry')),
+      );
     } else if (_controller.errorMessage != null) {
       messenger.showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
     }
@@ -137,12 +140,56 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isWide = Responsive.isLandscape(context) || Responsive.isTablet(context);
 
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, child) {
         final c = _controller;
         final rows = c.rows;
+
+        final nameField = TextField(
+          controller: _nameText,
+          focusNode: _nameFocus,
+          enabled: !c.isNameLocked && !c.isSubmitting,
+          onChanged: c.setName,
+          textCapitalization: TextCapitalization.sentences,
+          textInputAction: TextInputAction.next,
+          onTapOutside: (_) => _nameFocus.unfocus(),
+          decoration: InputDecoration(
+            labelText: 'Name',
+            helperText: c.isNameLocked ? 'Taken from scanned product' : null,
+            suffixIcon: c.isNameLocked
+                ? const Icon(Icons.lock_outline)
+                : (c.isLookingUp
+                      ? const Padding(
+                          padding: EdgeInsets.all(14),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null),
+          ),
+        );
+
+        final brandField = TextField(
+          controller: _brandText,
+          focusNode: _brandFocus,
+          enabled: !c.isBrandLocked && !c.isSubmitting,
+          onChanged: c.setBrand,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.done,
+          onTapOutside: (_) => _brandFocus.unfocus(),
+          decoration: InputDecoration(
+            labelText: 'Brand',
+            helperText: c.isBrandLocked
+                ? (c.isNameLocked ? 'Taken from scanned product' : 'Taken from an existing product')
+                : null,
+            suffixIcon: c.isBrandLocked ? const Icon(Icons.lock_outline) : null,
+          ),
+        );
 
         return PinnedActionLayout(
           action: ElevatedButton(
@@ -158,50 +205,20 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
-                controller: _nameText,
-                focusNode: _nameFocus,
-                enabled: !c.isNameLocked && !c.isSubmitting,
-                onChanged: c.setName,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.next,
-                onTapOutside: (_) => _nameFocus.unfocus(),
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  helperText: c.isNameLocked ? 'Taken from scanned product' : null,
-                  suffixIcon: c.isNameLocked
-                      ? const Icon(Icons.lock_outline)
-                      : (c.isLookingUp
-                            ? const Padding(
-                                padding: EdgeInsets.all(14),
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              )
-                            : null),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _brandText,
-                focusNode: _brandFocus,
-                enabled: !c.isBrandLocked && !c.isSubmitting,
-                onChanged: c.setBrand,
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.done,
-                onTapOutside: (_) => _brandFocus.unfocus(),
-                decoration: InputDecoration(
-                  labelText: 'Brand',
-                  helperText: c.isBrandLocked
-                      ? (c.isNameLocked
-                            ? 'Taken from scanned product'
-                            : 'Taken from an existing product')
-                      : null,
-                  suffixIcon: c.isBrandLocked ? const Icon(Icons.lock_outline) : null,
-                ),
-              ),
+              if (isWide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: nameField),
+                    const SizedBox(width: 16),
+                    Expanded(child: brandField),
+                  ],
+                )
+              else ...[
+                nameField,
+                const SizedBox(height: 16),
+                brandField,
+              ],
               const SizedBox(height: 16),
               DropdownMenu<ProductCategory>(
                 controller: _categoryText,
