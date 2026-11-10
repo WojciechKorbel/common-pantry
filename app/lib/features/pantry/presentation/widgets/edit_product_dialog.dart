@@ -227,7 +227,6 @@ class _EditProductDialogState extends State<EditProductDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isLandscape = Responsive.isLandscape(context);
     final isWide = isLandscape || Responsive.isTablet(context);
 
@@ -262,9 +261,9 @@ class _EditProductDialogState extends State<EditProductDialog> {
       enabled: !_isLoadingCategories && !_isSubmitting,
       requestFocusOnTap: false,
       menuHeight: 300,
-      inputDecorationTheme: theme.inputDecorationTheme,
+      inputDecorationTheme: Theme.of(context).inputDecorationTheme,
       menuStyle: MenuStyle(
-        backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+        backgroundColor: WidgetStatePropertyAll(Theme.of(context).colorScheme.surface),
         surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
       ),
       initialSelection: _selectedCategory,
@@ -277,31 +276,6 @@ class _EditProductDialogState extends State<EditProductDialog> {
             value: category,
             label: category.name,
           ),
-      ],
-    );
-
-    final formContent = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(height: isLandscape ? 12 : 24),
-        if (isWide && _isPurchased)
-          Row(
-            children: [
-              Expanded(child: nameField),
-              const SizedBox(width: 16),
-              Expanded(child: brandField),
-            ],
-          )
-        else ...[
-          nameField,
-          if (_isPurchased) ...[
-            const SizedBox(height: 16),
-            brandField,
-          ],
-        ],
-        const SizedBox(height: 16),
-        categoryDropdown,
-        SizedBox(height: isLandscape ? 16 : 24),
       ],
     );
 
@@ -325,49 +299,48 @@ class _EditProductDialogState extends State<EditProductDialog> {
               'Edit product',
               style: TextStyle(fontWeight: FontWeight.w400, fontSize: 20),
             ),
-            actions: [
-              if (isLandscape)
-                Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: FilledButton(
-                    onPressed: _canSubmit ? _submit : null,
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Save'),
-                  ),
-                ),
-            ],
           ),
           body: SafeArea(
             bottom: false,
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 680),
-                child: isLandscape
-                    ? SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: formContent,
-                      )
-                    : PinnedActionLayout(
-                        action: ElevatedButton(
-                          onPressed: _canSubmit ? _submit : null,
-                          child: _isSubmitting
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text('Save changes'),
-                        ),
-                        child: formContent,
-                      ),
+                child: PinnedActionLayout(
+                  action: ElevatedButton(
+                    onPressed: _canSubmit ? _submit : null,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save changes'),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: isLandscape ? 12 : 24),
+                      if (isWide && _isPurchased)
+                        Row(
+                          children: [
+                            Expanded(child: nameField),
+                            const SizedBox(width: 16),
+                            Expanded(child: brandField),
+                          ],
+                        )
+                      else ...[
+                        nameField,
+                        if (_isPurchased) ...[
+                          const SizedBox(height: 16),
+                          brandField,
+                        ],
+                      ],
+                      const SizedBox(height: 16),
+                      categoryDropdown,
+                      SizedBox(height: isLandscape ? 16 : 24),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

@@ -78,16 +78,11 @@ class ResponsiveScaffold extends StatelessWidget {
                         : NavigationRailLabelType.all,
                     leading: Padding(
                       padding: const EdgeInsets.only(top: 4, bottom: 8),
-                      child: IconButton.filled(
-                        iconSize: 22,
+                      child: FloatingActionButton.small(
+                        elevation: 0,
                         tooltip: 'Add item',
-                        style: IconButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
-                          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
                         onPressed: () => showAddItemDialog(context, household),
-                        icon: const Icon(Icons.add),
+                        child: const Icon(Icons.add),
                       ),
                     ),
                     destinations: const [

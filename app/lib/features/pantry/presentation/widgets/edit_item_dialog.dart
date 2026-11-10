@@ -397,43 +397,6 @@ class _EditItemDialogState extends State<EditItemDialog> {
       ),
     );
 
-    final formContent = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(height: isLandscape ? 12 : 24),
-        if (isWide && _isPurchased)
-          Row(
-            children: [
-              Expanded(child: nameField),
-              const SizedBox(width: 16),
-              Expanded(child: brandField),
-            ],
-          )
-        else ...[
-          nameField,
-          if (_isPurchased) ...[
-            const SizedBox(height: 16),
-            brandField,
-          ],
-        ],
-        const SizedBox(height: 16),
-        if (isWide)
-          Row(
-            children: [
-              Expanded(child: categoryDropdown),
-              const SizedBox(width: 16),
-              Expanded(child: dateField),
-            ],
-          )
-        else ...[
-          categoryDropdown,
-          const SizedBox(height: 16),
-          dateField,
-        ],
-        SizedBox(height: isLandscape ? 16 : 24),
-      ],
-    );
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -455,24 +418,6 @@ class _EditItemDialogState extends State<EditItemDialog> {
               style: TextStyle(fontWeight: FontWeight.w400, fontSize: 20),
             ),
             actions: [
-              // W trybie landscape przycisk zapisu jest na górnej belce (oszczędność miejsca)
-              if (isLandscape)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilledButton(
-                    onPressed: _canSubmit ? _submit : null,
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Save'),
-                  ),
-                ),
               IconButton(
                 icon: const Icon(Icons.delete_outline),
                 color: theme.colorScheme.error,
@@ -486,24 +431,54 @@ class _EditItemDialogState extends State<EditItemDialog> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 680),
-                child: isLandscape
-                    ? SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: formContent,
-                      )
-                    : PinnedActionLayout(
-                        action: ElevatedButton(
-                          onPressed: _canSubmit ? _submit : null,
-                          child: _isSubmitting
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text('Save changes'),
-                        ),
-                        child: formContent,
-                      ),
+                child: PinnedActionLayout(
+                  action: ElevatedButton(
+                    onPressed: _canSubmit ? _submit : null,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save changes'),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: isLandscape ? 12 : 24),
+                      if (isWide && _isPurchased)
+                        Row(
+                          children: [
+                            Expanded(child: nameField),
+                            const SizedBox(width: 16),
+                            Expanded(child: brandField),
+                          ],
+                        )
+                      else ...[
+                        nameField,
+                        if (_isPurchased) ...[
+                          const SizedBox(height: 16),
+                          brandField,
+                        ],
+                      ],
+                      const SizedBox(height: 16),
+                      if (isWide)
+                        Row(
+                          children: [
+                            Expanded(child: categoryDropdown),
+                            const SizedBox(width: 16),
+                            Expanded(child: dateField),
+                          ],
+                        )
+                      else ...[
+                        categoryDropdown,
+                        const SizedBox(height: 16),
+                        dateField,
+                      ],
+                      SizedBox(height: isLandscape ? 16 : 24),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
