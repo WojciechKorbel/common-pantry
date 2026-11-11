@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/data/models/product_origin.dart';
@@ -103,7 +104,9 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
       final navigator = Navigator.of(context);
       unawaited((widget.pantryController ?? Dependencies.pantryController).load());
       navigator.pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Item added to the pantry')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Item added to the pantry')),
+      );
     } else if (_controller.errorMessage != null) {
       messenger.showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
     }
@@ -112,11 +115,44 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isWide = Responsive.isLandscape(context) || Responsive.isTablet(context);
 
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, child) {
         final c = _controller;
+
+        final categoryDropdown = DropdownMenu<ProductCategory>(
+          controller: _categoryText,
+          expandedInsets: EdgeInsets.zero,
+          label: const Text('Category'),
+          enabled: c.isCategoryEnabled,
+          requestFocusOnTap: false,
+          menuHeight: 300,
+          leadingIcon: c.isCategoryLocked ? const Icon(Icons.lock_outline) : null,
+          helperText: c.isCategoryLocked ? 'Taken from an existing product' : null,
+          errorText: c.categoriesError,
+          inputDecorationTheme: theme.inputDecorationTheme,
+          menuStyle: MenuStyle(
+            backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+            surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+          ),
+          onSelected: c.setCategory,
+          dropdownMenuEntries: [
+            for (final category in c.categories)
+              DropdownMenuEntry(value: category, label: category.name),
+          ],
+        );
+
+        final dateField = TextField(
+          controller: _dateText,
+          readOnly: true,
+          onTap: _pickDate,
+          decoration: const InputDecoration(
+            labelText: 'Expiry date',
+            suffixIcon: Icon(Icons.calendar_today_outlined),
+          ),
+        );
 
         return PinnedActionLayout(
           action: ElevatedButton(
@@ -154,37 +190,20 @@ class _HomemadeItemFormState extends State<HomemadeItemForm> {
                 ),
               ),
               const SizedBox(height: 16),
-              DropdownMenu<ProductCategory>(
-                controller: _categoryText,
-                expandedInsets: EdgeInsets.zero,
-                label: const Text('Category'),
-                enabled: c.isCategoryEnabled,
-                requestFocusOnTap: false,
-                menuHeight: 300,
-                leadingIcon: c.isCategoryLocked ? const Icon(Icons.lock_outline) : null,
-                helperText: c.isCategoryLocked ? 'Taken from an existing product' : null,
-                errorText: c.categoriesError,
-                inputDecorationTheme: theme.inputDecorationTheme,
-                menuStyle: MenuStyle(
-                  backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
-                  surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-                ),
-                onSelected: c.setCategory,
-                dropdownMenuEntries: [
-                  for (final category in c.categories)
-                    DropdownMenuEntry(value: category, label: category.name),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _dateText,
-                readOnly: true,
-                onTap: _pickDate,
-                decoration: const InputDecoration(
-                  labelText: 'Expiry date',
-                  suffixIcon: Icon(Icons.calendar_today_outlined),
-                ),
-              ),
+              if (isWide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: categoryDropdown),
+                    const SizedBox(width: 16),
+                    Expanded(child: dateField),
+                  ],
+                )
+              else ...[
+                categoryDropdown,
+                const SizedBox(height: 16),
+                dateField,
+              ],
               const SizedBox(height: 24),
               Row(
                 children: [

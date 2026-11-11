@@ -1,6 +1,7 @@
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
-import 'package:common_pantry/core/widgets/app_bottom_navigation_bar.dart';
+import 'package:common_pantry/core/widgets/responsive_scaffold.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/shopping/data/models/shopping_item.dart';
 import 'package:common_pantry/features/shopping/presentation/controllers/shopping_controller.dart';
@@ -56,9 +57,113 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
+  Widget _buildTile(ShoppingItem item) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: ShoppingItemTile(
+        item: item,
+        onToggle: (value) => _toggle(item, value),
+        onDelete: () => _delete(item),
+      ),
+    );
+  }
+
+  Widget _buildToBuySection(List<ShoppingItem> toBuy, {bool asGrid = false}) {
+    if (toBuy.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(title: 'To buy'),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Nothing left to buy.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (asGrid) {
+      final leftItems = <ShoppingItem>[];
+      final rightItems = <ShoppingItem>[];
+      for (var i = 0; i < toBuy.length; i++) {
+        if (i.isEven) {
+          leftItems.add(toBuy[i]);
+        } else {
+          rightItems.add(toBuy[i]);
+        }
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionHeader(title: 'To buy'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  children: [for (final item in leftItems) _buildTile(item)],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  children: [for (final item in rightItems) _buildTile(item)],
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'To buy'),
+        for (final item in toBuy) _buildTile(item),
+      ],
+    );
+  }
+
+  Widget _buildBoughtSection(List<ShoppingItem> bought) {
+    if (bought.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionHeader(
+          title: 'Bought (${bought.length})',
+          action: FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+            ),
+            onPressed: () => showMoveToPantryDialog(context, bought),
+            child: const Text('Add all to pantry'),
+          ),
+        ),
+        for (final item in bought) _buildTile(item),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final isLandscape = Responsive.isLandscape(context);
+    final isWide =
+        Responsive.isTablet(context) ||
+        Responsive.isDesktop(context) ||
+        (isLandscape && MediaQuery.sizeOf(context).width >= 600);
+
+    return ResponsiveScaffold(
+      household: widget.household,
       appBar: AppAppBar(
         title: widget.household.name,
         onBack: () => context.go('/households'),
@@ -67,92 +172,95 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           onPressed: () => context.push('/settings'),
         ),
       ),
+      floatingActionButton: isWide
+          ? null
+          : FloatingActionButton(
+              onPressed: () => showAddShoppingItemDialog(context),
+              tooltip: 'Add to shopping list',
+              child: const Icon(Icons.add),
+            ),
       body: SafeArea(
-        child: ListenableBuilder(
-          listenable: _controller,
-          builder: (context, child) {
-            final controller = _controller;
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, child) {
+                final controller = _controller;
 
-            if (controller.isLoading && !controller.hasLoaded) {
-              return const Center(child: CircularProgressIndicator());
-            }
+                if (controller.isLoading && !controller.hasLoaded) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            if (controller.errorMessage != null && !controller.hasLoaded) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      controller.errorMessage!,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: controller.load,
-                      child: const Text('Try again'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            if (controller.items.isEmpty) {
-              return const EmptyShoppingState();
-            }
-
-            final toBuy = controller.toBuy;
-            final bought = controller.bought;
-
-            return RefreshIndicator(
-              onRefresh: _refresh,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 96),
-                children: [
-                  const _SectionHeader(title: 'To buy'),
-                  if (toBuy.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        'Nothing left to buy.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                if (controller.errorMessage != null && !controller.hasLoaded) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          controller.errorMessage!,
+                          textAlign: TextAlign.center,
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: controller.load,
+                          child: const Text('Try again'),
+                        ),
+                      ],
                     ),
-                  for (final item in toBuy) _buildTile(item),
-                  if (bought.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _SectionHeader(
-                      title: 'Bought (${bought.length})',
-                      action: FilledButton.tonal(
-                        onPressed: () => showMoveToPantryDialog(context, bought),
-                        child: const Text('Add all to pantry'),
-                      ),
-                    ),
-                    for (final item in bought) _buildTile(item),
-                  ],
-                ],
-              ),
-            );
-          },
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showAddShoppingItemDialog(context),
-        tooltip: 'Add to shopping list',
-        child: const Icon(Icons.add),
-      ),
-      bottomNavigationBar: AppBottomNavigationBar(household: widget.household),
-    );
-  }
+                  );
+                }
 
-  Widget _buildTile(ShoppingItem item) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ShoppingItemTile(
-        item: item,
-        onToggle: (value) => _toggle(item, value),
-        onDelete: () => _delete(item),
+                if (controller.items.isEmpty) {
+                  return const EmptyShoppingState();
+                }
+
+                final toBuy = controller.toBuy;
+                final bought = controller.bought;
+                final hasBothSections = toBuy.isNotEmpty && bought.isNotEmpty;
+
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      isLandscape ? 8 : 16,
+                      16,
+                      isWide ? 24 : 80,
+                    ),
+                    children: [
+                      if (isWide && hasBothSections)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 1,
+                              child: _buildToBuySection(toBuy),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              flex: 1,
+                              child: _buildBoughtSection(bought),
+                            ),
+                          ],
+                        )
+                      else if (isWide && bought.isEmpty)
+                        _buildToBuySection(toBuy, asGrid: true)
+                      else ...[
+                        _buildToBuySection(toBuy),
+                        if (bought.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _buildBoughtSection(bought),
+                        ],
+                      ],
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -173,7 +281,9 @@ class _SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           ?action,
