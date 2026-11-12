@@ -1,4 +1,4 @@
-import 'recipe.dart';
+import 'package:common_pantry/features/recipes/data/models/recipe.dart';
 
 class RecipeMatchResponse {
   const RecipeMatchResponse({
