@@ -1,5 +1,6 @@
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
+import 'package:common_pantry/features/recipes/data/models/recipe.dart';
 import 'package:common_pantry/features/recipes/presentation/controllers/recipe_controller.dart';
 import 'package:common_pantry/features/recipes/presentation/widgets/recipe_card.dart';
 import 'package:common_pantry/features/recipes/presentation/widgets/recipes_empty_state.dart';
@@ -27,6 +28,15 @@ class _RecipesScreenState extends State<RecipesScreen> {
   void initState() {
     super.initState();
     widget.controller.load(widget.productName);
+  }
+
+  Widget _buildRecipeCard(Recipe recipe) {
+    return RecipeCard(
+      recipe: recipe,
+      onTap: () {
+        context.push('/recipes/${recipe.id}');
+      },
+    );
   }
 
   @override
@@ -72,23 +82,65 @@ class _RecipesScreenState extends State<RecipesScreen> {
               );
             }
 
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text(
-                  'Recipes with ${widget.productName}',
-                  style: theme.textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 16),
-                ...controller.recipes.map(
-                  (recipe) => RecipeCard(
-                    recipe: recipe,
-                    onTap: () {
-                      context.push('/recipes/${recipe.id}');
-                    },
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final isMultiColumn = constraints.maxWidth >= 900;
+
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxWidth: 1200,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!isMultiColumn) ...[
+                            Text(
+                              'Recipes with ${widget.productName}',
+                              style: theme.textTheme.headlineSmall,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                          Expanded(
+                            child: isMultiColumn
+                                ? GridView.builder(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 16,
+                                    ),
+                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: 1.0,
+                                    ),
+                                    itemCount: controller.recipes.length,
+                                    itemBuilder: (context, index) {
+                                      final recipe = controller.recipes[index];
+
+                                      return _buildRecipeCard(recipe);
+                                    },
+                                  )
+                                : ListView.separated(
+                                    padding: const EdgeInsets.only(
+                                      bottom: 16,
+                                    ),
+                                    itemCount: controller.recipes.length,
+                                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                                    itemBuilder: (context, index) {
+                                      final recipe = controller.recipes[index];
+
+                                      return _buildRecipeCard(recipe);
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                );
+              },
             );
           },
         ),
