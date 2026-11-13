@@ -1,15 +1,24 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
+import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/barcode_scanner_screen.dart';
+import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/add_manually_dialog.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 enum AddItemChoice { scanBarcode, manually }
 
-Future<void> showAddItemDialog(BuildContext context, Household household) async {
+Future<void> showAddItemDialog(
+  BuildContext context,
+  Household household, {
+  PantryRepository? repository,
+  PantryController? pantryController,
+  WidgetBuilder? scannerBuilder,
+}) async {
   final choice = await showDialog<AddItemChoice>(
     context: context,
     builder: (_) => const _AddItemChoiceDialog(),
@@ -18,13 +27,20 @@ Future<void> showAddItemDialog(BuildContext context, Household household) async 
   if (choice == null || !context.mounted) return;
 
   if (choice == AddItemChoice.manually) {
-    await showAddManuallyDialog(context, household);
+    await showAddManuallyDialog(
+      context,
+      household,
+      repository: repository,
+      pantryController: pantryController,
+    );
     return;
   }
 
   if (choice == AddItemChoice.scanBarcode) {
     final barcode = await Navigator.of(context).push<String>(
-      MaterialPageRoute(builder: (_) => const BarcodeScannerScreen()),
+      MaterialPageRoute(
+        builder: scannerBuilder ?? (_) => const BarcodeScannerScreen(),
+      ),
     );
 
     if (barcode == null || barcode.trim().isEmpty || !context.mounted) return;
@@ -39,7 +55,7 @@ Future<void> showAddItemDialog(BuildContext context, Household household) async 
 
     Product? product;
     try {
-      product = await Dependencies.pantryRepository.getProductByBarcode(
+      product = await (repository ?? Dependencies.pantryRepository).getProductByBarcode(
         household.id,
         barcode.trim(),
       );
@@ -55,6 +71,8 @@ Future<void> showAddItemDialog(BuildContext context, Household household) async 
         context,
         household,
         initialProduct: product,
+        repository: repository,
+        pantryController: pantryController,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -66,6 +84,8 @@ Future<void> showAddItemDialog(BuildContext context, Household household) async 
         context,
         household,
         initialBarcode: barcode.trim(),
+        repository: repository,
+        pantryController: pantryController,
       );
     }
   }
@@ -77,29 +97,52 @@ class _AddItemChoiceDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = Responsive.isLandscape(context);
 
     return Dialog(
       clipBehavior: Clip.antiAlias,
       backgroundColor: theme.colorScheme.surface,
       surfaceTintColor: Colors.transparent,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _AddOption(
-              icon: Icons.qr_code_scanner,
-              label: 'Scan barcode',
-              onTap: () => Navigator.of(context).pop(AddItemChoice.scanBarcode),
-            ),
-            const Divider(height: 1),
-            _AddOption(
-              icon: Icons.edit_outlined,
-              label: 'Add manually',
-              onTap: () => Navigator.of(context).pop(AddItemChoice.manually),
-            ),
-          ],
-        ),
+        constraints: BoxConstraints(maxWidth: isLandscape ? 480 : 360),
+        child: isLandscape
+            ? IntrinsicHeight(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _AddOption(
+                        icon: Icons.qr_code_scanner,
+                        label: 'Scan barcode',
+                        onTap: () => Navigator.of(context).pop(AddItemChoice.scanBarcode),
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(
+                      child: _AddOption(
+                        icon: Icons.edit_outlined,
+                        label: 'Add manually',
+                        onTap: () => Navigator.of(context).pop(AddItemChoice.manually),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _AddOption(
+                    icon: Icons.qr_code_scanner,
+                    label: 'Scan barcode',
+                    onTap: () => Navigator.of(context).pop(AddItemChoice.scanBarcode),
+                  ),
+                  const Divider(height: 1),
+                  _AddOption(
+                    icon: Icons.edit_outlined,
+                    label: 'Add manually',
+                    onTap: () => Navigator.of(context).pop(AddItemChoice.manually),
+                  ),
+                ],
+              ),
       ),
     );
   }

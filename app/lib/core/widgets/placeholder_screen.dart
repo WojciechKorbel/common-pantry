@@ -1,6 +1,6 @@
-import 'package:common_pantry/core/widgets/app_bottom_navigation_bar.dart';
+import 'package:common_pantry/core/widgets/responsive_scaffold.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // TODO: REMOVE LATER
 class HouseholdPlaceholderScreen extends StatelessWidget {
@@ -19,12 +19,13 @@ class HouseholdPlaceholderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return ResponsiveScaffold(
+      household: household,
       appBar: AppBar(
         title: Text(title),
       ),
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -55,7 +56,6 @@ class HouseholdPlaceholderScreen extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: AppBottomNavigationBar(household: household),
     );
   }
 }

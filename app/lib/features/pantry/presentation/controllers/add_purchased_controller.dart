@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:common_pantry/features/pantry/data/models/product_origin.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -287,7 +288,7 @@ class AddPurchasedController extends ChangeNotifier {
   }
 
   /// Creates the custom product if needed, then adds every date row. True on success.
-  Future<bool> submit() async {
+  Future<bool> submit({required ProductOrigin origin}) async {
     if (_isSubmitting) {
       return false;
     }
@@ -315,6 +316,7 @@ class AddPurchasedController extends ChangeNotifier {
             name: _name.trim(),
             brand: _brand.trim(),
             categoryId: _category?.id,
+            origin: origin,
           );
       _product = product;
       for (final row in _rows) {
@@ -323,6 +325,7 @@ class AddPurchasedController extends ChangeNotifier {
           productId: product.id,
           expiryDate: row.date!,
           count: row.count,
+          origin: origin,
         );
         done.add(row);
       }

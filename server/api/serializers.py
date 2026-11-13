@@ -1,8 +1,10 @@
+from datetime import timedelta
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
-from decimal import Decimal
 
 from .models import (
     Category,
@@ -11,9 +13,22 @@ from .models import (
     Membership,
     PantryItem,
     Product,
+    ProductOrigin,
     ProductType,
     ShoppingItem,
 )
+
+
+def calculate_expiry_status(expiry_date):
+    """Calculates status based on expiry_date: 'expired', 'soon', or 'fresh'."""
+    if not expiry_date:
+        return None
+    today = timezone.localdate() if hasattr(timezone, 'localdate') else timezone.now().date()
+    if expiry_date < today:
+        return 'expired'
+    elif expiry_date <= today + timedelta(days=2):
+        return 'soon'
+    return 'fresh'
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -107,7 +122,17 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'brand', 'barcode', 'package_size', 'image_url', 'category', 'product_type']
+        fields = [
+            'id',
+            'name',
+            'brand',
+            'barcode',
+            'package_size',
+            'image_url',
+            'category',
+            'product_type',
+            'origin',
+        ]
 
 
 class CustomProductCreateSerializer(serializers.ModelSerializer):
@@ -117,7 +142,13 @@ class CustomProductCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['name', 'brand', 'package_size', 'category', 'barcode']
+        fields = ['name', 'brand', 'package_size', 'category', 'barcode', 'origin']
+        extra_kwargs = {
+            'origin': {
+                'required': False,
+                'default': ProductOrigin.PURCHASED,
+            }
+        }
 
 
 class ProductUpdateSerializer(serializers.ModelSerializer):
@@ -127,17 +158,32 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['name', 'brand', 'package_size', 'category']
+        fields = ['name', 'brand', 'package_size', 'category', 'origin']
 
 
 class PantryGroupItemSerializer(serializers.ModelSerializer):
     """One package inside a pantry group (a row under an expanded tile)."""
 
     added_by = UserSummarySerializer(read_only=True)
+    expiry_status = serializers.SerializerMethodField()
+    origin = serializers.CharField(
+        source='product.origin',
+        read_only=True,
+    )
 
     class Meta:
         model = PantryItem
-        fields = ['id', 'expiry_date', 'added_by', 'created_at']
+        fields = [
+            'id',
+            'expiry_date',
+            'expiry_status',
+            'origin',
+            'added_by',
+            'created_at',
+        ]
+
+    def get_expiry_status(self, obj):
+        return calculate_expiry_status(obj.expiry_date)
 
 
 class PantryGroupSerializer(serializers.ModelSerializer):
@@ -146,28 +192,59 @@ class PantryGroupSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     item_count = serializers.IntegerField(read_only=True)
     earliest_expiry = serializers.DateField(read_only=True)
+    expiry_status = serializers.SerializerMethodField()
     items = PantryGroupItemSerializer(source='active_items', many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'brand', 'image_url', 'package_size', 'category',
-            'item_count', 'earliest_expiry', 'items',
+            'id',
+            'name',
+            'brand',
+            'image_url',
+            'package_size',
+            'category',
+            'origin',
+            'item_count',
+            'earliest_expiry',
+            'expiry_status',
+            'items',
         ]
+
+    def get_expiry_status(self, obj):
+        return calculate_expiry_status(getattr(obj, 'earliest_expiry', None))
 
 
 class PantryItemSerializer(serializers.ModelSerializer):
     added_by = UserSummarySerializer(read_only=True)
+    expiry_status = serializers.SerializerMethodField()
+    origin = serializers.CharField(source='product.origin', read_only=True)
 
     class Meta:
         model = PantryItem
-        fields = ['id', 'product', 'expiry_date', 'status', 'added_by', 'created_at']
+        fields = [
+            'id',
+            'product',
+            'expiry_date',
+            'expiry_status',
+            'status',
+            'origin',
+            'added_by',
+            'created_at',
+        ]
+
+    def get_expiry_status(self, obj):
+        return calculate_expiry_status(obj.expiry_date)
 
 
 class PantryItemCreateSerializer(serializers.Serializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     expiry_date = serializers.DateField()
     count = serializers.IntegerField(min_value=1, max_value=20, default=1)
+    origin = serializers.ChoiceField(
+        choices=ProductOrigin.choices,
+        required=False,
+    )
 
     def validate_product(self, product):
         household = self.context['household']
@@ -177,7 +254,21 @@ class PantryItemCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         count = validated_data.pop('count')
-        return PantryItem.objects.bulk_create(PantryItem(**validated_data) for _ in range(count))
+        origin = validated_data.pop('origin', None)
+
+        # Extract product before creating PantryItems
+        product = validated_data['product']
+
+        # Update Product origin, not PantryItem origin
+        if origin is not None and product.origin != origin:
+            product.origin = origin
+            product.save(update_fields=['origin'])
+
+        # Create pantry items without origin
+        return PantryItem.objects.bulk_create(
+            PantryItem(**validated_data)
+            for _ in range(count)
+        )
 
 
 class HouseholdSerializer(serializers.ModelSerializer):
@@ -247,8 +338,17 @@ class ShoppingItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingItem
         fields = [
-            'id', 'product', 'name', 'quantity', 'unit', 'category',
-            'is_bought', 'added_by', 'bought_by', 'created_at', 'bought_at',
+            'id',
+            'product',
+            'name',
+            'quantity',
+            'unit',
+            'category',
+            'is_bought',
+            'added_by',
+            'bought_by',
+            'created_at',
+            'bought_at',
         ]
         read_only_fields = ['id', 'added_by', 'bought_by', 'created_at', 'bought_at']
         extra_kwargs = {'quantity': {'min_value': Decimal('0.01')}}
@@ -311,6 +411,10 @@ class ClosePantryItemSerializer(serializers.Serializer):
             'invalid_choice': 'Status must be either "eaten" or "wasted".',
         },
     )
+    add_to_shopping_list = serializers.BooleanField(
+        required=False,
+        default=False,
+    )
 
 
 class DeviceRegisterSerializer(serializers.Serializer):
@@ -323,4 +427,15 @@ class DeviceRegisterSerializer(serializers.Serializer):
         if not value.strip():
             raise serializers.ValidationError("FCM token cannot be empty.")
         return value.strip()
-   
+
+
+class IngredientSearchSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255, required=True)
+
+
+class RecipeMatchSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255)
+
+
+class GoogleLoginSerializer(serializers.Serializer):
+    id_token = serializers.CharField(required=True, write_only=True)

@@ -12,6 +12,7 @@ class PantryGroup {
     required this.category,
     required this.itemCount,
     required this.earliestExpiry,
+    this.expiryStatus,
     required this.items,
   });
 
@@ -23,6 +24,7 @@ class PantryGroup {
   final ProductCategory? category;
   final int itemCount;
   final DateTime earliestExpiry;
+  final String? expiryStatus;
 
   /// Sorted by expiry date, soonest first
   final List<PantryGroupItem> items;
@@ -47,6 +49,7 @@ class PantryGroup {
         },
         itemCount: itemCount,
         earliestExpiry: DateTime.parse(earliestExpiry),
+        expiryStatus: json['expiry_status'] as String?,
         items: items
             .map(
               (item) => switch (item) {

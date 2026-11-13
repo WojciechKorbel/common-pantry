@@ -1,13 +1,17 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/di/dependencies.dart';
-import 'package:common_pantry/core/theme/app_theme.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/product.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:common_pantry/features/pantry/data/models/product_origin.dart';
+import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/add_purchased_controller.dart';
+import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
+import 'package:common_pantry/features/pantry/presentation/expiry_date_scanner_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class PurchasedItemForm extends StatefulWidget {
   const PurchasedItemForm({
@@ -16,12 +20,16 @@ class PurchasedItemForm extends StatefulWidget {
     required this.onHasDataChanged,
     this.initialProduct,
     this.initialBarcode,
+    this.repository,
+    this.pantryController,
   });
 
   final Household household;
   final ValueChanged<bool> onHasDataChanged;
   final Product? initialProduct;
   final String? initialBarcode;
+  final PantryRepository? repository;
+  final PantryController? pantryController;
 
   @override
   State<PurchasedItemForm> createState() => _PurchasedItemFormState();
@@ -39,7 +47,7 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
   void initState() {
     super.initState();
     _controller = AddPurchasedController(
-      Dependencies.pantryRepository,
+      widget.repository ?? Dependencies.pantryRepository,
       householdId: widget.household.id,
     )..addListener(_syncTexts);
 
@@ -111,18 +119,31 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
     }
   }
 
+  Future<void> _scanDate(DateEntry row) async {
+    final scanned = await Navigator.of(context).push<DateTime>(
+      MaterialPageRoute<DateTime>(
+        builder: (_) => const ExpiryDateScannerScreen(),
+      ),
+    );
+    if (scanned != null && mounted) {
+      _controller.setRowDate(row, scanned);
+    }
+  }
+
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    final success = await _controller.submit();
+    final success = await _controller.submit(origin: ProductOrigin.purchased);
     if (!mounted) {
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
     if (success) {
       final navigator = Navigator.of(context);
-      unawaited(Dependencies.pantryController.load());
+      unawaited((widget.pantryController ?? Dependencies.pantryController).load());
       navigator.pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Items added to the pantry')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Items added to the pantry')),
+      );
     } else if (_controller.errorMessage != null) {
       messenger.showSnackBar(SnackBar(content: Text(_controller.errorMessage!)));
     }
@@ -131,12 +152,56 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isWide = Responsive.isLandscape(context) || Responsive.isTablet(context);
 
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, child) {
         final c = _controller;
         final rows = c.rows;
+
+        final nameField = TextField(
+          controller: _nameText,
+          focusNode: _nameFocus,
+          enabled: !c.isNameLocked && !c.isSubmitting,
+          onChanged: c.setName,
+          textCapitalization: TextCapitalization.sentences,
+          textInputAction: TextInputAction.next,
+          onTapOutside: (_) => _nameFocus.unfocus(),
+          decoration: InputDecoration(
+            labelText: 'Name',
+            helperText: c.isNameLocked ? 'Taken from scanned product' : null,
+            suffixIcon: c.isNameLocked
+                ? const Icon(Icons.lock_outline)
+                : (c.isLookingUp
+                      ? const Padding(
+                          padding: EdgeInsets.all(14),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null),
+          ),
+        );
+
+        final brandField = TextField(
+          controller: _brandText,
+          focusNode: _brandFocus,
+          enabled: !c.isBrandLocked && !c.isSubmitting,
+          onChanged: c.setBrand,
+          textCapitalization: TextCapitalization.words,
+          textInputAction: TextInputAction.done,
+          onTapOutside: (_) => _brandFocus.unfocus(),
+          decoration: InputDecoration(
+            labelText: 'Brand',
+            helperText: c.isBrandLocked
+                ? (c.isNameLocked ? 'Taken from scanned product' : 'Taken from an existing product')
+                : null,
+            suffixIcon: c.isBrandLocked ? const Icon(Icons.lock_outline) : null,
+          ),
+        );
 
         return PinnedActionLayout(
           action: ElevatedButton(
@@ -152,50 +217,20 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
-                controller: _nameText,
-                focusNode: _nameFocus,
-                enabled: !c.isNameLocked && !c.isSubmitting,
-                onChanged: c.setName,
-                textCapitalization: TextCapitalization.sentences,
-                textInputAction: TextInputAction.next,
-                onTapOutside: (_) => _nameFocus.unfocus(),
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  helperText: c.isNameLocked ? 'Taken from scanned product' : null,
-                  suffixIcon: c.isNameLocked
-                      ? const Icon(Icons.lock_outline)
-                      : (c.isLookingUp
-                            ? const Padding(
-                                padding: EdgeInsets.all(14),
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              )
-                            : null),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _brandText,
-                focusNode: _brandFocus,
-                enabled: !c.isBrandLocked && !c.isSubmitting,
-                onChanged: c.setBrand,
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.done,
-                onTapOutside: (_) => _brandFocus.unfocus(),
-                decoration: InputDecoration(
-                  labelText: 'Brand',
-                  helperText: c.isBrandLocked
-                      ? (c.isNameLocked
-                            ? 'Taken from scanned product'
-                            : 'Taken from an existing product')
-                      : null,
-                  suffixIcon: c.isBrandLocked ? const Icon(Icons.lock_outline) : null,
-                ),
-              ),
+              if (isWide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: nameField),
+                    const SizedBox(width: 16),
+                    Expanded(child: brandField),
+                  ],
+                )
+              else ...[
+                nameField,
+                const SizedBox(height: 16),
+                brandField,
+              ],
               const SizedBox(height: 16),
               DropdownMenu<ProductCategory>(
                 controller: _categoryText,
@@ -207,9 +242,9 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
                 leadingIcon: c.isCategoryLocked ? const Icon(Icons.lock_outline) : null,
                 errorText: c.categoriesError,
                 inputDecorationTheme: theme.inputDecorationTheme,
-                menuStyle: const MenuStyle(
-                  backgroundColor: WidgetStatePropertyAll(AppColors.surface),
-                  surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+                menuStyle: MenuStyle(
+                  backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+                  surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
                 ),
                 onSelected: c.setCategory,
                 dropdownMenuEntries: [
@@ -224,6 +259,7 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
                   entry: row,
                   canRemove: rows.length > 1 && !c.isSubmitting,
                   onPickDate: () => _pickDate(row),
+                  onScanDate: () => _scanDate(row),
                   onDecrement: () => c.decrementRow(row),
                   onIncrement: () => c.incrementRow(row),
                   onRemove: () => c.removeRow(row),
@@ -257,6 +293,7 @@ class _DateRow extends StatelessWidget {
     required this.entry,
     required this.canRemove,
     required this.onPickDate,
+    required this.onScanDate,
     required this.onDecrement,
     required this.onIncrement,
     required this.onRemove,
@@ -265,6 +302,7 @@ class _DateRow extends StatelessWidget {
   final DateEntry entry;
   final bool canRemove;
   final VoidCallback onPickDate;
+  final VoidCallback onScanDate;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
   final VoidCallback onRemove;
@@ -287,7 +325,14 @@ class _DateRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
+        IconButton.filledTonal(
+          visualDensity: VisualDensity.compact,
+          onPressed: onScanDate,
+          icon: const Icon(Icons.document_scanner_outlined),
+          tooltip: 'Scan expiry date',
+        ),
+        const SizedBox(width: 4),
         IconButton.filledTonal(
           visualDensity: VisualDensity.compact,
           onPressed: entry.count > AddPurchasedController.minCount ? onDecrement : null,

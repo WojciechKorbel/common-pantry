@@ -1,16 +1,20 @@
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
+import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 Future<void> showEditItemDialog(
   BuildContext context, {
   required PantryGroup product,
   required PantryGroupItem item,
   required PantryController controller,
+  PantryRepository? repository,
+  int? householdId,
 }) {
   return showDialog<void>(
     context: context,
@@ -20,6 +24,8 @@ Future<void> showEditItemDialog(
       product: product,
       item: item,
       controller: controller,
+      repository: repository,
+      householdId: householdId,
     ),
   );
 }
@@ -30,17 +36,24 @@ class EditItemDialog extends StatefulWidget {
     required this.product,
     required this.item,
     required this.controller,
+    this.repository,
+    this.householdId,
   });
 
   final PantryGroup product;
   final PantryGroupItem item;
   final PantryController controller;
+  final PantryRepository? repository;
+  final int? householdId;
 
   @override
   State<EditItemDialog> createState() => _EditItemDialogState();
 }
 
 class _EditItemDialogState extends State<EditItemDialog> {
+  PantryRepository get _repository => widget.repository ?? Dependencies.pantryRepository;
+
+  int get _householdId => widget.householdId ?? Dependencies.householdController.current.id;
   late final TextEditingController _nameText;
   late final TextEditingController _brandText;
   late final TextEditingController _categoryController;
@@ -107,8 +120,8 @@ class _EditItemDialogState extends State<EditItemDialog> {
     setState(() => _isLookingUp = true);
 
     try {
-      final householdId = Dependencies.householdController.current.id;
-      final results = await Dependencies.pantryRepository.searchProducts(
+      final householdId = _householdId;
+      final results = await _repository.searchProducts(
         householdId,
         query,
       );
@@ -146,7 +159,7 @@ class _EditItemDialogState extends State<EditItemDialog> {
 
   Future<void> _loadCategories() async {
     try {
-      final categories = await Dependencies.pantryRepository.getCategories();
+      final categories = await _repository.getCategories();
       if (!mounted) return;
       setState(() {
         _categories = categories;
@@ -322,6 +335,67 @@ class _EditItemDialogState extends State<EditItemDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = Responsive.isLandscape(context);
+    final isWide = isLandscape || Responsive.isTablet(context);
+
+    final nameField = TextField(
+      controller: _nameText,
+      focusNode: _nameFocus,
+      onTapOutside: (_) => _nameFocus.unfocus(),
+      decoration: InputDecoration(
+        labelText: 'Name',
+        suffixIcon: _isLookingUp
+            ? const Padding(
+                padding: EdgeInsets.all(14),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : null,
+      ),
+    );
+
+    final brandField = TextField(
+      controller: _brandText,
+      decoration: const InputDecoration(labelText: 'Brand'),
+    );
+
+    final categoryDropdown = DropdownMenu<ProductCategory>(
+      controller: _categoryController,
+      expandedInsets: EdgeInsets.zero,
+      label: const Text('Category'),
+      enabled: !_isLoadingCategories && !_isSubmitting,
+      requestFocusOnTap: false,
+      menuHeight: 300,
+      inputDecorationTheme: theme.inputDecorationTheme,
+      menuStyle: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+      ),
+      initialSelection: _selectedCategory,
+      onSelected: (value) => setState(() {
+        _selectedCategory = value;
+      }),
+      dropdownMenuEntries: [
+        for (final category in _categories)
+          DropdownMenuEntry(
+            value: category,
+            label: category.name,
+          ),
+      ],
+    );
+
+    final dateField = TextField(
+      controller: _dateText,
+      readOnly: true,
+      onTap: _pickDate,
+      decoration: const InputDecoration(
+        labelText: 'Expiry date',
+        suffixIcon: Icon(Icons.calendar_today_outlined),
+      ),
+    );
 
     return PopScope(
       canPop: false,
@@ -354,82 +428,57 @@ class _EditItemDialogState extends State<EditItemDialog> {
           ),
           body: SafeArea(
             bottom: false,
-            child: PinnedActionLayout(
-              action: ElevatedButton(
-                onPressed: _canSubmit ? _submit : null,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Save changes'),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _nameText,
-                    focusNode: _nameFocus,
-                    onTapOutside: (_) => _nameFocus.unfocus(),
-                    decoration: InputDecoration(
-                      labelText: 'Name',
-                      suffixIcon: _isLookingUp
-                          ? const Padding(
-                              padding: EdgeInsets.all(14),
-                              child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            )
-                          : null,
-                    ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: PinnedActionLayout(
+                  action: ElevatedButton(
+                    onPressed: _canSubmit ? _submit : null,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save changes'),
                   ),
-                  if (_isPurchased) ...[
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _brandText,
-                      decoration: const InputDecoration(labelText: 'Brand'),
-                    ),
-                  ],
-                  const SizedBox(height: 16),
-                  DropdownMenu<ProductCategory>(
-                    controller: _categoryController,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Category'),
-                    enabled: !_isLoadingCategories && !_isSubmitting,
-                    requestFocusOnTap: false,
-                    menuHeight: 300,
-                    inputDecorationTheme: theme.inputDecorationTheme,
-                    menuStyle: MenuStyle(
-                      backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
-                      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-                    ),
-                    initialSelection: _selectedCategory,
-                    onSelected: (value) => setState(() {
-                      _selectedCategory = value;
-                    }),
-                    dropdownMenuEntries: [
-                      for (final category in _categories)
-                        DropdownMenuEntry(
-                          value: category,
-                          label: category.name,
-                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: isLandscape ? 12 : 24),
+                      if (isWide && _isPurchased)
+                        Row(
+                          children: [
+                            Expanded(child: nameField),
+                            const SizedBox(width: 16),
+                            Expanded(child: brandField),
+                          ],
+                        )
+                      else ...[
+                        nameField,
+                        if (_isPurchased) ...[
+                          const SizedBox(height: 16),
+                          brandField,
+                        ],
+                      ],
+                      const SizedBox(height: 16),
+                      if (isWide)
+                        Row(
+                          children: [
+                            Expanded(child: categoryDropdown),
+                            const SizedBox(width: 16),
+                            Expanded(child: dateField),
+                          ],
+                        )
+                      else ...[
+                        categoryDropdown,
+                        const SizedBox(height: 16),
+                        dateField,
+                      ],
+                      SizedBox(height: isLandscape ? 16 : 24),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _dateText,
-                    readOnly: true,
-                    onTap: _pickDate,
-                    decoration: const InputDecoration(
-                      labelText: 'Expiry date',
-                      suffixIcon: Icon(Icons.calendar_today_outlined),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

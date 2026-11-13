@@ -3,6 +3,8 @@ import 'package:common_pantry/features/auth/presentation/controllers/login_contr
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../helpers/builders.dart';
+
 class _FakeAuthRepository implements AuthRepository {
   Object? error;
   int loginCalls = 0;
@@ -81,5 +83,30 @@ void main() {
     expect(result, isFalse);
     expect(controller.errorMessage, 'Invalid username or password.');
     expect(controller.isLoading, isFalse);
+  });
+
+  test('login trims the username but never the password', () async {
+    await controller.login(username: ' user1 ', password: ' secret123 ');
+
+    expect(repository.username, 'user1');
+    expect(repository.password, ' secret123 ');
+  });
+
+  test('login maps other errors to messages', () async {
+    final cases = <(Object, String)>[
+      (serverError(400), 'Please check your login credentials.'),
+      (serverError(500), 'Could not connect to the server. Please try again.'),
+      (connectionError(), 'Could not connect to the server. Please try again.'),
+      (const FormatException('Invalid tokens'), 'Invalid response received from the server.'),
+      (StateError('unexpected'), 'An unexpected error occurred.'),
+    ];
+
+    for (final (error, message) in cases) {
+      repository.error = error;
+
+      expect(await controller.login(username: 'user1', password: 'secret123'), isFalse);
+      expect(controller.errorMessage, message);
+      expect(controller.isLoading, isFalse);
+    }
   });
 }

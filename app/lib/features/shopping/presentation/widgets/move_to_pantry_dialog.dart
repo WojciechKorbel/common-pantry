@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
 import 'package:common_pantry/features/shopping/data/models/shopping_item.dart';
 import 'package:common_pantry/features/shopping/data/models/shopping_move.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Asks for the expiry dates of the given bought items one item at a time,
 /// then moves them all to the pantry in a single request.
@@ -33,7 +34,6 @@ class _MoveToPantryDialogState extends State<MoveToPantryDialog> {
   static const _maxRows = 20;
 
   late final List<List<DateTime?>> _dates;
-
   late final List<TextEditingController> _brands;
   int _index = 0;
   bool _isSubmitting = false;
@@ -151,6 +151,7 @@ class _MoveToPantryDialogState extends State<MoveToPantryDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final rows = _rows;
+    final isLandscape = Responsive.isLandscape(context);
 
     return PopScope(
       canPop: false,
@@ -181,101 +182,114 @@ class _MoveToPantryDialogState extends State<MoveToPantryDialog> {
           ),
           body: SafeArea(
             bottom: false,
-            child: PinnedActionLayout(
-              action: Row(
-                children: [
-                  if (_index > 0) ...[
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _isSubmitting ? null : () => setState(() => _index--),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: PinnedActionLayout(
+                  action: Row(
+                    children: [
+                      if (_index > 0) ...[
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _isSubmitting ? null : () => setState(() => _index--),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Back'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _stepComplete && !_isSubmitting ? _next : null,
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(_isLast ? 'Add to pantry' : 'Next'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: isLandscape ? 12 : 24),
+                      Text(_item.name, style: theme.textTheme.headlineSmall),
+                      if (_item.showQuantity) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Bought: ${_item.quantityLabel}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: isLandscape ? 12 : 24),
+                      TextField(
+                        key: ValueKey('brand_$_index'),
+                        controller: _brands[_index],
+                        enabled: !_isSubmitting,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.done,
+                        onChanged: (_) => setState(() {}),
+                        onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                        decoration: const InputDecoration(
+                          labelText: 'Brand (optional)',
+                          helperText: 'Used to match a product that already exists',
+                        ),
+                      ),
+                      SizedBox(height: isLandscape ? 14 : 24),
+                      Text(
+                        'Set an expiry date for each package.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      for (var i = 0; i < rows.length; i++) ...[
+                        _DateRow(
+                          index: i,
+                          date: rows[i],
+                          canRemove: rows.length > 1 && !_isSubmitting,
+                          onPickDate: () => _pickDate(i),
+                          onRemove: () => setState(() => rows.removeAt(i)),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      OutlinedButton.icon(
+                        onPressed: rows.length >= _maxRows || _isSubmitting
+                            ? null
+                            : () => setState(() => rows.add(null)),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add another date'),
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          foregroundColor: theme.colorScheme.primary,
+                          side: BorderSide(color: theme.colorScheme.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text('Back'),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _stepComplete && !_isSubmitting ? _next : null,
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(_isLast ? 'Add to pantry' : 'Next'),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 24),
-                  Text(_item.name, style: theme.textTheme.headlineSmall),
-                  if (_item.showQuantity) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Bought: ${_item.quantityLabel}',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  TextField(
-                    key: ValueKey('brand_$_index'),
-                    controller: _brands[_index],
-                    enabled: !_isSubmitting,
-                    textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.done,
-                    onChanged: (_) => setState(() {}),
-                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
-                    decoration: const InputDecoration(
-                      labelText: 'Brand (optional)',
-                      helperText: 'Used to match a product that already exists',
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Set an expiry date for each package.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  for (var i = 0; i < rows.length; i++) ...[
-                    _DateRow(
-                      index: i,
-                      date: rows[i],
-                      canRemove: rows.length > 1 && !_isSubmitting,
-                      onPickDate: () => _pickDate(i),
-                      onRemove: () => setState(() => rows.removeAt(i)),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  OutlinedButton.icon(
-                    onPressed: rows.length >= _maxRows || _isSubmitting
-                        ? null
-                        : () => setState(() => rows.add(null)),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add another date'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: theme.colorScheme.primary,
-                      side: BorderSide(color: theme.colorScheme.primary),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

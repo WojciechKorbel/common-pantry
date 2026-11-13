@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class AppColors {
   AppColors._();
@@ -86,7 +86,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
-      canvasColor: AppColors.background,
+      canvasColor: AppColors.surface,
       dividerColor: AppColors.border,
 
       // Text
@@ -200,6 +200,18 @@ class AppTheme {
         ),
       ),
 
+      // Menus & Dropdowns
+      dropdownMenuTheme: const DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(AppColors.surface),
+          surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+        ),
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+
       // Cards
       cardTheme: CardThemeData(
         color: AppColors.surface,
@@ -289,7 +301,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.backgroundDark,
-      canvasColor: AppColors.backgroundDark,
+      canvasColor: AppColors.surfaceContainerDark, // Kluczowe dla tła DropdownButtonFormField
       dividerColor: AppColors.borderDark,
       textTheme: const TextTheme(
         bodyLarge: TextStyle(color: AppColors.textDark),
@@ -355,6 +367,19 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.errorDark, width: 2),
         ),
       ),
+
+      // Menus & Dropdowns - Dark
+      dropdownMenuTheme: const DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          backgroundColor: WidgetStatePropertyAll(AppColors.surfaceContainerDark),
+          surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
+        ),
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: AppColors.surfaceContainerDark,
+        surfaceTintColor: Colors.transparent,
+      ),
+
       cardTheme: CardThemeData(
         color: AppColors.surfaceDark,
         surfaceTintColor: Colors.transparent,

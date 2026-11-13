@@ -15,12 +15,14 @@ import 'package:common_pantry/features/households/presentation/join_household_sc
 import 'package:common_pantry/features/households/presentation/join_household_success_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/household_settings_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/pantry_items_screen.dart';
+import 'package:common_pantry/features/recipes/presentation/screens/recipe_details_screen.dart';
+import 'package:common_pantry/features/recipes/presentation/screens/recipes_screen.dart';
 import 'package:common_pantry/features/settings/presentation/settings_screen.dart';
 import 'package:common_pantry/features/shopping/presentation/shopping_list_screen.dart';
 import 'package:common_pantry/features/stats/presentation/stats_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -192,7 +194,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/stats',
         builder: (context, state) {
           final household = state.extra! as Household;
-          return StatsScreen(household: household);
+          return StatsScreen(
+            household: household,
+            controller: Dependencies.statisticsController(household.id),
+          );
         },
       ),
       GoRoute(
@@ -213,6 +218,59 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+
+      // RECIPES
+      GoRoute(
+        path: '/recipes',
+        builder: (context, state) {
+          final extra = state.extra;
+
+          if (extra is! Map<String, dynamic>) {
+            return const Scaffold(
+              body: Center(
+                child: Text('Invalid recipe navigation data.'),
+              ),
+            );
+          }
+
+          final household = extra['household'];
+          final productName = extra['productName'];
+
+          if (household is! Household || productName is! String || productName.trim().isEmpty) {
+            return const Scaffold(
+              body: Center(
+                child: Text('Missing recipe information.'),
+              ),
+            );
+          }
+
+          return RecipesScreen(
+            household: household,
+            productName: productName,
+            controller: Dependencies.recipeController,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/recipes/:mealId',
+        builder: (context, state) {
+          final mealId = state.pathParameters['mealId'];
+
+          if (mealId == null || mealId.isEmpty) {
+            return const Scaffold(
+              body: Center(
+                child: Text('Invalid recipe ID.'),
+              ),
+            );
+          }
+
+          return RecipeDetailsScreen(
+            mealId: mealId,
+            controller: Dependencies.recipeController,
+          );
+        },
       ),
     ],
   );

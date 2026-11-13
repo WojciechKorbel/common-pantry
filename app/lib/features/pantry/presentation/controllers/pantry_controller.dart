@@ -6,16 +6,32 @@ import 'package:common_pantry/features/pantry/data/models/product_category.dart'
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:common_pantry/features/pantry/domain/pantry_filter.dart';
+import 'package:common_pantry/features/services/pantry_widget_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
+typedef PantryWidgetSync = Future<void> Function({
+  required String householdName,
+  required List<PantryGroup> groups,
+});
+
+late int _householdId;
+
 class PantryController extends ChangeNotifier {
-  PantryController(this._repository, this._households) {
+  PantryController(
+    this._repository,
+    this._households, {
+    this._now = DateTime.now,
+    PantryWidgetSync syncWidget = PantryWidgetService.updateWidget,
+  }) : _syncWidgetData = syncWidget {
+    _householdId = _households.current.id;
     _households.addListener(_onHouseholdChanged);
   }
 
   final PantryRepository _repository;
   final HouseholdController _households;
+  final DateTime Function() _now;
+  final PantryWidgetSync _syncWidgetData;
 
   List<PantryGroup> _groups = const [];
   bool _isLoading = false;
@@ -56,7 +72,7 @@ class PantryController extends ChangeNotifier {
       return filtered;
     }
 
-    final today = DateTime.now();
+    final today = _now();
 
     return filtered.where((group) {
       return expiryStatusOf(group.earliestExpiry, today) == _expiryFilter;
@@ -65,7 +81,18 @@ class PantryController extends ChangeNotifier {
 
   List<ProductCategory> get categories => categoriesIn(_groups);
 
-  Future<void> load() async {
+  Future<void> _syncWidget() async {
+    try {
+      await _syncWidgetData(
+        householdName: _households.current.name,
+        groups: _groups,
+      );
+    } catch (_) {
+      // Ignore
+    }
+  }
+
+  Future<void> load({String? search}) async {
     final request = ++_lastRequest;
     _isLoading = true;
     _errorMessage = null;
@@ -74,7 +101,10 @@ class PantryController extends ChangeNotifier {
     List<PantryGroup>? groups;
     String? error;
     try {
-      groups = await _repository.getPantry(_households.current.id);
+      groups = await _repository.getPantry(
+        _households.current.id,
+        search: search,
+      );
     } on DioException catch (e) {
       error = _messageFor(e);
     } on FormatException {
@@ -88,6 +118,7 @@ class PantryController extends ChangeNotifier {
     if (groups != null) {
       _groups = groups;
       _hasLoaded = true;
+      unawaited(_syncWidget());
     }
     _errorMessage = error;
     _isLoading = false;
@@ -130,18 +161,23 @@ class PantryController extends ChangeNotifier {
     }
   }
 
-  /// Closes an item as 'eaten' or 'wasted'
+  /// Closes an item as 'eaten' or 'wasted'.
+  /// Optionally adds the product to the shopping list.
   Future<bool> closeItem({
     required int itemId,
     required String status,
+    bool addToShoppingList = false,
   }) async {
     _errorMessage = null;
+
     try {
       await _repository.closeItem(
         _households.current.id,
         itemId: itemId,
         status: status,
+        addToShoppingList: addToShoppingList,
       );
+
       await load();
       return true;
     } on DioException catch (e) {
@@ -192,6 +228,10 @@ class PantryController extends ChangeNotifier {
   }
 
   void _onHouseholdChanged() {
+    final id = _households.current.id;
+    if (id == _householdId) return;
+    _householdId = id;
+
     _groups = const [];
     _hasLoaded = false;
     _query = '';

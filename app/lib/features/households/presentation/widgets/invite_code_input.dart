@@ -1,6 +1,6 @@
 import 'package:common_pantry/features/households/presentation/controllers/join_household_controller.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 
 class InviteCodeInput extends StatefulWidget {
   const InviteCodeInput({

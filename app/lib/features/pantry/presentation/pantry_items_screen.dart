@@ -1,24 +1,18 @@
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
-import 'package:common_pantry/core/widgets/app_bottom_navigation_bar.dart';
+import 'package:common_pantry/core/widgets/responsive_scaffold.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
+import 'package:common_pantry/features/pantry/presentation/widgets/close_pantry_item_dialog.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/edit_item_dialog.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/edit_product_dialog.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/empty_pantry_state.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/no_matching_products_state.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pantry_product_tile.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pantry_search_bar.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
-enum ExpiryFilterOption {
-  all,
-  fresh,
-  soon,
-  expired,
-}
+import 'package:material_ui/material_ui.dart';
 
 class PantryItemsScreen extends StatefulWidget {
   const PantryItemsScreen({
@@ -59,52 +53,40 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
     PantryGroupItem item,
     String status,
   ) async {
-    final actionLabel = status == 'eaten' ? 'eaten' : 'wasted';
-    final actionTitle = status == 'eaten' ? 'Mark as eaten?' : 'Mark as wasted?';
-    final actionColor = status == 'eaten' ? Colors.green.shade700 : Colors.orange.shade800;
+    final canAddToShoppingList = item.origin == 'purchased';
 
-    final confirmed = await showDialog<bool>(
+    final result = await showClosePantryItemDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(actionTitle),
-        content: Text(
-          'Are you sure you want to mark "${product.name}" '
-          'expiring on ${_formatDate(item.expiryDate)} as $actionLabel?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(
-              'Confirm',
-              style: TextStyle(
-                color: actionColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
+      productName: product.name,
+      expiryDate: item.expiryDate,
+      status: status,
+      origin: item.origin,
     );
 
-    if (confirmed != true || !mounted) {
+    if (result == null || !mounted) {
       return;
     }
+
+    final addToShoppingList = canAddToShoppingList && result.addToShoppingList;
 
     final success = await widget.controller.closeItem(
       itemId: item.id,
       status: status,
+      addToShoppingList: addToShoppingList,
     );
 
     if (!mounted) return;
 
     if (success) {
+      final actionLabel = status == 'eaten' ? 'eaten' : 'wasted';
+
+      final message = addToShoppingList
+          ? 'Marked "${product.name}" as $actionLabel and added to shopping list.'
+          : 'Marked "${product.name}" as $actionLabel.';
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Marked "${product.name}" as $actionLabel.'),
+          content: Text(message),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -199,11 +181,121 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
     return true;
   }
 
+  Widget _buildFilterChips(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) {
+        final controller = widget.controller;
+
+        if (controller.categories.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              FilterChip(
+                label: const Text('All categories'),
+                selected: controller.categoryId == null,
+                onSelected: (_) {
+                  controller.setCategory(null);
+                },
+              ),
+              const SizedBox(width: 8),
+              ...controller.categories.map((cat) {
+                final isSelected = controller.categoryId == cat.id;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(cat.name),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      controller.setCategory(selected ? cat.id : null);
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProductTile(
+    BuildContext context,
+    ThemeData theme,
+    PantryGroup product,
+    PantryController controller,
+  ) {
+    return Dismissible(
+      key: ValueKey('group_${product.id}_${product.items.length}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.error,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.delete_sweep_outlined, color: Colors.white, size: 28),
+            SizedBox(height: 4),
+            Text(
+              'Delete all',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+      confirmDismiss: (direction) => _confirmAndDeleteGroup(product),
+      child: GestureDetector(
+        onLongPress: () => showEditProductDialog(
+          context,
+          product: product,
+          controller: controller,
+        ),
+        child: PantryProductTile(
+          product: product,
+
+          onRecipesTap: () {
+            context.push(
+              '/recipes',
+              extra: {
+                'household': widget.household,
+                'productName': product.name,
+              },
+            );
+          },
+
+          onItemAction: (item) => showEditItemDialog(
+            context,
+            product: product,
+            item: item,
+            controller: controller,
+          ),
+
+          onDeleteItem: (item) => _confirmAndDeleteItem(product, item),
+
+          onCloseItem: (item, status) => _closeItem(product, item, status),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
+    return ResponsiveScaffold(
+      household: widget.household,
       appBar: AppAppBar(
         title: widget.household.name,
         onBack: () => context.go('/households'),
@@ -213,131 +305,157 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              PantrySearchBar(
-                controller: widget.controller,
-                searchController: _searchController,
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListenableBuilder(
-                  listenable: widget.controller,
-                  builder: (context, child) {
-                    final controller = widget.controller;
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                children: [
+                  PantrySearchBar(
+                    controller: widget.controller,
+                    searchController: _searchController,
+                  ),
+                  const SizedBox(height: 8),
+                  _buildFilterChips(context),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListenableBuilder(
+                      listenable: widget.controller,
+                      builder: (context, child) {
+                        final controller = widget.controller;
 
-                    if (controller.isLoading && !controller.hasLoaded) {
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    }
+                        if (controller.isLoading && !controller.hasLoaded) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
 
-                    if (controller.errorMessage != null && !controller.hasLoaded) {
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              controller.errorMessage!,
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: controller.load,
-                              child: const Text('Try again'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    if (controller.visibleGroups.isEmpty) {
-                      if (controller.groups.isEmpty) {
-                        return const EmptyPantryState();
-                      }
-
-                      final hasActiveFilters =
-                          controller.query.trim().isNotEmpty ||
-                          controller.categoryId != null ||
-                          controller.expiryFilter != null;
-
-                      if (!hasActiveFilters) {
-                        return const EmptyPantryState();
-                      }
-
-                      return NoMatchingProductsState(
-                        onClearFilters: () {
-                          _searchController.clear();
-                          controller.setQuery('');
-                          controller.setCategory(null);
-                          controller.setExpiryFilter(null);
-                        },
-                      );
-                    }
-
-                    return ListView.separated(
-                      itemCount: controller.visibleGroups.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final product = controller.visibleGroups[index];
-                        return Dismissible(
-                          key: ValueKey('group_${product.id}_${product.items.length}'),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.error,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                        if (controller.errorMessage != null && !controller.hasLoaded) {
+                          return Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.delete_sweep_outlined, color: Colors.white, size: 28),
-                                SizedBox(height: 4),
                                 Text(
-                                  'Delete all',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  controller.errorMessage!,
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton(
+                                  onPressed: controller.load,
+                                  child: const Text('Try again'),
                                 ),
                               ],
                             ),
-                          ),
-                          confirmDismiss: (direction) => _confirmAndDeleteGroup(product),
-                          child: GestureDetector(
-                            onLongPress: () => showEditProductDialog(
-                              context,
-                              product: product,
-                              controller: controller,
-                            ),
-                            child: PantryProductTile(
-                              product: product,
-                              onItemAction: (item) => showEditItemDialog(
-                                context,
-                                product: product,
-                                item: item,
-                                controller: controller,
-                              ),
-                              onDeleteItem: (item) => _confirmAndDeleteItem(product, item),
-                              onCloseItem: (item, status) => _closeItem(product, item, status),
-                            ),
-                          ),
+                          );
+                        }
+
+                        if (controller.visibleGroups.isEmpty) {
+                          if (controller.groups.isEmpty) {
+                            return const EmptyPantryState();
+                          }
+
+                          final hasActiveFilters =
+                              controller.query.trim().isNotEmpty ||
+                              controller.categoryId != null ||
+                              controller.expiryFilter != null;
+
+                          if (!hasActiveFilters) {
+                            return const EmptyPantryState();
+                          }
+
+                          return NoMatchingProductsState(
+                            onClearFilters: () {
+                              _searchController.clear();
+                              controller.setQuery('');
+                              controller.setCategory(null);
+                              controller.setExpiryFilter(null);
+                            },
+                          );
+                        }
+
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isMultiColumn = constraints.maxWidth >= 900;
+
+                            if (isMultiColumn) {
+                              final leftColumn = <PantryGroup>[];
+                              final rightColumn = <PantryGroup>[];
+
+                              for (var i = 0; i < controller.visibleGroups.length; i++) {
+                                if (i.isEven) {
+                                  leftColumn.add(controller.visibleGroups[i]);
+                                } else {
+                                  rightColumn.add(controller.visibleGroups[i]);
+                                }
+                              }
+
+                              return SingleChildScrollView(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          for (final product in leftColumn) ...[
+                                            _buildProductTile(
+                                              context,
+                                              theme,
+                                              product,
+                                              controller,
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          for (final product in rightColumn) ...[
+                                            _buildProductTile(
+                                              context,
+                                              theme,
+                                              product,
+                                              controller,
+                                            ),
+                                            const SizedBox(height: 8),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+
+                            return ListView.separated(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              itemCount: controller.visibleGroups.length,
+                              separatorBuilder: (_, _) => const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final product = controller.visibleGroups[index];
+                                return _buildProductTile(
+                                  context,
+                                  theme,
+                                  product,
+                                  controller,
+                                );
+                              },
+                            );
+                          },
                         );
                       },
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
-      bottomNavigationBar: AppBottomNavigationBar(household: widget.household),
     );
   }
 }

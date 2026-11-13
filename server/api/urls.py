@@ -3,6 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from . import views
 from .views import (
+    GoogleLoginView,
     HouseholdDetailsAPIView,
     HouseholdJoinAPIView,
     HouseholdLeaveAPIView,
@@ -11,10 +12,12 @@ from .views import (
     HouseholdMemberDemoteAPIView,
     HouseholdMemberPromoteAPIView,
     HouseholdSettingsAPIView,
+    IngredientMatchView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
     PasswordResetResendView,
     PasswordResetVerifyView,
+    RecipeMatchView,
     RegisterView,
     ResendCodeView,
     VerifyEmailView, DeviceRegisterView, DeviceUnregisterView,
@@ -24,6 +27,7 @@ urlpatterns = [
     # Auth
     path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('auth/google/', GoogleLoginView.as_view(), name='google-login'),
     # Auth - Register
     path("auth/register/", RegisterView.as_view(), name="register"),
     path("auth/verify-email/", VerifyEmailView.as_view(), name="verify-email"),
@@ -148,4 +152,24 @@ urlpatterns = [
         name="device-unregister",
     ),
 
+
+    # Statistics
+    path(
+        'households/<int:household_id>/statistics/food-waste/',
+        views.FoodWasteStatisticsView.as_view(),
+        name='food-waste-statistics',
+    ),
+
+    # The Meal Db API
+    path(
+        "product-match/",
+        IngredientMatchView.as_view(),
+        name="themealdb-ingredient-match",
+    ),
+
+    path(
+        "recipe-match/",
+        RecipeMatchView.as_view(),
+        name="recipe-match",
+    ),
 ]

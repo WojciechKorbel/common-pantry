@@ -17,8 +17,12 @@ import 'package:common_pantry/features/households/presentation/controllers/join_
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/household_details_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
+import 'package:common_pantry/features/recipes/data/repositories/recipe_repository.dart';
+import 'package:common_pantry/features/recipes/presentation/controllers/recipe_controller.dart';
 import 'package:common_pantry/features/shopping/data/repositories/shopping_repository.dart';
 import 'package:common_pantry/features/shopping/presentation/controllers/shopping_controller.dart';
+import 'package:common_pantry/features/stats/data/repositories/statistics_repository.dart';
+import 'package:common_pantry/features/stats/presentation/controllers/statistics_controller.dart';
 
 class Dependencies {
   Dependencies._();
@@ -95,4 +99,20 @@ class Dependencies {
 
   // firebase
   static final FirebaseService firebaseService = FirebaseService();
+  // statistics
+  static final statisticsRepository = StatisticsRepository(apiClient);
+
+  static StatisticsController statisticsController(int householdId) {
+    return StatisticsController(
+      statisticsRepository,
+      householdId: householdId,
+    );
+  }
+
+  // recipes
+  static final recipeRepository = RecipeRepository(apiClient);
+
+  static final recipeController = RecipeController(
+    recipeRepository,
+  );
 }

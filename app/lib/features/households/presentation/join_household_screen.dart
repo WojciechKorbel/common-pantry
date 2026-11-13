@@ -1,11 +1,12 @@
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/core/widgets/app_button.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/presentation/controllers/join_household_controller.dart';
 import 'package:common_pantry/features/households/presentation/widgets/invite_code_input.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class JoinHouseholdScreen extends StatefulWidget {
   const JoinHouseholdScreen({super.key});
@@ -54,6 +55,7 @@ class _JoinHouseholdScreenState extends State<JoinHouseholdScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = Responsive.isLandscape(context);
 
     return ListenableBuilder(
       listenable: _controller,
@@ -68,80 +70,82 @@ class _JoinHouseholdScreenState extends State<JoinHouseholdScreen> {
             ),
           ),
           body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 16),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: isLandscape ? 12 : 24,
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (!isLandscape) ...[
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: Image.asset(
+                                    'assets/images/pantry_logo.png',
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ] else
+                                const SizedBox(height: 4),
 
-                          // APP LOGO
-                          Center(
-                            child: Image.asset(
-                              'assets/images/pantry_logo.png',
-                              width: 96,
-                              height: 96,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // TITLE
-                          Text(
-                            'Join a household',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // DESCRIPTION
-                          Text(
-                            'Enter the 6-digit invitation code to join the household.',
-                            style: theme.textTheme.bodyLarge,
-                            textAlign: TextAlign.center,
-                          ),
-
-                          const SizedBox(height: 36),
-
-                          // INVITATION CODE INPUT
-                          InviteCodeInput(
-                            controller: _controller,
-                            hasError: _controller.hasError,
-                          ),
-
-                          // ERROR MESSAGE
-                          if (_controller.errorMessage != null) ...[
-                            const SizedBox(height: 16),
-                            Text(
-                              _controller.errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: theme.colorScheme.error,
+                              Text(
+                                'Join a household',
+                                style:
+                                    (isLandscape
+                                            ? theme.textTheme.titleLarge
+                                            : theme.textTheme.headlineMedium)
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                textAlign: TextAlign.center,
                               ),
-                            ),
-                          ],
-                        ],
+                              const SizedBox(height: 4),
+                              Text(
+                                'Enter the 6-digit invitation code.',
+                                style: theme.textTheme.bodyMedium,
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: isLandscape ? 14 : 32),
+
+                              InviteCodeInput(
+                                controller: _controller,
+                                hasError: _controller.hasError,
+                              ),
+
+                              if (_controller.errorMessage != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  _controller.errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      AppButton(
+                        text: 'Join household',
+                        onPressed: _controller.isLoading ? null : _joinHousehold,
+                        isLoading: _controller.isLoading,
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // JOIN BUTTON
-                  AppButton(
-                    text: 'Join household',
-                    onPressed: _controller.isLoading ? null : _joinHousehold,
-                    isLoading: _controller.isLoading,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

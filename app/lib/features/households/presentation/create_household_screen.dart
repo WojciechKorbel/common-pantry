@@ -1,10 +1,11 @@
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/core/widgets/app_button.dart';
 import 'package:common_pantry/core/widgets/app_input.dart';
 import 'package:common_pantry/features/households/presentation/controllers/create_household_controller.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class CreateHouseholdScreen extends StatefulWidget {
   const CreateHouseholdScreen({super.key});
@@ -62,6 +63,8 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = Responsive.isLandscape(context);
+
     return ListenableBuilder(
       listenable: _controller,
       builder: (context, _) {
@@ -78,81 +81,84 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
             ),
           ),
           body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 16),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: isLandscape ? 12 : 24,
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (!isLandscape) ...[
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: Image.asset(
+                                    'assets/images/pantry_logo.png',
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                              ] else
+                                const SizedBox(height: 4),
 
-                          // LOGO
-                          Center(
-                            child: Image.asset(
-                              'assets/images/pantry_logo.png',
-                              width: 96,
-                              height: 96,
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-
-                          const SizedBox(height: 24),
-
-                          // BOLD INFO TEXT
-                          Text(
-                            'Create a new household',
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // INFO TEXT
-                          Text(
-                            'Give your household a name.',
-                            style: theme.textTheme.bodyLarge,
-                            textAlign: TextAlign.center,
-                          ),
-
-                          const SizedBox(height: 36),
-
-                          // HOUSEHOLD NAE TEXT FIELD
-                          AppInput(
-                            hintText: 'Household name',
-                            icon: Icons.home_outlined,
-                            keyboardType: TextInputType.name,
-                            controller: _nameController,
-                          ),
-
-                          // EMPTY FIELD ERROR
-                          if (_controller.errorMessage != null) ...[
-                            const SizedBox(height: 16),
-                            Text(
-                              _controller.errorMessage!,
-                              style: TextStyle(
-                                color: theme.colorScheme.error,
+                              Text(
+                                'Create a new household',
+                                style:
+                                    (isLandscape
+                                            ? theme.textTheme.titleLarge
+                                            : theme.textTheme.headlineMedium)
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                textAlign: TextAlign.center,
                               ),
-                            ),
-                          ],
-                        ],
+                              const SizedBox(height: 4),
+                              Text(
+                                'Give your household a name.',
+                                style: theme.textTheme.bodyMedium,
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: isLandscape ? 14 : 32),
+
+                              AppInput(
+                                hintText: 'Household name',
+                                icon: Icons.home_outlined,
+                                keyboardType: TextInputType.name,
+                                controller: _nameController,
+                              ),
+
+                              if (_controller.errorMessage != null) ...[
+                                const SizedBox(height: 12),
+                                Text(
+                                  _controller.errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.error,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      AppButton(
+                        text: 'Create household',
+                        onPressed: _createHousehold,
+                        isLoading: isLoading,
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(height: 16),
-
-                  // CREATE BUTTON
-                  AppButton(
-                    text: 'Create household',
-                    onPressed: _createHousehold,
-                    isLoading: isLoading,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

@@ -1,0 +1,178 @@
+{
+  "Chicken": {
+    "pl": "kurczak",
+    "en": "chicken"
+  },
+  "Salmon": {
+    "pl": "łosoś",
+    "en": "salmon"
+  },
+  "Beef": {
+    "pl": "wołowina",
+    "en": "beef"
+  },
+  "Pork": {
+    "pl": "wieprzowina",
+    "en": "pork"
+  },
+  "Avocado": {
+    "pl": "awokado",
+    "en": "avocado"
+  },
+  "Asparagus": {
+    "pl": "szparagi",
+    "en": "asparagus"
+  },
+  "Aubergine": {
+    "pl": "bakłażan",
+    "en": "aubergine"
+  },
+  "Bacon": {
+    "pl": "boczek",
+    "en": "bacon"
+  },
+  "Basil": {
+    "pl": "bazylia",
+    "en": "basil"
+  },
+  "Bay Leaf": {
+    "pl": "liść laurowy",
+    "en": "bay leaf"
+  },
+  "Black Pepper": {
+    "pl": "pieprz czarny",
+    "en": "black pepper"
+  },
+  "Butter": {
+    "pl": "masło",
+    "en": "butter"
+  },
+  "Carrots": {
+    "pl": "marchew",
+    "en": "carrot"
+  },
+  "Cheese": {
+    "pl": "ser",
+    "en": "cheese"
+  },
+  "Chilli": {
+    "pl": "chili",
+    "en": "chilli"
+  },
+  "Cinnamon": {
+    "pl": "cynamon",
+    "en": "cinnamon"
+  },
+  "Coconut Milk": {
+    "pl": "mleko kokosowe",
+    "en": "coconut milk"
+  },
+  "Coriander": {
+    "pl": "kolendra",
+    "en": "coriander"
+  },
+  "Cream": {
+    "pl": "śmietana",
+    "en": "cream"
+  },
+  "Cucumber": {
+    "pl": "ogórek",
+    "en": "cucumber"
+  },
+  "Egg": {
+    "pl": "jajko",
+    "en": "egg"
+  },
+  "Flour": {
+    "pl": "mąka",
+    "en": "flour"
+  },
+  "Garlic": {
+    "pl": "czosnek",
+    "en": "garlic"
+  },
+  "Ginger": {
+    "pl": "imbir",
+    "en": "ginger"
+  },
+  "Honey": {
+    "pl": "miód",
+    "en": "honey"
+  },
+  "Lemon": {
+    "pl": "cytryna",
+    "en": "lemon"
+  },
+  "Lime": {
+    "pl": "limonka",
+    "en": "lime"
+  },
+  "Milk": {
+    "pl": "mleko",
+    "en": "milk"
+  },
+  "Mushrooms": {
+    "pl": "grzyby",
+    "en": "mushrooms"
+  },
+  "Mustard": {
+    "pl": "musztarda",
+    "en": "mustard"
+  },
+  "Olive Oil": {
+    "pl": "oliwa z oliwek",
+    "en": "olive oil"
+  },
+  "Onion": {
+    "pl": "cebula",
+    "en": "onion"
+  },
+  "Orange": {
+    "pl": "pomarańcza",
+    "en": "orange"
+  },
+  "Paprika": {
+    "pl": "papryka",
+    "en": "paprika"
+  },
+  "Parsley": {
+    "pl": "pietruszka",
+    "en": "parsley"
+  },
+  "Peas": {
+    "pl": "groszek",
+    "en": "peas"
+  },
+  "Potatoes": {
+    "pl": "ziemniak",
+    "en": "potato"
+  },
+  "Rice": {
+    "pl": "ryż",
+    "en": "rice"
+  },
+  "Salt": {
+    "pl": "sól",
+    "en": "salt"
+  },
+  "Sugar": {
+    "pl": "cukier",
+    "en": "sugar"
+  },
+  "Tomato": {
+    "pl": "pomidor",
+    "en": "tomato"
+  },
+  "Vinegar": {
+    "pl": "ocet",
+    "en": "vinegar"
+  },
+  "Yogurt": {
+    "pl": "jogurt",
+    "en": "yogurt"
+  },
+  "Natural Yoghurt": {
+    "pl": "jogurt naturalny",
+    "en": "natural yoghurt"
+  }
+}

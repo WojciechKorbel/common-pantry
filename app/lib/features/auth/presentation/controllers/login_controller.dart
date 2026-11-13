@@ -8,6 +8,7 @@ class LoginController extends ChangeNotifier {
   final AuthRepository _authRepository;
 
   bool isLoading = false;
+  bool isGoogleLoading = false;
   String? errorMessage;
 
   Future<bool> login({
@@ -51,6 +52,33 @@ class LoginController extends ChangeNotifier {
       return false;
     } finally {
       isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> loginWithGoogle() async {
+    isGoogleLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      final loggedIn = await _authRepository.loginWithGoogle();
+      return loggedIn;
+    } on DioException catch (error) {
+      final detail = error.response?.data is Map ? (error.response?.data as Map)['detail'] : null;
+
+      if (detail != null && detail is String) {
+        errorMessage = detail;
+      } else {
+        errorMessage = 'Could not sign in with Google. Please try again.';
+      }
+
+      return false;
+    } catch (e) {
+      errorMessage = 'Google sign-in was cancelled or failed.';
+      return false;
+    } finally {
+      isGoogleLoading = false;
       notifyListeners();
     }
   }

@@ -205,6 +205,11 @@ class ProductType(models.TextChoices):
     CUSTOM = 'custom', 'Custom'  # added by hand, visible only in its household
 
 
+class ProductOrigin(models.TextChoices):
+    PURCHASED = 'purchased', 'Purchased'
+    HOMEMADE = 'homemade', 'Homemade'
+
+
 class Product(models.Model):
     household = models.ForeignKey(
         Household, on_delete=models.CASCADE, null=True, blank=True, related_name='products'
@@ -212,6 +217,7 @@ class Product(models.Model):
     barcode = models.CharField(max_length=64, null=True, blank=True, db_index=True)
     name = models.CharField(max_length=255)
     brand = models.CharField(max_length=255, null=True, blank=True)
+    origin = models.CharField(max_length=20, choices=ProductOrigin.choices, default=ProductOrigin.PURCHASED)
     package_size = models.CharField(max_length=50, blank=True, default='')
     product_type = models.CharField(max_length=20, choices=ProductType.choices, default=ProductType.CUSTOM)
     image_url = models.TextField(null=True, blank=True)
@@ -284,7 +290,6 @@ class ShoppingItem(models.Model):
         return f"{self.name} ({self.quantity} {self.unit})"
 
 
-
 class Device(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -333,3 +338,123 @@ class SentExpiryNotification(models.Model):
     def __str__(self):
         return f"Expiry notification for pantry item {self.pantry_item_id}"
 
+
+class TheMealDBIngredient(models.Model):
+    themealdb_id = models.CharField(
+        max_length=20,
+        unique=True,
+    )
+
+    name = models.CharField(max_length=255)
+
+    normalized_name = models.CharField(
+        max_length=255,
+        db_index=True,
+    )
+
+    description = models.TextField(
+        null=True,
+        blank=True,
+    )
+
+    thumbnail_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+    )
+
+    ingredient_type = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "themealdb_ingredients"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class TheMealDBIngredientTranslation(models.Model):
+    ingredient = models.ForeignKey(
+        TheMealDBIngredient,
+        on_delete=models.CASCADE,
+        related_name="translations",
+    )
+
+    language_code = models.CharField(max_length=10)
+
+    name = models.CharField(max_length=255)
+
+    normalized_name = models.CharField(
+        max_length=255,
+        db_index=True,
+    )
+
+    class Meta:
+        db_table = "themealdb_ingredient_translations"
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=["ingredient", "language_code"],
+                name="unique_themealdb_translation",
+            ),
+        ]
+
+        indexes = [
+            models.Index(
+                fields=["language_code", "normalized_name"],
+                name="tmdb_trans_lookup_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.language_code})"
+
+
+class IngredientAliasType(models.TextChoices):
+    EXACT = "exact", "Exact"
+    PREFIX = "prefix", "Prefix"
+
+
+class TheMealDBIngredientAlias(models.Model):
+    ingredient = models.ForeignKey(
+        TheMealDBIngredient,
+        on_delete=models.CASCADE,
+        related_name="aliases",
+    )
+
+    language_code = models.CharField(max_length=10)
+
+    alias = models.CharField(max_length=255)
+
+    normalized_alias = models.CharField(
+        max_length=255,
+        db_index=True,
+    )
+
+    match_type = models.CharField(
+        max_length=20,
+        choices=IngredientAliasType.choices,
+        default=IngredientAliasType.EXACT,
+    )
+
+    priority = models.PositiveSmallIntegerField(default=100)
+
+    class Meta:
+        db_table = "themealdb_ingredient_aliases"
+
+        indexes = [
+            models.Index(
+                fields=["language_code", "normalized_alias"],
+                name="themealdb_alias_lookup_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.alias} -> {self.ingredient.name}"

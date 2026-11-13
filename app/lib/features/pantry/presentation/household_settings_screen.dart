@@ -1,13 +1,13 @@
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
-import 'package:common_pantry/core/widgets/app_bottom_navigation_bar.dart';
+import 'package:common_pantry/core/widgets/responsive_scaffold.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/data/models/household_details.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/household_details_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/household_info_card.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/household_members_section.dart';
-import 'package:common_pantry/features/pantry/presentation/widgets/leave_household_button.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class HouseholdSettingsScreen extends StatefulWidget {
   const HouseholdSettingsScreen({
@@ -172,14 +172,109 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
     context.go('/households');
   }
 
+  Widget _buildContent(HouseholdDetails details) {
+    final isWide =
+        Responsive.isTablet(context) ||
+        Responsive.isDesktop(context) ||
+        (Responsive.isLandscape(context) && MediaQuery.sizeOf(context).width >= 600);
+
+    final infoCard = HouseholdInfoCard(
+      details: details,
+      isUpdating: widget.controller.isUpdating,
+      onSaveName: (name) async {
+        final success = await widget.controller.updateHouseholdName(name);
+
+        if (!mounted) return false;
+
+        _showMessage(
+          success
+              ? 'Household name updated.'
+              : widget.controller.errorMessage ?? 'Failed to update household name.',
+        );
+
+        return success;
+      },
+    );
+
+    final membersSection = HouseholdMembersSection(
+      details: details,
+      isUpdating: widget.controller.isUpdating,
+      onMemberAction: _handleMemberAction,
+    );
+
+    final leaveButton = SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.logout, size: 18),
+        label: const Text('Leave household'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.error,
+          side: BorderSide(color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: widget.controller.isUpdating ? null : () => _leaveHousehold(details),
+      ),
+    );
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1100),
+        child: RefreshIndicator(
+          onRefresh: widget.controller.load,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            children: [
+              if (isWide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        children: [
+                          infoCard,
+                          const SizedBox(height: 16),
+                          leaveButton,
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 5,
+                      child: membersSection,
+                    ),
+                  ],
+                )
+              else ...[
+                infoCard,
+                const SizedBox(height: 16),
+                membersSection,
+                const SizedBox(height: 24),
+                leaveButton,
+              ],
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const AppAppBar(
-        title: 'Household details',
-      ),
-      bottomNavigationBar: AppBottomNavigationBar(
-        household: widget.household,
+    return ResponsiveScaffold(
+      household: widget.household,
+      appBar: AppAppBar(
+        title: widget.household.name,
+        onBack: () => context.go('/households'),
+        trailing: IconButton(
+          icon: const Icon(Icons.person_outline),
+          onPressed: () => context.push('/settings'),
+        ),
       ),
       body: SafeArea(
         child: ListenableBuilder(
@@ -218,54 +313,13 @@ class _HouseholdSettingsScreenState extends State<HouseholdSettingsScreen> {
 
             if (details == null) {
               return const Center(
-                child: Text(
-                  'No household details available.',
-                ),
+                child: Text('No household details available.'),
               );
             }
 
             return Stack(
               children: [
-                RefreshIndicator(
-                  onRefresh: controller.load,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(24),
-                    children: [
-                      HouseholdInfoCard(
-                        details: details,
-                        isUpdating: controller.isUpdating,
-                        onSaveName: (name) async {
-                          final success = await controller.updateHouseholdName(
-                            name,
-                          );
-
-                          if (!mounted) return false;
-
-                          _showMessage(
-                            success
-                                ? 'Household name updated.'
-                                : controller.errorMessage ?? 'Failed to update household name.',
-                          );
-
-                          return success;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      HouseholdMembersSection(
-                        details: details,
-                        isUpdating: controller.isUpdating,
-                        onMemberAction: _handleMemberAction,
-                      ),
-                      const SizedBox(height: 24),
-                      LeaveHouseholdButton(
-                        isUpdating: controller.isUpdating,
-                        onPressed: () => _leaveHousehold(details),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
+                _buildContent(details),
                 if (controller.isUpdating)
                   const Positioned(
                     top: 0,

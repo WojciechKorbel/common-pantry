@@ -1,15 +1,36 @@
+import 'dart:async';
+
 import 'package:common_pantry/core/network/api_client.dart';
 import 'package:common_pantry/core/services/notification_service.dart';
 import 'package:common_pantry/core/storage/token_storage.dart';
 import 'package:common_pantry/features/auth/data/models/auth_tokens.dart';
 import 'package:common_pantry/features/auth/data/models/login_request.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthRepository {
-  AuthRepository(this.api, this.tokenStorage) : notificationService = NotificationService(api);
+  AuthRepository(this.api, this.tokenStorage)
+      : notificationService = NotificationService(api) {
+    _initGoogleSignIn();
+  }
 
   final ApiClient api;
   final TokenStorage tokenStorage;
   final NotificationService notificationService;
+
+  static const String _serverClientId =
+      '140271937404-b6u2qh3tsbb0qi8sag88udgotdhfnun8.apps.googleusercontent.com';
+
+  bool _isGoogleInitialized = false;
+
+  Future<void> _initGoogleSignIn() async {
+    if (_isGoogleInitialized) return;
+    try {
+      await GoogleSignIn.instance.initialize(
+        serverClientId: _serverClientId,
+      );
+      _isGoogleInitialized = true;
+    } catch (_) {}
+  }
 
   Future<void> login({
     required String username,
@@ -42,8 +63,48 @@ class AuthRepository {
     );
   }
 
-  Future<void> logout() {
-    return tokenStorage.clear();
+  Future<bool> loginWithGoogle() async {
+    await _initGoogleSignIn();
+
+    try {
+      final account = await GoogleSignIn.instance.authenticate();
+
+      final idToken = account.authentication.idToken;
+
+      if (idToken == null) {
+        throw const FormatException('Failed to retrieve ID token from Google.');
+      }
+
+      final response = await api.dio.post<Map<String, dynamic>>(
+        '/api/auth/google/',
+        data: {'id_token': idToken},
+      );
+
+      final tokens = AuthTokens.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+      );
+
+      await tokenStorage.saveTokens(
+        access: tokens.access,
+        refresh: tokens.refresh,
+      );
+
+      return true;
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        return false;
+      }
+      rethrow;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
+    await tokenStorage.clear();
   }
 
   Future<bool> isLoggedIn() async {

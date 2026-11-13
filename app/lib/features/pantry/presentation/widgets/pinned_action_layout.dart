@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Scrollable [child] with an [action] pinned to the bottom.
 class PinnedActionLayout extends StatelessWidget {

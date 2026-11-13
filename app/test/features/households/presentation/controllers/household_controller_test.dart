@@ -64,4 +64,15 @@ void main() {
     expect(controller.current, work);
     expect(notifications, 1);
   });
+
+  test('a failed load keeps the current household and shows an error', () async {
+    repository.error = StateError('offline');
+
+    await controller.loadHouseholds();
+
+    expect(controller.households, isEmpty);
+    expect(controller.current, home);
+    expect(controller.errorMessage, isNotNull);
+    expect(controller.isLoading, isFalse);
+  });
 }

@@ -1,8 +1,9 @@
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 
 Future<void> showAddShoppingItemDialog(BuildContext context) {
   return showDialog<void>(
@@ -122,6 +123,7 @@ class _AddShoppingItemDialogState extends State<AddShoppingItemDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isLandscape = Responsive.isLandscape(context);
 
     return PopScope(
       canPop: false,
@@ -146,87 +148,97 @@ class _AddShoppingItemDialogState extends State<AddShoppingItemDialog> {
           ),
           body: SafeArea(
             bottom: false,
-            child: PinnedActionLayout(
-              action: ElevatedButton(
-                onPressed: _canSubmit ? _submit : null,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Add'),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _nameText,
-                    autofocus: true,
-                    enabled: !_isSubmitting,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.done,
-                    inputFormatters: [LengthLimitingTextInputFormatter(255)],
-                    onTapOutside: (_) => FocusScope.of(context).unfocus(),
-                    decoration: const InputDecoration(labelText: 'Name'),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: PinnedActionLayout(
+                  action: ElevatedButton(
+                    onPressed: _canSubmit ? _submit : null,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Add'),
                   ),
-                  const SizedBox(height: 16),
-                  DropdownMenu<ProductCategory>(
-                    controller: _categoryText,
-                    expandedInsets: EdgeInsets.zero,
-                    label: const Text('Category (optional)'),
-                    enabled: !_isLoadingCategories && !_isSubmitting,
-                    requestFocusOnTap: false,
-                    menuHeight: 300,
-                    inputDecorationTheme: theme.inputDecorationTheme,
-                    menuStyle: MenuStyle(
-                      backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
-                      surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
-                    ),
-                    onSelected: (value) => setState(() => _category = value),
-                    dropdownMenuEntries: [
-                      for (final category in _categories)
-                        DropdownMenuEntry(value: category, label: category.name),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Amount:', style: theme.textTheme.titleMedium),
-                      const Spacer(),
-                      IconButton.filledTonal(
-                        onPressed: _count > _minCount && !_isSubmitting
-                            ? () => setState(() => _count--)
-                            : null,
-                        icon: const Icon(Icons.remove),
-                        tooltip: 'Decrease',
+                      SizedBox(height: isLandscape ? 12 : 24),
+                      TextField(
+                        controller: _nameText,
+                        autofocus: true,
+                        enabled: !_isSubmitting,
+                        textCapitalization: TextCapitalization.sentences,
+                        textInputAction: TextInputAction.done,
+                        inputFormatters: [LengthLimitingTextInputFormatter(255)],
+                        onTapOutside: (_) => FocusScope.of(context).unfocus(),
+                        decoration: const InputDecoration(labelText: 'Name'),
                       ),
-                      Container(
-                        width: 64,
-                        margin: const EdgeInsets.symmetric(horizontal: 8),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surface,
-                          border: Border.all(color: theme.colorScheme.outline),
-                          borderRadius: BorderRadius.circular(12),
+                      SizedBox(height: isLandscape ? 10 : 16),
+                      DropdownMenu<ProductCategory>(
+                        controller: _categoryText,
+                        expandedInsets: EdgeInsets.zero,
+                        label: const Text('Category (optional)'),
+                        enabled: !_isLoadingCategories && !_isSubmitting,
+                        requestFocusOnTap: false,
+                        menuHeight: 300,
+                        inputDecorationTheme: theme.inputDecorationTheme,
+                        menuStyle: MenuStyle(
+                          backgroundColor: WidgetStatePropertyAll(theme.colorScheme.surface),
+                          surfaceTintColor: const WidgetStatePropertyAll(
+                            Colors.transparent,
+                          ),
                         ),
-                        child: Text(
-                          '$_count',
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.titleLarge,
-                        ),
+                        onSelected: (value) => setState(() => _category = value),
+                        dropdownMenuEntries: [
+                          for (final category in _categories)
+                            DropdownMenuEntry(
+                              value: category,
+                              label: category.name,
+                            ),
+                        ],
                       ),
-                      IconButton.filledTonal(
-                        onPressed: _count < _maxCount && !_isSubmitting
-                            ? () => setState(() => _count++)
-                            : null,
-                        icon: const Icon(Icons.add),
-                        tooltip: 'Increase',
+                      SizedBox(height: isLandscape ? 14 : 24),
+                      Row(
+                        children: [
+                          Text('Amount:', style: theme.textTheme.titleMedium),
+                          const Spacer(),
+                          IconButton.filledTonal(
+                            onPressed: _count > _minCount && !_isSubmitting
+                                ? () => setState(() => _count--)
+                                : null,
+                            icon: const Icon(Icons.remove),
+                            tooltip: 'Decrease',
+                          ),
+                          Container(
+                            width: 64,
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surface,
+                              border: Border.all(color: theme.colorScheme.outline),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$_count',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.titleLarge,
+                            ),
+                          ),
+                          IconButton.filledTonal(
+                            onPressed: _count < _maxCount && !_isSubmitting
+                                ? () => setState(() => _count++)
+                                : null,
+                            icon: const Icon(Icons.add),
+                            tooltip: 'Increase',
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

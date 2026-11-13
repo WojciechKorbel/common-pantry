@@ -168,3 +168,6 @@ FIREBASE_CREDENTIALS = os.environ.get(
     "FIREBASE_CREDENTIALS",
     os.path.join(BASE_DIR, "firebase", "serviceAccountKey.json"),
 )
+
+# Google OAuth Configuration
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")

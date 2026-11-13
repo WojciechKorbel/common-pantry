@@ -1,11 +1,17 @@
 import 'package:common_pantry/core/config/env.dart';
 import 'package:common_pantry/core/storage/token_storage.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/cupertino.dart';
 
 class ApiClient {
-  ApiClient(this.tokenStorage) {
-    debugPrint('[DEBUG] API URL: ${Env.apiUrl}'); // TODO: debug print is here!
+  ApiClient(
+    this.tokenStorage, {
+    String? baseUrl,
+    HttpClientAdapter? httpClientAdapter,
+  }) : _baseUrl = baseUrl ?? Env.apiUrl,
+       _httpClientAdapter = httpClientAdapter,
+       dio = _createDio(baseUrl ?? Env.apiUrl, httpClientAdapter) {
+    debugPrint('[DEBUG] API URL: $_baseUrl'); // TODO: debug print is here!
 
     dio.interceptors.add(
       InterceptorsWrapper(
@@ -47,31 +53,40 @@ class ApiClient {
           debugPrint('[DEBUG] 401 for: ${request.path}'); // TODO: debug print is here!
           debugPrint('[DEBUG] Token refresh start'); // TODO: debug print is here!
 
+          String? newAccess;
           try {
-            final newAccess = await _refreshAccessToken();
+            newAccess = await _refreshAccessToken();
+          } catch (e) {
+            debugPrint('[DEBUG] Refresh failed: $e'); // TODO: debug print is here!
+            newAccess = null;
+          }
 
-            if (newAccess == null) {
-              debugPrint('[DEBUG] Token refresh failed'); // TODO: debug print is here!
-              handler.next(error);
-              return;
-            }
+          if (newAccess == null) {
+            debugPrint('[DEBUG] Token refresh failed'); // TODO: debug print is here!
+            handler.next(error);
+            return;
+          }
 
-            debugPrint('[DEBUG] Token refresh success'); // TODO: debug print is here!
-            debugPrint('[DEBUG] Retrying request: ${request.path}'); // TODO: debug print is here!
+          debugPrint('[DEBUG] Token refresh success'); // TODO: debug print is here!
+          debugPrint('[DEBUG] Retrying request: ${request.path}'); // TODO: debug print is here!
 
-            request.headers['Authorization'] = 'Bearer $newAccess';
-            request.extra['retried'] = true;
+          request.headers['Authorization'] = 'Bearer $newAccess';
+          request.extra['retried'] = true;
 
+          try {
             final response = await dio.fetch<dynamic>(request);
 
             debugPrint(
               '[DEBUG] Retried request: ${response.statusCode}',
             ); // TODO: debug print is here!
             handler.resolve(response);
+          } on DioException catch (e) {
+            if (e.response?.statusCode == 401) {
+              await tokenStorage.clear();
+            }
+            handler.next(e);
           } catch (e) {
-            debugPrint('[DEBUG] Refresh failed: $e'); // TODO: debug print is here!
-            await tokenStorage.clear();
-            handler.next(error);
+            handler.reject(DioException(requestOptions: request, error: e));
           }
         },
       ),
@@ -79,18 +94,28 @@ class ApiClient {
   }
 
   final TokenStorage tokenStorage;
+  final String _baseUrl;
+  final HttpClientAdapter? _httpClientAdapter;
+  final Dio dio;
 
-  final Dio dio = Dio(
-    BaseOptions(
-      baseUrl: Env.apiUrl,
-      connectTimeout: const Duration(seconds: 20),
-      receiveTimeout: const Duration(seconds: 60),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-    ),
-  );
+  /// [httpClientAdapter] replaces the real network in tests.
+  static Dio _createDio(String baseUrl, HttpClientAdapter? httpClientAdapter) {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 60),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+    if (httpClientAdapter != null) {
+      dio.httpClientAdapter = httpClientAdapter;
+    }
+    return dio;
+  }
 
   Future<String?>? _refreshing;
 
@@ -108,13 +133,7 @@ class ApiClient {
       return null;
     }
 
-    final refreshDio = Dio(
-      BaseOptions(
-        baseUrl: Env.apiUrl,
-        connectTimeout: const Duration(seconds: 20),
-        receiveTimeout: const Duration(seconds: 60),
-      ),
-    );
+    final refreshDio = _createDio(_baseUrl, _httpClientAdapter);
 
     try {
       debugPrint('[DEBUG] Sending refresh'); // TODO: debug print is here!

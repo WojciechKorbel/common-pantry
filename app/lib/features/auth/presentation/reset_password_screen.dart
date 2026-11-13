@@ -1,10 +1,11 @@
+import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_button.dart';
 import 'package:common_pantry/core/widgets/app_inline_link.dart';
 import 'package:common_pantry/core/widgets/app_input.dart';
 import 'package:common_pantry/core/widgets/app_page_title.dart';
 import 'package:common_pantry/features/auth/presentation/controllers/reset_password_controller.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({
@@ -64,6 +65,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape = Responsive.isLandscape(context);
+
     return ListenableBuilder(
       listenable: widget.controller,
       builder: (context, child) {
@@ -71,80 +74,92 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
         return Scaffold(
           body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  // LOGO
-                                  Image.asset(
-                                    'assets/images/pantry_logo.png',
-                                    width: 96,
-                                    height: 96,
-                                    fit: BoxFit.contain,
-                                  ),
-                                  const SizedBox(height: 20),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: isLandscape ? 12 : 24,
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight,
+                          ),
+                          child: IntrinsicHeight(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      // LOGO
+                                      Image.asset(
+                                        'assets/images/pantry_logo.png',
+                                        width: isLandscape ? 56 : 96,
+                                        height: isLandscape ? 56 : 96,
+                                        fit: BoxFit.contain,
+                                      ),
+                                      SizedBox(height: isLandscape ? 10 : 20),
 
-                                  // TITLE
-                                  const AppPageTitle(
-                                    title: 'Create new password',
-                                    subtitle: 'Enter your new password and confirm it below.',
-                                  ),
-                                  const SizedBox(height: 24),
+                                      // TITLE
+                                      const AppPageTitle(
+                                        title: 'Create new password',
+                                        subtitle: 'Enter your new password and confirm it below.',
+                                      ),
+                                      SizedBox(height: isLandscape ? 16 : 24),
 
-                                  // PASSWORD INPUT
-                                  AppInput(
-                                    hintText: 'New password',
-                                    icon: Icons.lock_outline,
-                                    isPassword: true,
-                                    controller: _passwordController,
-                                  ),
-                                  const SizedBox(height: 16),
+                                      // PASSWORD INPUT
+                                      AppInput(
+                                        hintText: 'New password',
+                                        icon: Icons.lock_outline,
+                                        isPassword: true,
+                                        controller: _passwordController,
+                                      ),
+                                      SizedBox(height: isLandscape ? 10 : 16),
 
-                                  // CONFIRM PASSWORD INPUT
-                                  AppInput(
-                                    hintText: 'Confirm new password',
-                                    icon: Icons.lock_outline,
-                                    isPassword: true,
-                                    controller: _confirmPasswordController,
-                                  ),
-                                  const SizedBox(height: 24),
+                                      // CONFIRM PASSWORD INPUT
+                                      AppInput(
+                                        hintText: 'Confirm new password',
+                                        icon: Icons.lock_outline,
+                                        isPassword: true,
+                                        controller: _confirmPasswordController,
+                                      ),
+                                      SizedBox(height: isLandscape ? 16 : 24),
 
-                                  // RESET BUTTON
-                                  AppButton(
-                                    text: isLoading ? 'Resetting password...' : 'Reset password',
-                                    onPressed: isLoading ? null : _resetPassword,
+                                      // RESET BUTTON
+                                      AppButton(
+                                        text: isLoading
+                                            ? 'Resetting password...'
+                                            : 'Reset password',
+                                        onPressed: isLoading ? null : _resetPassword,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+
+                                SizedBox(height: isLandscape ? 12 : 24),
+
+                                // BACK TO LOGIN
+                                AppInlineLink(
+                                  text: 'Go back to',
+                                  linkText: 'Log in',
+                                  alignment: MainAxisAlignment.center,
+                                  onPressed: () => context.go('/login'),
+                                ),
+                              ],
                             ),
-
-                            // BACK TO LOGIN
-                            AppInlineLink(
-                              text: 'Go back to',
-                              linkText: 'Log in',
-                              alignment: MainAxisAlignment.center,
-                              onPressed: () => context.go('/login'),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                },
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
           ),

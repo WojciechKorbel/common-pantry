@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import secrets
 from datetime import timedelta
 
@@ -9,15 +10,21 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Count, Min, Prefetch, Q
+from django.db.models.functions import TruncDate, TruncMonth
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from rest_framework import generics, status
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import (
     Category,
+    Device,
     EmailVerification,
     Household,
     ItemStatus,
@@ -26,13 +33,18 @@ from .models import (
     PantryItem,
     PasswordReset,
     Product,
+    ProductOrigin,
     ProductType,
-    ShoppingItem, Device,
+    ShoppingItem,
 )
 from .serializers import (
     CategorySerializer,
+    ClosePantryItemSerializer,
     CustomProductCreateSerializer,
+    DeviceRegisterSerializer,
+    GoogleLoginSerializer,
     HouseholdSerializer,
+    IngredientSearchSerializer,
     PantryGroupSerializer,
     PantryItemCreateSerializer,
     PantryItemSerializer,
@@ -41,14 +53,17 @@ from .serializers import (
     PasswordResetVerifySerializer,
     ProductSerializer,
     ProductUpdateSerializer,
+    RecipeMatchSerializer,
     RegisterSerializer,
     ResendCodeSerializer,
-    VerifyEmailSerializer,
     ShoppingItemSerializer,
     ShoppingMoveToPantrySerializer,
-    ClosePantryItemSerializer, DeviceRegisterSerializer,
+    VerifyEmailSerializer,
 )
 from .services import open_food_facts
+from .services.the_meal_db.initializer import ensure_catalog_initialized
+from .services.the_meal_db.matcher import find_ingredients
+from .services.the_meal_db.themealdb_recipes import fetch_recipes_for_top_ingredients
 
 
 def generate_verification_code():
@@ -271,10 +286,12 @@ class ResendCodeView(APIView):
             send_verification_email(user.email, code)
         except Exception:
             return Response(
-                {"detail":
-                     "Failed to send an e-mail. "
-                     "Try again later."
-                 },
+                {
+                    "detail": (
+                        "Failed to send an e-mail. "
+                        "Try again later."
+                    )
+                },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -322,7 +339,7 @@ class PantryListView(HouseholdMixin, generics.ListAPIView):
             .select_related('added_by')
             .order_by('expiry_date', 'id')
         )
-        return (
+        queryset = (
             Product.objects
             .filter(pantry_items__household=household, pantry_items__status=ItemStatus.ACTIVE)
             .annotate(
@@ -333,6 +350,31 @@ class PantryListView(HouseholdMixin, generics.ListAPIView):
             .prefetch_related(Prefetch('pantry_items', queryset=active_items, to_attr='active_items'))
             .order_by('earliest_expiry', 'name')
         )
+
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(brand__icontains=search)
+            )
+
+        category_id = self.request.query_params.get('category')
+        if category_id and category_id.isdigit():
+            queryset = queryset.filter(category_id=int(category_id))
+
+        today = timezone.localdate() if hasattr(timezone, 'localdate') else timezone.now().date()
+        expiry_status = self.request.query_params.get('expiry_status', '').strip().lower()
+
+        if expiry_status == 'expired':
+            queryset = queryset.filter(earliest_expiry__lt=today)
+        elif expiry_status == 'soon':
+            queryset = queryset.filter(
+                earliest_expiry__gte=today,
+                earliest_expiry__lte=today + timedelta(days=2),
+            )
+        elif expiry_status == 'fresh':
+            queryset = queryset.filter(earliest_expiry__gt=today + timedelta(days=2))
+
+        return queryset
 
 
 class PantryItemCreateView(HouseholdMixin, APIView):
@@ -441,7 +483,10 @@ class ProductByBarcodeView(HouseholdMixin, APIView):
 
             data['category'] = open_food_facts.match_category(data.pop('categories_tags'))
             product, _ = Product.objects.get_or_create(
-                product_type=ProductType.GLOBAL, barcode=barcode, defaults=data
+                product_type=ProductType.GLOBAL, barcode=barcode, defaults={
+                    **data,
+                    'origin': ProductOrigin.PURCHASED,
+                }
             )
 
         return Response(ProductSerializer(product).data)
@@ -567,7 +612,7 @@ class PantryItemDetailView(HouseholdMixin, generics.RetrieveUpdateDestroyAPIView
         household = self.get_household()
         return PantryItem.objects.filter(household=household)
 
-      
+
 # HOUSEHOLD MEMBERS MANAGEMENT
 class HouseholdManagementMixin:
 
@@ -622,6 +667,17 @@ class HouseholdLeaveAPIView(
 
             # If this is the last member, delete the entire household.
             if not other_members.exists():
+                # Delete pantry items.
+                PantryItem.objects.filter(
+                    household=household
+                ).delete()
+
+                # Delete shopping items.
+                ShoppingItem.objects.filter(
+                    household=household
+                ).delete()
+
+                # Delete household.
                 household.delete()
 
                 return Response(
@@ -857,6 +913,7 @@ class HouseholdDetailsAPIView(
             status=status.HTTP_200_OK,
         )
 
+
 # PASSWORD FORGOT
 def generate_password_reset_code():
     length = settings.PASSWORD_RESET_CODE_LENGTH
@@ -1011,8 +1068,8 @@ class PasswordResetVerifyView(APIView):
                     user=user
                 )
             except (
-                    User.DoesNotExist,
-                    PasswordReset.DoesNotExist,
+                User.DoesNotExist,
+                PasswordReset.DoesNotExist,
             ):
                 return Response(
                     {"detail": "Invalid code or request."},
@@ -1100,8 +1157,8 @@ class PasswordResetConfirmView(APIView):
                 )
 
             if (
-                    reset.reset_token_expires_at is None
-                    or timezone.now() >= reset.reset_token_expires_at
+                reset.reset_token_expires_at is None
+                or timezone.now() >= reset.reset_token_expires_at
             ):
                 return Response(
                     {"detail": "Invalid or expired reset token."},
@@ -1176,8 +1233,8 @@ class PasswordResetResendView(APIView):
                             "Please wait before requesting another code."
                         ),
                         "retry_after_seconds": (
-                                settings.PASSWORD_RESET_RESEND_COOLDOWN_SECONDS
-                                - int((now - reset.last_sent_at).total_seconds())
+                            settings.PASSWORD_RESET_RESEND_COOLDOWN_SECONDS
+                            - int((now - reset.last_sent_at).total_seconds())
                         ),
                     },
                     status=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -1372,35 +1429,408 @@ class ShoppingMoveToPantryView(HouseholdMixin, APIView):
                 name=item.name,
                 brand=brand or None,
                 category=item.category,
+                origin=ProductOrigin.PURCHASED,
             )
         return product
 
 
 class PantryItemCloseView(HouseholdMixin, APIView):
-    """Marks an active pantry item as eaten or wasted (Issue #36)."""
+    """Marks an active pantry item as eaten or wasted (Issue #36).
+    Optionally adds the product back to the shopping list."""
+
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, household_id, pk):
         household = self.get_household()
-        item = get_object_or_404(
-            PantryItem,
-            pk=pk,
-            household=household,
-        )
-
-        if item.status != ItemStatus.ACTIVE:
-            return Response(
-                {'detail': f'Item is already closed with status "{item.status}".'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
         serializer = ClosePantryItemSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        item.status = serializer.validated_data['status']
-        item.closed_at = timezone.now()
-        item.save(update_fields=['status', 'closed_at'])
+        with transaction.atomic():
+            item = get_object_or_404(
+                PantryItem.objects.select_for_update(),
+                pk=pk,
+                household=household,
+            )
 
-        return Response(PantryItemSerializer(item).data, status=status.HTTP_200_OK)
+            if item.status != ItemStatus.ACTIVE:
+                return Response(
+                    {
+                        'detail': (
+                            f'Item is already closed with status "{item.status}".'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            item.status = serializer.validated_data['status']
+            item.closed_at = timezone.now()
+            item.save(update_fields=['status', 'closed_at'])
+
+            shopping_item = None
+
+            if serializer.validated_data['add_to_shopping_list']:
+                if item.product.origin == ProductOrigin.HOMEMADE:
+                    return Response(
+                        {
+                            'detail': 'Homemade products cannot be added to the shopping list.'
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                shopping_item = (
+                    ShoppingItem.objects
+                    .select_for_update()
+                    .filter(
+                        household=household,
+                        product=item.product,
+                        is_bought=False,
+                    )
+                    .first()
+                )
+
+                if shopping_item:
+                    shopping_item.quantity += 1
+                    shopping_item.save(update_fields=['quantity'])
+                else:
+                    shopping_item = ShoppingItem.objects.create(
+                        household=household,
+                        product=item.product,
+                        name=item.product.name,
+                        quantity=1,
+                        unit='pcs',
+                        category=item.product.category,
+                        added_by=request.user,
+                    )
+
+        response_data = {
+            'detail': 'Pantry item closed successfully.',
+            'item': PantryItemSerializer(item).data,
+            'shopping_item': (
+                ShoppingItemSerializer(
+                    shopping_item,
+                    context={'request': request, 'household': household},
+                ).data
+                if shopping_item else None
+            ),
+        }
+
+        return Response(
+            response_data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class FoodWasteStatisticsView(HouseholdMixin, APIView):
+    permission_classes = [IsAuthenticated]
+
+    PERIODS = {
+        '7d': 7,
+        '30d': 30,
+        '12m': 365,
+    }
+
+    def get(self, request, household_id):
+        """Return food waste statistics for the selected period."""
+        household = self.get_household()
+        period = request.query_params.get('period', '30d')
+
+        if period not in (*self.PERIODS, 'all'):
+            return Response(
+                {'detail': 'Invalid period.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        queryset = self.get_queryset(household, period)
+
+        return Response({
+            'period': period,
+            'summary': self.get_summary(household, queryset),
+            'timeline': self.get_timeline(queryset, period),
+            'categories': self.get_categories(queryset),
+            'top_wasted_products': self.get_top_products(queryset),
+            'expiry': self.get_expiry_statistics(queryset),
+        })
+
+    def get_queryset(self, household, period):
+        """Return closed pantry items for the household within the selected period."""
+        queryset = PantryItem.objects.filter(
+            household=household,
+            status__in=[
+                ItemStatus.EATEN,
+                ItemStatus.WASTED,
+            ],
+            closed_at__isnull=False,
+        )
+
+        if period == 'all':
+            return queryset
+
+        today = timezone.localdate()
+        start_date = today - timedelta(
+            days=self.PERIODS[period] - 1
+        )
+
+        return queryset.filter(
+            closed_at__date__range=(start_date, today),
+        )
+
+    def get_summary(self, household, queryset):
+        """Calculate overall food waste statistics and active pantry item count."""
+        summary = queryset.aggregate(
+            wasted_count=Count(
+                'id',
+                filter=Q(status=ItemStatus.WASTED),
+            ),
+            eaten_count=Count(
+                'id',
+                filter=Q(status=ItemStatus.EATEN),
+            ),
+        )
+
+        summary['active_count'] = PantryItem.objects.filter(
+            household=household,
+            status=ItemStatus.ACTIVE,
+        ).count()
+
+        closed_count = (
+            summary['wasted_count'] +
+            summary['eaten_count']
+        )
+
+        summary['waste_percentage'] = round(
+            summary['wasted_count'] / closed_count * 100,
+            2,
+        ) if closed_count else 0
+
+        return summary
+
+    def get_timeline(self, queryset, period):
+        """Return daily or monthly food consumption and waste statistics."""
+        trunc_function = (
+            TruncMonth if period in ('12m', 'all') else TruncDate
+        )
+
+        timeline = (
+            queryset
+            .annotate(
+                date=trunc_function(
+                    'closed_at',
+                    tzinfo=timezone.get_current_timezone(),
+                )
+            )
+            .values('date')
+            .annotate(
+                wasted=Count(
+                    'id',
+                    filter=Q(status=ItemStatus.WASTED),
+                ),
+                eaten=Count(
+                    'id',
+                    filter=Q(status=ItemStatus.EATEN),
+                ),
+            )
+            .order_by('date')
+        )
+
+        return [
+            {
+                'date': row['date'].isoformat(),
+                'wasted': row['wasted'],
+                'eaten': row['eaten'],
+            }
+            for row in timeline
+        ]
+
+    def get_categories(self, queryset):
+        """Return food waste statistics grouped by product category."""
+        categories = (
+            queryset
+            .filter(status=ItemStatus.WASTED)
+            .values('product__category__name')
+            .annotate(wasted=Count('id'))
+            .order_by('-wasted')
+        )
+
+        return [
+            {
+                'name': row['product__category__name'] or 'Uncategorized',
+                'wasted': row['wasted'],
+            }
+            for row in categories
+        ]
+
+    def get_top_products(self, queryset):
+        """Return the five most frequently wasted products."""
+        products = (
+            queryset
+            .filter(status=ItemStatus.WASTED)
+            .values(
+                'product__name',
+                'product__brand',
+            )
+            .annotate(count=Count('id'))
+            .order_by('-count')[:5]
+        )
+
+        return [
+            {
+                'name': row['product__name'],
+                'brand': row['product__brand'],
+                'count': row['count'],
+            }
+            for row in products
+        ]
+
+    def get_expiry_statistics(self, queryset):
+        """Calculate how many wasted items were expired or not expired."""
+        closed_date = TruncDate(
+            'closed_at',
+            tzinfo=timezone.get_current_timezone(),
+        )
+
+        return (
+            queryset
+            .filter(status=ItemStatus.WASTED)
+            .aggregate(
+                expired=Count(
+                    'id',
+                    filter=Q(expiry_date__lt=closed_date),
+                ),
+                not_expired=Count(
+                    'id',
+                    filter=Q(expiry_date__gte=closed_date),
+                ),
+            )
+        )
+
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        serializer = GoogleLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data["id_token"]
+
+        try:
+            idinfo = google_id_token.verify_oauth2_token(
+                token,
+                google_requests.Request(),
+                settings.GOOGLE_OAUTH_CLIENT_ID,
+            )
+        except ValueError:
+            return Response(
+                {"detail": "Invalid or expired Google token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        email = idinfo.get("email")
+        if not email:
+            return Response(
+                {"detail": "No email address found in Google token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            base_username = email.split("@")[0]
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
+
+            first_name = idinfo.get("given_name", "")
+            last_name = idinfo.get("family_name", "")
+
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                is_active=True,
+            )
+        else:
+            if not user.is_active:
+                user.is_active = True
+                user.save(update_fields=["is_active"])
+
+        refresh = RefreshToken.for_user(user)
+
+        return Response(
+            {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+# TODO: only for tests - remove later
+class IngredientMatchView(APIView):
+    permission_classes = [AllowAny]  # TODO delete later
+
+    def post(self, request):
+        serializer = IngredientSearchSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            ensure_catalog_initialized()
+        except Exception:
+            raise APIException(
+                "Ingredient catalog initialization failed."
+            )
+
+        product_name = serializer.validated_data["name"]
+
+        results = find_ingredients(product_name)
+
+        return Response({
+            "query": product_name,
+            "count": len(results),
+            "results": results,
+        }, status=status.HTTP_200_OK)
+
+
+class RecipeMatchView(APIView):
+    permission_classes = [AllowAny]  # TODO delete later
+
+    def post(self, request):
+        serializer = RecipeMatchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        product_name = serializer.validated_data["name"]
+
+        ensure_catalog_initialized()
+
+        ingredients = find_ingredients(product_name)
+
+        top_ingredients = ingredients[:3]
+
+        recipes = fetch_recipes_for_top_ingredients(
+            top_ingredients,
+            limit=3,
+        )
+
+        return Response(
+            {
+                "query": product_name,
+                "ingredients": top_ingredients,
+                "recipes_count": len(recipes),
+                "recipes": recipes,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class DeviceRegisterView(APIView):
@@ -1439,7 +1869,7 @@ class DeviceUnregisterView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        deleted, _ = Device.objects.filter(
+        Device.objects.filter(
             user=request.user,
             fcm_token=token.strip(),
         ).update(

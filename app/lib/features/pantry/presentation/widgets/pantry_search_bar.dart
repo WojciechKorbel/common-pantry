@@ -1,6 +1,6 @@
 import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // TODO: in future we can develop filters here
 enum ExpiryFilterOption {
@@ -25,16 +25,33 @@ class PantrySearchBar extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: TextField(
-            controller: searchController,
-            onChanged: controller.setQuery,
-            decoration: InputDecoration(
-              hintText: 'Search for a product or brand...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
+          child: ListenableBuilder(
+            listenable: searchController,
+            builder: (context, _) {
+              final hasText = searchController.text.isNotEmpty;
+
+              return TextField(
+                controller: searchController,
+                onChanged: controller.setQuery,
+                decoration: InputDecoration(
+                  hintText: 'Search for a product or brand...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: hasText
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
+                            searchController.clear();
+                            controller.setQuery('');
+                          },
+                          tooltip: 'Clear search',
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 8),
