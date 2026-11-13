@@ -7,7 +7,7 @@ import 'package:material_ui/material_ui.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: '.env');
+  await dotenv.load(fileName: 'env');
   await Dependencies.initAsync();
 
   runApp(const ProviderScope(child: App()));
