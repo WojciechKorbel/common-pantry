@@ -4,7 +4,7 @@ import 'package:common_pantry/features/pantry/data/repositories/pantry_repositor
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/homemade_item_form.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/purchased_item_form.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 enum ItemSource { homemade, purchased }
 

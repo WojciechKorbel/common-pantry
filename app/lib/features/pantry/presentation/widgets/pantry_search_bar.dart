@@ -1,6 +1,6 @@
 import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // TODO: in future we can develop filters here
 enum ExpiryFilterOption {

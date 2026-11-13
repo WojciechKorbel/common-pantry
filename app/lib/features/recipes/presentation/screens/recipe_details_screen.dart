@@ -1,5 +1,5 @@
 import 'package:common_pantry/features/recipes/presentation/controllers/recipe_controller.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class RecipeDetailsScreen extends StatefulWidget {
   const RecipeDetailsScreen({

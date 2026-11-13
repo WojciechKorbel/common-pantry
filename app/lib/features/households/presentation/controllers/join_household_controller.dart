@@ -1,7 +1,7 @@
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/data/repositories/household_repository.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class JoinHouseholdController extends ChangeNotifier {
   JoinHouseholdController(this._repository);

@@ -5,9 +5,9 @@ import 'package:common_pantry/core/widgets/app_button.dart';
 import 'package:common_pantry/core/widgets/app_outlined_button.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/households/presentation/widgets/invite_code_cart.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class HouseholdCreatedScreen extends StatelessWidget {
   const HouseholdCreatedScreen({

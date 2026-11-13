@@ -1,7 +1,7 @@
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
-import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:material_ui/material_ui.dart';
 
 class PantryWidgetSummary {
   const PantryWidgetSummary({

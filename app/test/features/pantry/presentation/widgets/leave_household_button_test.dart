@@ -1,6 +1,6 @@
 import 'package:common_pantry/features/pantry/presentation/widgets/leave_household_button.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   var taps = 0;

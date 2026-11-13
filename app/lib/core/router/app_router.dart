@@ -20,9 +20,9 @@ import 'package:common_pantry/features/recipes/presentation/screens/recipes_scre
 import 'package:common_pantry/features/settings/presentation/settings_screen.dart';
 import 'package:common_pantry/features/shopping/presentation/shopping_list_screen.dart';
 import 'package:common_pantry/features/stats/presentation/stats_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(

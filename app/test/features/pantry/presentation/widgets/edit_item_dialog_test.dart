@@ -4,8 +4,8 @@ import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/edit_item_dialog.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../../helpers/builders.dart';
 import '../../../../helpers/fake_households_repository.dart';

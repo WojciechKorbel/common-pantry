@@ -1,7 +1,7 @@
 import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/pantry/data/models/household_details.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 
 class HouseholdInfoCard extends StatefulWidget {
   const HouseholdInfoCard({

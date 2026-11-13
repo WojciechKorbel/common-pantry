@@ -1,8 +1,8 @@
 import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/add_item_dialog.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ResponsiveNavigationScaffold extends StatelessWidget {
   const ResponsiveNavigationScaffold({

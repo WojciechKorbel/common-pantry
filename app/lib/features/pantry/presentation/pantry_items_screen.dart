@@ -11,8 +11,8 @@ import 'package:common_pantry/features/pantry/presentation/widgets/empty_pantry_
 import 'package:common_pantry/features/pantry/presentation/widgets/no_matching_products_state.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pantry_product_tile.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pantry_search_bar.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class PantryItemsScreen extends StatefulWidget {
   const PantryItemsScreen({
