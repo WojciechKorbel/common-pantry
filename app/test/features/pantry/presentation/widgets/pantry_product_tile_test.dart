@@ -2,8 +2,8 @@ import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pantry_product_tile.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../../helpers/builders.dart';
 

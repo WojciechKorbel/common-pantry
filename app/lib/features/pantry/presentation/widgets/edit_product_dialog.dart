@@ -5,7 +5,7 @@ import 'package:common_pantry/features/pantry/data/models/product_category.dart'
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 Future<void> showEditProductDialog(
   BuildContext context, {

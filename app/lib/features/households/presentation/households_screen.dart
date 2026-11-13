@@ -4,8 +4,8 @@ import 'package:common_pantry/features/households/presentation/controllers/house
 import 'package:common_pantry/features/households/presentation/widgets/app_household_button.dart';
 import 'package:common_pantry/features/households/presentation/widgets/app_household_expandable_fab.dart';
 import 'package:common_pantry/features/households/presentation/widgets/empty_households_view.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class HouseholdsScreen extends StatefulWidget {
   const HouseholdsScreen({

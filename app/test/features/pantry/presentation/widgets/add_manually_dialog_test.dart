@@ -7,8 +7,8 @@ import 'package:common_pantry/features/pantry/presentation/controllers/pantry_co
 import 'package:common_pantry/features/pantry/presentation/widgets/add_manually_dialog.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/homemade_item_form.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/purchased_item_form.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../../helpers/builders.dart';
 import '../../../../helpers/fake_households_repository.dart';

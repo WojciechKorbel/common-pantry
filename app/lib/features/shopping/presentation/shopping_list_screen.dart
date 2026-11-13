@@ -9,8 +9,8 @@ import 'package:common_pantry/features/shopping/presentation/widgets/add_shoppin
 import 'package:common_pantry/features/shopping/presentation/widgets/empty_shopping_state.dart';
 import 'package:common_pantry/features/shopping/presentation/widgets/move_to_pantry_dialog.dart';
 import 'package:common_pantry/features/shopping/presentation/widgets/shopping_item_tile.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ShoppingListScreen extends StatefulWidget {
   const ShoppingListScreen({super.key, required this.household});

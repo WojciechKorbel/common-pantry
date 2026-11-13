@@ -2,7 +2,7 @@ import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group.dart';
 import 'package:common_pantry/features/pantry/data/models/pantry_group_item.dart';
 import 'package:common_pantry/features/pantry/domain/expiry_status.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class PantryProductTile extends StatefulWidget {
   const PantryProductTile({

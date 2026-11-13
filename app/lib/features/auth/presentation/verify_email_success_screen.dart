@@ -1,8 +1,8 @@
 import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/core/widgets/app_app_bar.dart';
 import 'package:common_pantry/core/widgets/app_button.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class VerifyEmailSuccessScreen extends StatelessWidget {
   const VerifyEmailSuccessScreen({super.key});

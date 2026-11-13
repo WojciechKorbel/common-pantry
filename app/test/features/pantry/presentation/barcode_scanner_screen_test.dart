@@ -1,7 +1,7 @@
 import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/features/pantry/presentation/barcode_scanner_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 class FakeScannerController implements MobileScannerController {

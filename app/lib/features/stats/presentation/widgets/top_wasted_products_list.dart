@@ -1,6 +1,6 @@
 import 'package:common_pantry/features/stats/data/models/food_waste_statistics.dart';
 import 'package:common_pantry/features/stats/presentation/widgets/statistics_empty_state.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class TopWastedProductsList extends StatelessWidget {
   const TopWastedProductsList({

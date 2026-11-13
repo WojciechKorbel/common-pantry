@@ -8,8 +8,8 @@ import 'package:common_pantry/features/stats/presentation/widgets/statistics_per
 import 'package:common_pantry/features/stats/presentation/widgets/statistics_summary_card.dart';
 import 'package:common_pantry/features/stats/presentation/widgets/statistics_timeline_chart.dart';
 import 'package:common_pantry/features/stats/presentation/widgets/top_wasted_products_list.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class StatsScreen extends StatefulWidget {
   const StatsScreen({

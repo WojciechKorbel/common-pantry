@@ -4,8 +4,8 @@ import 'package:common_pantry/core/widgets/app_inline_link.dart';
 import 'package:common_pantry/core/widgets/app_input.dart';
 import 'package:common_pantry/core/widgets/app_page_title.dart';
 import 'package:common_pantry/features/auth/presentation/controllers/forgot_password_controller.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({

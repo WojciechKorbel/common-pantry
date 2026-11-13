@@ -1,8 +1,8 @@
 import 'package:common_pantry/core/theme/app_theme.dart';
 import 'package:common_pantry/core/widgets/responsive_scaffold.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/builders.dart';
 

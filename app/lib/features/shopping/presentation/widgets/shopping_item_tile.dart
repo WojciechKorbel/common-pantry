@@ -1,5 +1,5 @@
 import 'package:common_pantry/features/shopping/data/models/shopping_item.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// One card on the shopping list: checkbox, name, "Added by" and (once checked) "Bought by".
 class ShoppingItemTile extends StatelessWidget {

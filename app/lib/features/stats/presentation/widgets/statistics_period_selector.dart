@@ -1,5 +1,5 @@
 import 'package:common_pantry/features/stats/presentation/controllers/statistics_controller.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class StatisticsPeriodSelector extends StatelessWidget {
   const StatisticsPeriodSelector({

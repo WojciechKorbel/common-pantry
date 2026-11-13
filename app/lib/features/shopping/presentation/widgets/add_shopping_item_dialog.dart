@@ -2,8 +2,8 @@ import 'package:common_pantry/core/di/dependencies.dart';
 import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/pantry/data/models/product_category.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 
 Future<void> showAddShoppingItemDialog(BuildContext context) {
   return showDialog<void>(

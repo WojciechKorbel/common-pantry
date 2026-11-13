@@ -5,7 +5,7 @@ import 'package:common_pantry/core/utils/responsive.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
 import 'package:common_pantry/features/shopping/data/models/shopping_item.dart';
 import 'package:common_pantry/features/shopping/data/models/shopping_move.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Asks for the expiry dates of the given bought items one item at a time,
 /// then moves them all to the pantry in a single request.

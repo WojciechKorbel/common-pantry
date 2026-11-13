@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:common_pantry/features/pantry/data/models/household_details.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/household_details_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/household_settings_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../helpers/builders.dart';
 import '../../../helpers/fake_pantry_repository.dart';

@@ -1,6 +1,6 @@
 import 'package:common_pantry/core/widgets/responsive_scaffold.dart';
 import 'package:common_pantry/features/households/data/models/household.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // TODO: REMOVE LATER
 class HouseholdPlaceholderScreen extends StatelessWidget {

@@ -4,8 +4,8 @@ import 'package:common_pantry/features/recipes/data/models/recipe.dart';
 import 'package:common_pantry/features/recipes/presentation/controllers/recipe_controller.dart';
 import 'package:common_pantry/features/recipes/presentation/widgets/recipe_card.dart';
 import 'package:common_pantry/features/recipes/presentation/widgets/recipes_empty_state.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class RecipesScreen extends StatefulWidget {
   const RecipesScreen({

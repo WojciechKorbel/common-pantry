@@ -6,8 +6,8 @@ import 'package:common_pantry/features/pantry/data/models/household_details.dart
 import 'package:common_pantry/features/pantry/presentation/controllers/household_details_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/household_info_card.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/household_members_section.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 class HouseholdSettingsScreen extends StatefulWidget {
   const HouseholdSettingsScreen({
