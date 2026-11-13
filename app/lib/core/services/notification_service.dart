@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:common_pantry/core/network/api_client.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
@@ -14,6 +15,10 @@ class NotificationService {
 
   /// Registers the device in FCM and sends the token to Django via onRegistered.
   Future<void> registerDevice() async {
+    if (Firebase.apps.isEmpty) {
+      return;
+    }
+
     final messaging = FirebaseMessaging.instance;
 
     final permission = await messaging.requestPermission(
@@ -26,7 +31,6 @@ class NotificationService {
       return;
     }
 
-    // Listen for token registration and automatic token rotations.
     _registeredSubscription ??= messaging.onRegistered.listen((token) async {
       _lastRegisteredToken = token;
       try {
@@ -43,6 +47,11 @@ class NotificationService {
   Future<void> unregisterDevice() async {
     await _registeredSubscription?.cancel();
     _registeredSubscription = null;
+
+    if (Firebase.apps.isEmpty) {
+      _lastRegisteredToken = null;
+      return;
+    }
 
     final messaging = FirebaseMessaging.instance;
 
