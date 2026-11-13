@@ -8,8 +8,7 @@ import 'package:common_pantry/features/auth/data/models/login_request.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthRepository {
-  AuthRepository(this.api, this.tokenStorage)
-      : notificationService = NotificationService(api) {
+  AuthRepository(this.api, this.tokenStorage) : notificationService = NotificationService(api) {
     _initGoogleSignIn();
   }
 
@@ -50,17 +49,18 @@ class AuthRepository {
       Map<String, dynamic>.from(response.data as Map),
     );
 
-    try {
-      await notificationService.registerDevice();
-    } catch (e) {
-      // Notification registration must not break login.
-      print('FCM registration failed: $e');
-    }
-
+    // 1. Save JWT tokens FIRST so ApiClient attaches Authorization header.
     await tokenStorage.saveTokens(
       access: tokens.access,
       refresh: tokens.refresh,
     );
+
+    // 2. Register FCM token for this authenticated user.
+    try {
+      await notificationService.registerDevice();
+    } catch (e) {
+      print('FCM registration failed: $e');
+    }
   }
 
   Future<bool> loginWithGoogle() async {
@@ -89,6 +89,12 @@ class AuthRepository {
         refresh: tokens.refresh,
       );
 
+      try {
+        await notificationService.registerDevice();
+      } catch (e) {
+        print('FCM registration after Google login failed: $e');
+      }
+
       return true;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
@@ -101,15 +107,32 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
+    // 1. Unregister FCM token BEFORE clearing JWT tokens (endpoint requires auth).
+    await notificationService.unregisterDevice();
+
+    // 2. Sign out from Google if applicable.
     try {
       await GoogleSignIn.instance.signOut();
     } catch (_) {}
+
+    // 3. Clear local JWT tokens.
     await tokenStorage.clear();
   }
 
   Future<bool> isLoggedIn() async {
-    return await tokenStorage.getAccessToken() != null ||
-        await tokenStorage.getRefreshToken() != null;
+    final loggedIn =
+        await tokenStorage.getAccessToken() != null || await tokenStorage.getRefreshToken() != null;
+
+    if (loggedIn) {
+      // Ensure FCM token is synced on app restart / token refresh.
+      unawaited(
+        notificationService.registerDevice().catchError((e) {
+          print('FCM sync on startup failed: $e');
+        }),
+      );
+    }
+
+    return loggedIn;
   }
 
   Future<Map<String, dynamic>> register({
