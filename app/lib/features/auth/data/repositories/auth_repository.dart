@@ -120,19 +120,8 @@ class AuthRepository {
   }
 
   Future<bool> isLoggedIn() async {
-    final loggedIn =
-        await tokenStorage.getAccessToken() != null || await tokenStorage.getRefreshToken() != null;
-
-    if (loggedIn) {
-      // Ensure FCM token is synced on app restart / token refresh.
-      unawaited(
-        notificationService.registerDevice().catchError((e) {
-          // print('FCM sync on startup failed: $e');
-        }),
-      );
-    }
-
-    return loggedIn;
+    return await tokenStorage.getAccessToken() != null ||
+        await tokenStorage.getRefreshToken() != null;
   }
 
   Future<Map<String, dynamic>> register({
