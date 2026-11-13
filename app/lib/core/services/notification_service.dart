@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/network/api_client.dart';
+import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 class NotificationService {
   NotificationService(this.api);
@@ -9,7 +11,7 @@ class NotificationService {
   final ApiClient api;
   StreamSubscription<String>? _tokenSubscription;
 
-  // Register device in Django.
+  /// Registers the current device's FCM token in Django for the logged-in user.
   Future<void> registerDevice() async {
     final messaging = FirebaseMessaging.instance;
 
@@ -24,21 +26,48 @@ class NotificationService {
     }
 
     final token = await messaging.getToken();
-
     if (token != null) {
       await _sendToken(token);
     }
 
-    // Listen for token changes.
-    _tokenSubscription ??= messaging.onTokenRefresh.listen((newToken) {
-      _sendToken(newToken);
+    // Re-register automatically if FCM rotates the token while logged in.
+    _tokenSubscription ??= messaging.onTokenRefresh.listen((newToken) async {
+      try {
+        await _sendToken(newToken);
+      } catch (e) {
+        debugPrint('FCM token refresh sync failed: $e');
+      }
     });
+  }
 
-    // Notifications received while the app is open.
-    FirebaseMessaging.onMessage.listen((message) {
-      print('Notification received: ${message.notification?.title}');
-      print('Body: ${message.notification?.body}');
-    });
+  /// Unregisters the device in Django and deletes the local FCM token on logout.
+  Future<void> unregisterDevice() async {
+    await _tokenSubscription?.cancel();
+    _tokenSubscription = null;
+
+    final messaging = FirebaseMessaging.instance;
+
+    try {
+      final token = await messaging.getToken();
+      if (token != null && token.isNotEmpty) {
+        await api.dio.delete(
+          '/api/devices/unregister/',
+          data: {
+            'fcm_token': token,
+          },
+          options: Options(contentType: Headers.jsonContentType),
+        );
+      }
+    } catch (e) {
+      // Logout must proceed even if offline or token already expired.
+      debugPrint('FCM backend unregister failed: $e');
+    }
+
+    try {
+      await messaging.deleteToken();
+    } catch (e) {
+      debugPrint('FCM local deleteToken failed: $e');
+    }
   }
 
   Future<void> _sendToken(String token) async {
@@ -48,18 +77,11 @@ class NotificationService {
         'fcm_token': token,
       },
     );
+    debugPrint('FCM device registered successfully.');
   }
 
   Future<void> dispose() async {
     await _tokenSubscription?.cancel();
     _tokenSubscription = null;
   }
-}
-
-// Must be a top-level function.
-@pragma('vm:entry-point')
-Future<void> firebaseMessagingBackgroundHandler(
-  RemoteMessage message,
-) async {
-  print('Background notification: ${message.messageId}');
 }
