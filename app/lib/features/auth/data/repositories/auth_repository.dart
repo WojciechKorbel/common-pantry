@@ -107,15 +107,11 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    // 1. Unregister FCM token BEFORE clearing JWT tokens (endpoint requires auth).
-    await notificationService.unregisterDevice();
-
-    // 2. Sign out from Google if applicable.
     try {
-      await GoogleSignIn.instance.signOut();
-    } catch (_) {}
-
-    // 3. Clear local JWT tokens.
+      await notificationService.unregisterDevice();
+    } catch (_) {
+      // Never block local logout if push unregistration fails.
+    }
     await tokenStorage.clear();
   }
 

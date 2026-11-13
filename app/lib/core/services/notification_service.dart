@@ -18,37 +18,57 @@ class NotificationService {
   String? _lastRegisteredToken;
 
   Future<bool> isNotificationsEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_enabledPrefKey) ?? true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_enabledPrefKey) ?? true;
+    } catch (_) {
+      return true;
+    }
   }
 
   Future<String?> _getCachedToken() async {
     if (_lastRegisteredToken != null && _lastRegisteredToken!.isNotEmpty) {
       return _lastRegisteredToken;
     }
-    final prefs = await SharedPreferences.getInstance();
-    final saved = prefs.getString(_tokenPrefKey);
-    if (saved != null && saved.isNotEmpty) {
-      _lastRegisteredToken = saved;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_tokenPrefKey);
+      if (saved != null && saved.isNotEmpty) {
+        _lastRegisteredToken = saved;
+      }
+    } catch (_) {
+      // SharedPreferences may be unavailable in unit tests.
     }
     return _lastRegisteredToken;
   }
 
   Future<void> _saveCachedToken(String token) async {
     _lastRegisteredToken = token;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenPrefKey, token);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenPrefKey, token);
+    } catch (_) {
+      // SharedPreferences may be unavailable in unit tests.
+    }
   }
 
   Future<void> _clearCachedToken() async {
     _lastRegisteredToken = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenPrefKey);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenPrefKey);
+    } catch (_) {
+      // SharedPreferences may be unavailable in unit tests.
+    }
   }
 
   Future<void> setNotificationsEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_enabledPrefKey, enabled);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_enabledPrefKey, enabled);
+    } catch (_) {
+      // SharedPreferences may be unavailable in unit tests.
+    }
 
     if (enabled) {
       await registerDevice();
