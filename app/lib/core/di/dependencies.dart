@@ -1,4 +1,3 @@
-import 'package:common_pantry/core/firebase_service.dart';
 import 'package:common_pantry/core/network/api_client.dart';
 import 'package:common_pantry/core/storage/token_storage.dart';
 import 'package:common_pantry/core/theme/theme_controller.dart';
@@ -97,8 +96,6 @@ class Dependencies {
   static final shoppingRepository = ShoppingRepository(apiClient);
   static final shoppingController = ShoppingController(shoppingRepository, householdController);
 
-  // firebase
-  static final FirebaseService firebaseService = FirebaseService();
   // statistics
   static final statisticsRepository = StatisticsRepository(apiClient);
 
