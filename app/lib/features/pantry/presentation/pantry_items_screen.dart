@@ -264,13 +264,26 @@ class _PantryItemsScreenState extends State<PantryItemsScreen> {
         ),
         child: PantryProductTile(
           product: product,
+
+          onRecipesTap: () {
+            context.push(
+              '/recipes',
+              extra: {
+                'household': widget.household,
+                'productName': product.name,
+              },
+            );
+          },
+
           onItemAction: (item) => showEditItemDialog(
             context,
             product: product,
             item: item,
             controller: controller,
           ),
+
           onDeleteItem: (item) => _confirmAndDeleteItem(product, item),
+
           onCloseItem: (item, status) => _closeItem(product, item, status),
         ),
       ),

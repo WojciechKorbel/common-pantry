@@ -11,12 +11,14 @@ class PantryProductTile extends StatefulWidget {
     this.onItemAction,
     this.onDeleteItem,
     this.onCloseItem,
+    this.onRecipesTap,
   });
 
   final PantryGroup product;
   final ValueChanged<PantryGroupItem>? onItemAction;
   final Future<bool> Function(PantryGroupItem item)? onDeleteItem;
   final void Function(PantryGroupItem item, String status)? onCloseItem;
+  final VoidCallback? onRecipesTap;
 
   @override
   State<PantryProductTile> createState() => _PantryProductTileState();
@@ -135,7 +137,8 @@ class _PantryProductTileState extends State<PantryProductTile> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
+
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -148,6 +151,16 @@ class _PantryProductTileState extends State<PantryProductTile> {
                         ),
                         const Text('Quantity', style: TextStyle(fontSize: 12)),
                       ],
+                    ),
+
+                    const SizedBox(width: 4),
+
+                    IconButton(
+                      onPressed: widget.onRecipesTap,
+                      icon: const Icon(Icons.menu_book_outlined),
+                      tooltip: 'Find recipes',
+                      visualDensity: VisualDensity.compact,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ],
                 ),
