@@ -9,6 +9,7 @@ import 'package:common_pantry/features/pantry/data/models/product_origin.dart';
 import 'package:common_pantry/features/pantry/data/repositories/pantry_repository.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/add_purchased_controller.dart';
 import 'package:common_pantry/features/pantry/presentation/controllers/pantry_controller.dart';
+import 'package:common_pantry/features/pantry/presentation/expiry_date_scanner_screen.dart';
 import 'package:common_pantry/features/pantry/presentation/widgets/pinned_action_layout.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -115,6 +116,17 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
     );
     if (picked != null) {
       _controller.setRowDate(row, picked);
+    }
+  }
+
+  Future<void> _scanDate(DateEntry row) async {
+    final scanned = await Navigator.of(context).push<DateTime>(
+      MaterialPageRoute<DateTime>(
+        builder: (_) => const ExpiryDateScannerScreen(),
+      ),
+    );
+    if (scanned != null && mounted) {
+      _controller.setRowDate(row, scanned);
     }
   }
 
@@ -247,6 +259,7 @@ class _PurchasedItemFormState extends State<PurchasedItemForm> {
                   entry: row,
                   canRemove: rows.length > 1 && !c.isSubmitting,
                   onPickDate: () => _pickDate(row),
+                  onScanDate: () => _scanDate(row),
                   onDecrement: () => c.decrementRow(row),
                   onIncrement: () => c.incrementRow(row),
                   onRemove: () => c.removeRow(row),
@@ -280,6 +293,7 @@ class _DateRow extends StatelessWidget {
     required this.entry,
     required this.canRemove,
     required this.onPickDate,
+    required this.onScanDate,
     required this.onDecrement,
     required this.onIncrement,
     required this.onRemove,
@@ -288,6 +302,7 @@ class _DateRow extends StatelessWidget {
   final DateEntry entry;
   final bool canRemove;
   final VoidCallback onPickDate;
+  final VoidCallback onScanDate;
   final VoidCallback onDecrement;
   final VoidCallback onIncrement;
   final VoidCallback onRemove;
@@ -310,7 +325,14 @@ class _DateRow extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
+        IconButton.filledTonal(
+          visualDensity: VisualDensity.compact,
+          onPressed: onScanDate,
+          icon: const Icon(Icons.document_scanner_outlined),
+          tooltip: 'Scan expiry date',
+        ),
+        const SizedBox(width: 4),
         IconButton.filledTonal(
           visualDensity: VisualDensity.compact,
           onPressed: entry.count > AddPurchasedController.minCount ? onDecrement : null,
