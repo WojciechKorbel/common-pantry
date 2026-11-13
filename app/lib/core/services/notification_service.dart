@@ -117,20 +117,27 @@ class NotificationService {
       return;
     }
 
-    final existingToken = await _getCachedToken();
-    if (existingToken != null && existingToken.isNotEmpty) {
-      await _sendToken(existingToken);
+    var token = await _getCachedToken();
+
+    if (token == null || token.isEmpty) {
+      token = _latestToken;
+    }
+
+    if (token != null && token.isNotEmpty) {
+      await _saveCachedToken(token);
+      try {
+        await _sendToken(token);
+      } catch (e) {
+        debugPrint('FCM device registration failed (401/Network): $e');
+      }
       return;
     }
 
     final completer = Completer<String?>();
-    late final StreamSubscription<String> tempSub;
-    tempSub = messaging.onRegistered.listen((token) async {
-      await _saveCachedToken(token);
-      if (!completer.isCompleted) {
-        completer.complete(token);
+    final tempSub = messaging.onRegistered.listen((t) {
+      if (t.isNotEmpty && !completer.isCompleted) {
+        completer.complete(t);
       }
-      await tempSub.cancel();
     });
 
     try {
@@ -139,14 +146,23 @@ class NotificationService {
       debugPrint('FCM register() error: $e');
     }
 
-    final token = await completer.future.timeout(
-      const Duration(seconds: 5),
-      onTimeout: () => _latestToken,
-    );
-    await tempSub.cancel();
+    try {
+      token = await completer.future.timeout(const Duration(seconds: 4));
+    } catch (_) {
+      token = _latestToken;
+    } finally {
+      await tempSub.cancel();
+    }
 
     if (token != null && token.isNotEmpty) {
-      await _sendToken(token);
+      await _saveCachedToken(token);
+      try {
+        await _sendToken(token);
+      } catch (e) {
+        debugPrint('FCM device registration failed (401/Network): $e');
+      }
+    } else {
+      debugPrint('FCM registration warning: Token is still null/empty.');
     }
   }
 
@@ -157,14 +173,18 @@ class NotificationService {
 
     final token = await _getCachedToken();
     if (token != null && token.isNotEmpty) {
-      await api.dio.delete<Object?>(
-        '/api/devices/unregister/',
-        data: {
-          'fcm_token': token,
-        },
-        options: Options(contentType: Headers.jsonContentType),
-      );
-      debugPrint('FCM device unregistered from backend.');
+      try {
+        await api.dio.delete<Object?>(
+          '/api/devices/unregister/',
+          data: {
+            'fcm_token': token,
+          },
+          options: Options(contentType: Headers.jsonContentType),
+        );
+        debugPrint('FCM device unregistered from backend.');
+      } catch (e) {
+        debugPrint('FCM unregister failed: $e');
+      }
     }
   }
 
