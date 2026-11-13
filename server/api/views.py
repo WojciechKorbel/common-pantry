@@ -1,13 +1,16 @@
 import hashlib
+import hmac
 import logging
 import secrets
 from datetime import timedelta
+from io import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
+from django.core.management import call_command
 from django.db import transaction
 from django.db.models import Count, Min, Prefetch, Q
 from django.db.models.functions import TruncDate, TruncMonth
@@ -1879,5 +1882,38 @@ class DeviceUnregisterView(APIView):
 
         return Response(
             {"detail": "Device unregistered successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class TriggerExpiryNotificationsView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        expected_secret = getattr(settings, "CRON_SECRET", "")
+        provided_secret = request.headers.get("X-Cron-Secret", "")
+
+        if not expected_secret or not hmac.compare_digest(
+            provided_secret,
+            expected_secret,
+        ):
+            return Response(
+                {"detail": "Forbidden."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        output = StringIO()
+        call_command(
+            "send_expiring_notifications",
+            stdout=output,
+            stderr=output,
+        )
+
+        return Response(
+            {
+                "detail": "Expiry notifications job executed.",
+                "output": output.getvalue(),
+            },
             status=status.HTTP_200_OK,
         )
