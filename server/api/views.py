@@ -1904,11 +1904,22 @@ class TriggerExpiryNotificationsView(APIView):
             )
 
         output = StringIO()
-        call_command(
-            "send_expiring_notifications",
-            stdout=output,
-            stderr=output,
-        )
+        try:
+            call_command(
+                "send_expiring_notifications",
+                stdout=output,
+                stderr=output,
+            )
+        except Exception as exc:
+            logging.exception("Expiry notifications command failed")
+            return Response(
+                {
+                    "detail": "Expiry notifications job failed.",
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "output": output.getvalue(),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response(
             {

@@ -14,7 +14,7 @@ def get_firebase_app():
         credentials_json = os.environ.get("FIREBASE_CREDENTIALS_JSON")
 
         if credentials_json:
-            cred_dict = json.loads(credentials_json)
+            cred_dict = json.loads(credentials_json, strict=False)
             credential = credentials.Certificate(cred_dict)
         else:
             credential = credentials.Certificate(settings.FIREBASE_CREDENTIALS)
