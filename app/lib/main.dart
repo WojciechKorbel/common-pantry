@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:common_pantry/app.dart';
 import 'package:common_pantry/core/di/dependencies.dart';
+import 'package:common_pantry/core/services/notification_service.dart';
 import 'package:common_pantry/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -8,8 +11,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-final FlutterLocalNotificationsPlugin localNotifications =
-    FlutterLocalNotificationsPlugin();
+final FlutterLocalNotificationsPlugin localNotifications = FlutterLocalNotificationsPlugin();
 
 const AndroidNotificationChannel notificationChannel = AndroidNotificationChannel(
   'common_pantry_channel',
@@ -43,8 +45,7 @@ Future<void> initializeLocalNotifications() async {
   );
 
   await localNotifications
-      .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
       ?.createNotificationChannel(notificationChannel);
 }
 
@@ -80,6 +81,8 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  await NotificationService.initListener();
+
   await initializeLocalNotifications();
 
   FirebaseMessaging.onBackgroundMessage(
@@ -102,6 +105,10 @@ Future<void> main() async {
   });
 
   await Dependencies.initAsync();
+
+  if (await Dependencies.authRepository.isLoggedIn()) {
+    unawaited(Dependencies.authRepository.notificationService.registerDevice());
+  }
 
   runApp(const ProviderScope(child: App()));
 }

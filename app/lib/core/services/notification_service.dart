@@ -13,9 +13,35 @@ class NotificationService {
   static const String _enabledPrefKey = 'expiry_notifications_enabled';
   static const String _tokenPrefKey = 'cached_fcm_token';
 
+  static StreamSubscription<String>? _globalRegisteredSub;
+  static String? _latestToken;
+
   final ApiClient api;
-  StreamSubscription<String>? _registeredSubscription;
-  String? _lastRegisteredToken;
+
+  /// Call once in main.dart right after Firebase.initializeApp() so we never miss
+  /// the initial FCM token emission.
+  static Future<void> initListener() async {
+    if (Firebase.apps.isEmpty || _globalRegisteredSub != null) {
+      return;
+    }
+
+    _globalRegisteredSub = FirebaseMessaging.instance.onRegistered.listen(
+      (token) async {
+        if (token.isEmpty) return;
+        _latestToken = token;
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_tokenPrefKey, token);
+        } catch (_) {}
+      },
+    );
+
+    try {
+      await FirebaseMessaging.instance.register();
+    } catch (e) {
+      debugPrint('FCM initial register() notice: $e');
+    }
+  }
 
   Future<bool> isNotificationsEnabled() async {
     try {
@@ -27,48 +53,40 @@ class NotificationService {
   }
 
   Future<String?> _getCachedToken() async {
-    if (_lastRegisteredToken != null && _lastRegisteredToken!.isNotEmpty) {
-      return _lastRegisteredToken;
+    if (_latestToken != null && _latestToken!.isNotEmpty) {
+      return _latestToken;
     }
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_tokenPrefKey);
       if (saved != null && saved.isNotEmpty) {
-        _lastRegisteredToken = saved;
+        _latestToken = saved;
       }
-    } catch (_) {
-      // SharedPreferences may be unavailable in unit tests.
-    }
-    return _lastRegisteredToken;
+    } catch (_) {}
+    return _latestToken;
   }
 
   Future<void> _saveCachedToken(String token) async {
-    _lastRegisteredToken = token;
+    _latestToken = token;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenPrefKey, token);
-    } catch (_) {
-      // SharedPreferences may be unavailable in unit tests.
-    }
+    } catch (_) {}
   }
 
   Future<void> _clearCachedToken() async {
-    _lastRegisteredToken = null;
+    _latestToken = null;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tokenPrefKey);
-    } catch (_) {
-      // SharedPreferences may be unavailable in unit tests.
-    }
+    } catch (_) {}
   }
 
   Future<void> setNotificationsEnabled(bool enabled) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_enabledPrefKey, enabled);
-    } catch (_) {
-      // SharedPreferences may be unavailable in unit tests.
-    }
+    } catch (_) {}
 
     if (enabled) {
       await registerDevice();
@@ -77,7 +95,7 @@ class NotificationService {
     }
   }
 
-  /// Registers the device in FCM and sends the token to Django via onRegistered.
+  /// Registers the device in Django using the captured FCM token.
   Future<void> registerDevice() async {
     if (Firebase.apps.isEmpty) {
       return;
@@ -99,30 +117,39 @@ class NotificationService {
       return;
     }
 
-    _registeredSubscription ??= messaging.onRegistered.listen((token) async {
-      await _saveCachedToken(token);
-      try {
-        await _sendToken(token);
-      } catch (e) {
-        debugPrint('FCM token sync failed: $e');
-      }
-    });
-
     final existingToken = await _getCachedToken();
     if (existingToken != null && existingToken.isNotEmpty) {
       await _sendToken(existingToken);
       return;
     }
 
+    final completer = Completer<String?>();
+    late final StreamSubscription<String> tempSub;
+    tempSub = messaging.onRegistered.listen((token) async {
+      await _saveCachedToken(token);
+      if (!completer.isCompleted) {
+        completer.complete(token);
+      }
+      await tempSub.cancel();
+    });
+
     try {
       await messaging.register();
     } catch (e) {
-      debugPrint('FCM messaging.register() error: $e');
+      debugPrint('FCM register() error: $e');
+    }
+
+    final token = await completer.future.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => _latestToken,
+    );
+    await tempSub.cancel();
+
+    if (token != null && token.isNotEmpty) {
+      await _sendToken(token);
     }
   }
 
-  /// Unregisters the token in Django when the user disables notifications in Settings,
-  /// keeping the local FCM token intact so re-enabling is instant and reliable.
   Future<void> _unregisterFromBackendOnly() async {
     if (Firebase.apps.isEmpty) {
       return;
@@ -137,14 +164,12 @@ class NotificationService {
         },
         options: Options(contentType: Headers.jsonContentType),
       );
+      debugPrint('FCM device unregistered from backend.');
     }
   }
 
-  /// Full unregistration on logout: detaches token in Django and removes FCM registration.
+  /// Full unregistration on logout: detaches token in Django and unregisters locally.
   Future<void> unregisterDevice() async {
-    await _registeredSubscription?.cancel();
-    _registeredSubscription = null;
-
     if (Firebase.apps.isEmpty) {
       await _clearCachedToken();
       return;
@@ -184,10 +209,5 @@ class NotificationService {
       },
     );
     debugPrint('FCM device registered successfully.');
-  }
-
-  Future<void> dispose() async {
-    await _registeredSubscription?.cancel();
-    _registeredSubscription = null;
   }
 }
