@@ -80,95 +80,104 @@ class _PantryProductTileState extends State<PantryProductTile> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // List marker (boczny pasek statusu ważności)
             Container(
               width: 5,
               color: markerColor,
             ),
             Expanded(
-              child: ExpansionTile(
-                shape: const Border(),
-                collapsedShape: const Border(),
-                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                onExpansionChanged: (expanded) {
-                  setState(() => _isExpanded = expanded);
-                },
-                leading: SizedBox(
-                  width: 52,
-                  height: 52,
-                  child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            product.imageUrl!,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: () => setState(() => _isExpanded = !_isExpanded),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      child: Row(
+                        children: [
+                          SizedBox(
                             width: 52,
                             height: 52,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const Icon(
-                              Icons.fastfood,
-                              size: 32,
+                            child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      product.imageUrl!,
+                                      width: 52,
+                                      height: 52,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) => const Icon(
+                                        Icons.fastfood,
+                                        size: 32,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.fastfood,
+                                    size: 32,
+                                  ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  product.name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (!_isExpanded) ...[
+                                  const SizedBox(height: 6),
+                                  _buildExpiryChip(
+                                    context,
+                                    product.earliestExpiry,
+                                    product.expiryStatus,
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-                        )
-                      : const Icon(
-                          Icons.fastfood,
-                          size: 32,
-                        ),
-                ),
-                title: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            product.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          const SizedBox(width: 8),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${product.itemCount}',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  height: 1.1,
+                                ),
+                              ),
+                              const Text('Quantity', style: TextStyle(fontSize: 12)),
+                            ],
                           ),
-                          if (!_isExpanded) ...[
-                            const SizedBox(height: 6),
-                            _buildExpiryChip(
-                              context,
-                              product.earliestExpiry,
-                              product.expiryStatus,
-                            ),
-                          ],
+                          const SizedBox(width: 4),
+                          IconButton(
+                            onPressed: widget.onRecipesTap,
+                            icon: const Icon(Icons.menu_book_outlined),
+                            tooltip: 'Find recipes',
+                            visualDensity: VisualDensity.compact,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          AnimatedRotation(
+                            turns: _isExpanded ? 0.5 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            child: const Icon(Icons.expand_more),
+                          ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${product.itemCount}',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Text('Quantity', style: TextStyle(fontSize: 12)),
-                      ],
-                    ),
-
-                    const SizedBox(width: 4),
-
-                    IconButton(
-                      onPressed: widget.onRecipesTap,
-                      icon: const Icon(Icons.menu_book_outlined),
-                      tooltip: 'Find recipes',
-                      visualDensity: VisualDensity.compact,
-                      color: Theme.of(context).colorScheme.primary,
+                  ),
+                  if (_isExpanded) ...[
+                    const Divider(height: 1),
+                    ...items.map(
+                      (item) => _buildDismissibleItemRow(context, item),
                     ),
                   ],
-                ),
-                children: [
-                  const Divider(height: 1),
-                  ...items.map(
-                    (item) => _buildDismissibleItemRow(context, item),
-                  ),
                 ],
               ),
             ),
@@ -221,6 +230,8 @@ class _PantryProductTileState extends State<PantryProductTile> {
       ),
       child: Text(
         _formatRelativeExpiry(date),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: foreground,
           fontSize: 11,
