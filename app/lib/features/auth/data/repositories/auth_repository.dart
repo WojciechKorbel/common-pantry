@@ -59,7 +59,7 @@ class AuthRepository {
     try {
       await notificationService.registerDevice();
     } catch (e) {
-      print('FCM registration failed: $e');
+      // print('FCM registration failed: $e');
     }
   }
 
@@ -92,7 +92,7 @@ class AuthRepository {
       try {
         await notificationService.registerDevice();
       } catch (e) {
-        print('FCM registration after Google login failed: $e');
+        // print('FCM registration after Google login failed: $e');
       }
 
       return true;
@@ -127,7 +127,7 @@ class AuthRepository {
       // Ensure FCM token is synced on app restart / token refresh.
       unawaited(
         notificationService.registerDevice().catchError((e) {
-          print('FCM sync on startup failed: $e');
+          // print('FCM sync on startup failed: $e');
         }),
       );
     }
