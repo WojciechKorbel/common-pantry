@@ -5,8 +5,62 @@ import 'package:common_pantry/features/services/pantry_widget_service.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _notificationsEnabled = true;
+  bool _isLoadingNotifications = true;
+  bool _isUpdatingNotifications = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPreference();
+  }
+
+  Future<void> _loadNotificationPreference() async {
+    final enabled = await Dependencies.authRepository.notificationService.isNotificationsEnabled();
+    if (!mounted) return;
+    setState(() {
+      _notificationsEnabled = enabled;
+      _isLoadingNotifications = false;
+    });
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    if (_isUpdatingNotifications) return;
+
+    final previousValue = _notificationsEnabled;
+    setState(() {
+      _notificationsEnabled = value;
+      _isUpdatingNotifications = true;
+    });
+
+    try {
+      await Dependencies.authRepository.notificationService.setNotificationsEnabled(value);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _notificationsEnabled = previousValue;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to update notification settings.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingNotifications = false;
+        });
+      }
+    }
+  }
 
   Future<void> _handleLogout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -114,6 +168,33 @@ class SettingsScreen extends StatelessWidget {
       ],
     );
 
+    final notificationsCard = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Notifications',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Card(
+          child: SwitchListTile(
+            secondary: const Icon(Icons.notifications_outlined),
+            title: const Text('Expiry reminders'),
+            subtitle: const Text(
+              'Get push notifications when pantry items are about to expire',
+            ),
+            value: _notificationsEnabled,
+            onChanged: (_isLoadingNotifications || _isUpdatingNotifications)
+                ? null
+                : _toggleNotifications,
+          ),
+        ),
+      ],
+    );
+
     final accountCard = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -160,13 +241,24 @@ class SettingsScreen extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(flex: 3, child: appearanceCard),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          children: [
+                            appearanceCard,
+                            const SizedBox(height: 20),
+                            notificationsCard,
+                          ],
+                        ),
+                      ),
                       const SizedBox(width: 20),
                       Expanded(flex: 2, child: accountCard),
                     ],
                   )
                 else ...[
                   appearanceCard,
+                  const SizedBox(height: 24),
+                  notificationsCard,
                   const SizedBox(height: 24),
                   accountCard,
                 ],
