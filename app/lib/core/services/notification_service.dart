@@ -5,17 +5,65 @@ import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   NotificationService(this.api);
+
+  static const String _enabledPrefKey = 'expiry_notifications_enabled';
+  static const String _tokenPrefKey = 'cached_fcm_token';
 
   final ApiClient api;
   StreamSubscription<String>? _registeredSubscription;
   String? _lastRegisteredToken;
 
+  Future<bool> isNotificationsEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_enabledPrefKey) ?? true;
+  }
+
+  Future<String?> _getCachedToken() async {
+    if (_lastRegisteredToken != null && _lastRegisteredToken!.isNotEmpty) {
+      return _lastRegisteredToken;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_tokenPrefKey);
+    if (saved != null && saved.isNotEmpty) {
+      _lastRegisteredToken = saved;
+    }
+    return _lastRegisteredToken;
+  }
+
+  Future<void> _saveCachedToken(String token) async {
+    _lastRegisteredToken = token;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenPrefKey, token);
+  }
+
+  Future<void> _clearCachedToken() async {
+    _lastRegisteredToken = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenPrefKey);
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_enabledPrefKey, enabled);
+
+    if (enabled) {
+      await registerDevice();
+    } else {
+      await _unregisterFromBackendOnly();
+    }
+  }
+
   /// Registers the device in FCM and sends the token to Django via onRegistered.
   Future<void> registerDevice() async {
     if (Firebase.apps.isEmpty) {
+      return;
+    }
+
+    if (!await isNotificationsEnabled()) {
       return;
     }
 
@@ -32,7 +80,7 @@ class NotificationService {
     }
 
     _registeredSubscription ??= messaging.onRegistered.listen((token) async {
-      _lastRegisteredToken = token;
+      await _saveCachedToken(token);
       try {
         await _sendToken(token);
       } catch (e) {
@@ -40,23 +88,52 @@ class NotificationService {
       }
     });
 
-    await messaging.register();
+    final existingToken = await _getCachedToken();
+    if (existingToken != null && existingToken.isNotEmpty) {
+      await _sendToken(existingToken);
+      return;
+    }
+
+    try {
+      await messaging.register();
+    } catch (e) {
+      debugPrint('FCM messaging.register() error: $e');
+    }
   }
 
-  /// Unregisters the device in Django and removes the FCM registration on logout.
+  /// Unregisters the token in Django when the user disables notifications in Settings,
+  /// keeping the local FCM token intact so re-enabling is instant and reliable.
+  Future<void> _unregisterFromBackendOnly() async {
+    if (Firebase.apps.isEmpty) {
+      return;
+    }
+
+    final token = await _getCachedToken();
+    if (token != null && token.isNotEmpty) {
+      await api.dio.delete<Object?>(
+        '/api/devices/unregister/',
+        data: {
+          'fcm_token': token,
+        },
+        options: Options(contentType: Headers.jsonContentType),
+      );
+    }
+  }
+
+  /// Full unregistration on logout: detaches token in Django and removes FCM registration.
   Future<void> unregisterDevice() async {
     await _registeredSubscription?.cancel();
     _registeredSubscription = null;
 
     if (Firebase.apps.isEmpty) {
-      _lastRegisteredToken = null;
+      await _clearCachedToken();
       return;
     }
 
     final messaging = FirebaseMessaging.instance;
 
     try {
-      final token = _lastRegisteredToken;
+      final token = await _getCachedToken();
       if (token != null && token.isNotEmpty) {
         await api.dio.delete<Object?>(
           '/api/devices/unregister/',
@@ -69,7 +146,7 @@ class NotificationService {
     } catch (e) {
       debugPrint('FCM backend unregister failed: $e');
     } finally {
-      _lastRegisteredToken = null;
+      await _clearCachedToken();
     }
 
     try {
