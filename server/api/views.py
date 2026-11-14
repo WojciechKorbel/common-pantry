@@ -1,28 +1,33 @@
 import hashlib
+import hmac
+import logging
 import secrets
 from datetime import timedelta
+from io import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.mail import send_mail
+from django.core.management import call_command
 from django.db import transaction
 from django.db.models import Count, Min, Prefetch, Q
-from django.db.models.functions import TruncMonth, TruncDate
+from django.db.models.functions import TruncDate, TruncMonth
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from rest_framework import generics, status
 from rest_framework.exceptions import APIException
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from google.auth.transport import requests as google_requests
-from google.oauth2 import id_token as google_id_token
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import (
     Category,
+    Device,
     EmailVerification,
     Household,
     ItemStatus,
@@ -39,6 +44,7 @@ from .serializers import (
     CategorySerializer,
     ClosePantryItemSerializer,
     CustomProductCreateSerializer,
+    DeviceRegisterSerializer,
     GoogleLoginSerializer,
     HouseholdSerializer,
     IngredientSearchSerializer,
@@ -60,8 +66,6 @@ from .serializers import (
 from .services import open_food_facts
 from .services.the_meal_db.initializer import ensure_catalog_initialized
 from .services.the_meal_db.matcher import find_ingredients
-import logging
-
 from .services.the_meal_db.themealdb_recipes import fetch_recipes_for_top_ingredients
 
 
@@ -285,10 +289,12 @@ class ResendCodeView(APIView):
             send_verification_email(user.email, code)
         except Exception:
             return Response(
-                {"detail":
-                     "Failed to send an e-mail. "
-                     "Try again later."
-                 },
+                {
+                    "detail": (
+                        "Failed to send an e-mail. "
+                        "Try again later."
+                    )
+                },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -1065,8 +1071,8 @@ class PasswordResetVerifyView(APIView):
                     user=user
                 )
             except (
-                    User.DoesNotExist,
-                    PasswordReset.DoesNotExist,
+                User.DoesNotExist,
+                PasswordReset.DoesNotExist,
             ):
                 return Response(
                     {"detail": "Invalid code or request."},
@@ -1154,8 +1160,8 @@ class PasswordResetConfirmView(APIView):
                 )
 
             if (
-                    reset.reset_token_expires_at is None
-                    or timezone.now() >= reset.reset_token_expires_at
+                reset.reset_token_expires_at is None
+                or timezone.now() >= reset.reset_token_expires_at
             ):
                 return Response(
                     {"detail": "Invalid or expired reset token."},
@@ -1230,8 +1236,8 @@ class PasswordResetResendView(APIView):
                             "Please wait before requesting another code."
                         ),
                         "retry_after_seconds": (
-                                settings.PASSWORD_RESET_RESEND_COOLDOWN_SECONDS
-                                - int((now - reset.last_sent_at).total_seconds())
+                            settings.PASSWORD_RESET_RESEND_COOLDOWN_SECONDS
+                            - int((now - reset.last_sent_at).total_seconds())
                         ),
                     },
                     status=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -1591,8 +1597,8 @@ class FoodWasteStatisticsView(HouseholdMixin, APIView):
         ).count()
 
         closed_count = (
-                summary['wasted_count'] +
-                summary['eaten_count']
+            summary['wasted_count'] +
+            summary['eaten_count']
         )
 
         summary['waste_percentage'] = round(
@@ -1825,6 +1831,100 @@ class RecipeMatchView(APIView):
                 "ingredients": top_ingredients,
                 "recipes_count": len(recipes),
                 "recipes": recipes,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class DeviceRegisterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = DeviceRegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data["fcm_token"]
+
+        # A token can belong to only one user at a time.
+        Device.objects.update_or_create(
+            fcm_token=token,
+            defaults={
+                "user": request.user,
+                "is_active": True,
+            },
+        )
+
+        return Response(
+            {"detail": "Device registered successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class DeviceUnregisterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        token = request.data.get("fcm_token")
+
+        if not isinstance(token, str) or not token.strip():
+            return Response(
+                {"detail": "FCM token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        Device.objects.filter(
+            user=request.user,
+            fcm_token=token.strip(),
+        ).update(
+            user=None,
+            is_active=False,
+        )
+
+        return Response(
+            {"detail": "Device unregistered successfully."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class TriggerExpiryNotificationsView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        expected_secret = getattr(settings, "CRON_SECRET", "")
+        provided_secret = request.headers.get("X-Cron-Secret", "")
+
+        if not expected_secret or not hmac.compare_digest(
+            provided_secret,
+            expected_secret,
+        ):
+            return Response(
+                {"detail": "Forbidden."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        output = StringIO()
+        try:
+            call_command(
+                "send_expiring_notifications",
+                stdout=output,
+                stderr=output,
+            )
+        except Exception as exc:
+            logging.exception("Expiry notifications command failed")
+            return Response(
+                {
+                    "detail": "Expiry notifications job failed.",
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "output": output.getvalue(),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {
+                "detail": "Expiry notifications job executed.",
+                "output": output.getvalue(),
             },
             status=status.HTTP_200_OK,
         )

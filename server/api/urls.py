@@ -3,6 +3,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from . import views
 from .views import (
+    DeviceRegisterView,
+    DeviceUnregisterView,
     GoogleLoginView,
     HouseholdDetailsAPIView,
     HouseholdJoinAPIView,
@@ -141,21 +143,35 @@ urlpatterns = [
         views.ShoppingMoveToPantryView.as_view(),
         name='shopping-move-to-pantry',
     ),
-
+    # Devices & Notifications
+    path(
+        "devices/register/",
+        DeviceRegisterView.as_view(),
+        name="device-register",
+    ),
+    path(
+        "devices/unregister/",
+        DeviceUnregisterView.as_view(),
+        name="device-unregister",
+    ),
+    # Internal cron
+    path(
+        "internal/cron/expiry-notifications/",
+        views.TriggerExpiryNotificationsView.as_view(),
+        name="cron-expiry-notifications",
+    ),
     # Statistics
     path(
         'households/<int:household_id>/statistics/food-waste/',
         views.FoodWasteStatisticsView.as_view(),
         name='food-waste-statistics',
     ),
-
     # The Meal Db API
     path(
         "product-match/",
         IngredientMatchView.as_view(),
         name="themealdb-ingredient-match",
     ),
-
     path(
         "recipe-match/",
         RecipeMatchView.as_view(),

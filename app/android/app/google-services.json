@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "61697045918",
+    "project_id": "common-pantry",
+    "storage_bucket": "common-pantry.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:61697045918:android:d12b96d300eb16b705128f",
+        "android_client_info": {
+          "package_name": "com.teampantry.common_pantry"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAv4lSvH53VeRa3-QRjvnD1oVtooMFPt8U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

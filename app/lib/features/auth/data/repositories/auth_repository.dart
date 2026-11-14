@@ -1,18 +1,20 @@
 import 'dart:async';
 
 import 'package:common_pantry/core/network/api_client.dart';
+import 'package:common_pantry/core/services/notification_service.dart';
 import 'package:common_pantry/core/storage/token_storage.dart';
 import 'package:common_pantry/features/auth/data/models/auth_tokens.dart';
 import 'package:common_pantry/features/auth/data/models/login_request.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthRepository {
-  AuthRepository(this.api, this.tokenStorage) {
+  AuthRepository(this.api, this.tokenStorage) : notificationService = NotificationService(api) {
     _initGoogleSignIn();
   }
 
   final ApiClient api;
   final TokenStorage tokenStorage;
+  final NotificationService notificationService;
 
   static const String _serverClientId =
       '140271937404-b6u2qh3tsbb0qi8sag88udgotdhfnun8.apps.googleusercontent.com';
@@ -47,10 +49,18 @@ class AuthRepository {
       Map<String, dynamic>.from(response.data as Map),
     );
 
+    // 1. Save JWT tokens FIRST so ApiClient attaches Authorization header.
     await tokenStorage.saveTokens(
       access: tokens.access,
       refresh: tokens.refresh,
     );
+
+    // 2. Register FCM token for this authenticated user.
+    try {
+      await notificationService.registerDevice();
+    } catch (e) {
+      // print('FCM registration failed: $e');
+    }
   }
 
   Future<bool> loginWithGoogle() async {
@@ -79,6 +89,12 @@ class AuthRepository {
         refresh: tokens.refresh,
       );
 
+      try {
+        await notificationService.registerDevice();
+      } catch (e) {
+        // print('FCM registration after Google login failed: $e');
+      }
+
       return true;
     } on GoogleSignInException catch (e) {
       if (e.code == GoogleSignInExceptionCode.canceled) {
@@ -92,8 +108,10 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      await GoogleSignIn.instance.signOut();
-    } catch (_) {}
+      await notificationService.unregisterDevice();
+    } catch (_) {
+      // Never block local logout if push unregistration fails.
+    }
     await tokenStorage.clear();
   }
 

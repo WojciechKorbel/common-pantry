@@ -163,5 +163,12 @@ PASSWORD_RESET_RESEND_MAX_ATTEMPTS = 5
 PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 10
 
 
+# Firebase Cloud Messaging
+FIREBASE_CREDENTIALS = os.environ.get(
+    "FIREBASE_CREDENTIALS",
+    os.path.join(BASE_DIR, "firebase", "serviceAccountKey.json"),
+)
+CRON_SECRET = os.environ.get("CRON_SECRET", "")
+
 # Google OAuth Configuration
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")

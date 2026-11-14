@@ -290,6 +290,55 @@ class ShoppingItem(models.Model):
         return f"{self.name} ({self.quantity} {self.unit})"
 
 
+class Device(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="devices",
+        null=True,
+        blank=True,
+    )
+
+    fcm_token = models.CharField(
+        max_length=500,
+        unique=True,
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Device {self.id} - User {self.user_id}"
+
+
+class SentExpiryNotification(models.Model):
+    """
+    Stores expiry notifications already sent for a pantry item.
+    Prevents sending the same notification multiple times.
+    """
+
+    pantry_item = models.ForeignKey(
+        "PantryItem",
+        on_delete=models.CASCADE,
+        related_name="sent_expiry_notifications",
+    )
+
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["pantry_item"],
+                name="unique_expiry_notification_per_item",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Expiry notification for pantry item {self.pantry_item_id}"
+
+
 class TheMealDBIngredient(models.Model):
     themealdb_id = models.CharField(
         max_length=20,
